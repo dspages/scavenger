@@ -1,0 +1,16 @@
+Box {
+    background-color: grey;
+    opacity: .9;
+    align-items: center;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 30px;
+    width: 50%;
+}
+
+Button {
+    width: 150px;
+    height: 50px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
