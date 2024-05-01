@@ -1,0 +1,5 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <ui:VisualElement style="bottom: auto; justify-content: flex-start; align-items: flex-end; position: absolute; width: auto; left: 0; right: 0; height: 100px; background-color: rgba(77, 77, 77, 255);">
+        <ui:Button text="End Turn" display-tooltip-when-elided="true" name="EndTurnButton" style="height: 50px; width: 80px; bottom: 25px; position: absolute; right: 25px;" />
+    </ui:VisualElement>
+</ui:UXML>

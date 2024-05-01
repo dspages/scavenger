@@ -64,7 +64,7 @@ public class CharacterSheet
 
     private int MoveSpeed()
     {
-        return 5;
+        return 8;
     }
 
     public int MaxHealth()

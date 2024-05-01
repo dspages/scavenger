@@ -1,16 +1,11 @@
-<?xml version="1.0" encoding="utf-8"?>
-<UXML
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xmlns="UnityEngine.UIElements"
-    xsi:noNamespaceSchemaLocation="../UIElementsSchema/UIElements.xsd"
-    xsi:schemaLocation="UnityEngine.UIElements ../UIElementsSchema/UnityEngine.UIElements.xsd">
-    <Style src="MainMenu.uss" />
-    <Box>
-        <Label name="TitleText" text="Main Menu" />
-        <Box>
-            <Button name="NewGameButton" text="New Game" />
-            <Button name="LoadGameButton" text="Load Game" />
-            <Button name="QuitButton" text="Quit" />
-        </Box>
-    </Box>
-</UXML>
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="UnityEngine.UIElements" noNamespaceSchemaLocation="../UIElementsSchema/UIElements.xsd" schemaLocation="UnityEngine.UIElements ../UIElementsSchema/UnityEngine.UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/UXML/MainMenu.uss?fileID=7433441132597879392&amp;guid=0838638bf10a03d42b4c5225f2190041&amp;type=3#MainMenu" />
+    <ui:Box>
+        <ui:Label name="TitleText" text="Main Menu" />
+        <ui:Box name="List">
+            <ui:Button name="NewGameButton" text="New Game" />
+            <ui:Button name="LoadGameButton" text="Load Game" />
+            <ui:Button name="QuitButton" text="Quit" />
+        </ui:Box>
+    </ui:Box>
+</ui:UXML>

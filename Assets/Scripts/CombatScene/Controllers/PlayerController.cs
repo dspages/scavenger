@@ -34,6 +34,12 @@ public class PlayerController : CombatController
         }
     }
 
+    public void EndTurnButtonClick()
+    {
+        if (!isTurn) return;
+        EndTurn();
+    }
+
     private Tile GetMouseTile()
     {
         Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
