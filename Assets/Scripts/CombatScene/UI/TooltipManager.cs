@@ -1,0 +1,209 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UIElements;
+
+public class TooltipManager : MonoBehaviour
+{
+    [Header("Tooltip Settings")]
+    [SerializeField] private float hoverDelay = 0.1f; // 100ms delay
+    [SerializeField] private Vector2 tooltipOffset = new Vector2(10, 10);
+    [SerializeField] private float maxTooltipWidth = 300f;
+    
+    [Header("UI References")]
+    [SerializeField] private VisualTreeAsset tooltipTemplate;
+    [SerializeField] private StyleSheet tooltipStyles;
+    
+    private VisualElement tooltipElement;
+    private Label tooltipLabel;
+    private bool isTooltipVisible = false;
+    private Coroutine hoverCoroutine;
+    private GameObject currentHoveredObject;
+    
+    private void Start()
+    {
+        CreateTooltipUI();
+    }
+    
+    private void CreateTooltipUI()
+    {
+        // Create tooltip element if no template is provided
+        if (tooltipTemplate == null)
+        {
+            tooltipElement = new VisualElement();
+            tooltipElement.style.position = Position.Absolute;
+            tooltipElement.style.backgroundColor = new Color(1f, 1f, 1f, 0.95f);
+            tooltipElement.style.borderTopWidth = 1f;
+            tooltipElement.style.borderBottomWidth = 1f;
+            tooltipElement.style.borderLeftWidth = 1f;
+            tooltipElement.style.borderRightWidth = 1f;
+            tooltipElement.style.borderTopColor = new Color(0.78f, 0.78f, 0.78f, 1f);
+            tooltipElement.style.borderBottomColor = new Color(0.78f, 0.78f, 0.78f, 1f);
+            tooltipElement.style.borderLeftColor = new Color(0.78f, 0.78f, 0.78f, 1f);
+            tooltipElement.style.borderRightColor = new Color(0.78f, 0.78f, 0.78f, 1f);
+            tooltipElement.style.paddingTop = 10f;
+            tooltipElement.style.paddingBottom = 10f;
+            tooltipElement.style.paddingLeft = 12f;
+            tooltipElement.style.paddingRight = 12f;
+            tooltipElement.style.maxWidth = maxTooltipWidth;
+            tooltipElement.style.display = DisplayStyle.None;
+            
+            tooltipLabel = new Label();
+            tooltipLabel.style.color = new Color(0.2f, 0.2f, 0.2f, 1f);
+            tooltipLabel.style.whiteSpace = WhiteSpace.Normal;
+            tooltipLabel.style.unityTextAlign = TextAnchor.UpperLeft;
+            tooltipLabel.style.fontSize = 13f;
+            tooltipElement.Add(tooltipLabel);
+        }
+        else
+        {
+            tooltipElement = tooltipTemplate.CloneTree();
+            tooltipLabel = tooltipElement.Q<Label>("TooltipLabel");
+            if (tooltipLabel == null)
+            {
+                tooltipLabel = new Label();
+                tooltipElement.Add(tooltipLabel);
+            }
+            
+            // Ensure the tooltip starts hidden
+            tooltipElement.style.display = DisplayStyle.None;
+            
+            // Force apply the light theme colors to ensure readability
+            tooltipElement.style.backgroundColor = new Color(1f, 1f, 1f, 0.95f);
+            tooltipLabel.style.color = new Color(0.2f, 0.2f, 0.2f, 1f);
+            
+            if (tooltipStyles != null)
+            {
+                tooltipElement.styleSheets.Add(tooltipStyles);
+            }
+        }
+        
+        // Add tooltip to the root visual element
+        VisualElement root = GetComponent<UIDocument>().rootVisualElement;
+        if (root != null)
+        {
+            root.Add(tooltipElement);
+        }
+    }
+    
+    public void StartHover(GameObject hoveredObject)
+    {
+        if (hoveredObject == currentHoveredObject && isTooltipVisible)
+        {
+            return;
+        }
+            
+        StopHover();
+        
+        currentHoveredObject = hoveredObject;
+        if (hoverCoroutine != null)
+        {
+            StopCoroutine(hoverCoroutine);
+        }
+        
+        hoverCoroutine = StartCoroutine(HoverDelay());
+    }
+    
+    public void StopHover()
+    {
+        if (hoverCoroutine != null)
+        {
+            StopCoroutine(hoverCoroutine);
+            hoverCoroutine = null;
+        }
+        
+        HideTooltip();
+        currentHoveredObject = null;
+    }
+    
+    private IEnumerator HoverDelay()
+    {
+        yield return new WaitForSeconds(hoverDelay);
+        
+        // Check if we're still hovering the same object
+        if (currentHoveredObject != null)
+        {
+            ShowTooltip();
+        }
+    }
+    
+    private void ShowTooltip()
+    {
+        if (tooltipElement == null || tooltipLabel == null || currentHoveredObject == null)
+        {
+            return;
+        }
+        
+        // Get the tooltip text from the current hovered object
+        string tooltipText = GetTooltipTextFromObject(currentHoveredObject);
+        
+        if (string.IsNullOrEmpty(tooltipText))
+        {
+            return;
+        }
+        
+        tooltipLabel.text = tooltipText;
+        tooltipElement.style.display = DisplayStyle.Flex;
+        isTooltipVisible = true;
+        
+        // Position tooltip near mouse
+        Vector2 mousePos = Input.mousePosition;
+        Vector2 screenPos = new Vector2(mousePos.x + tooltipOffset.x, mousePos.y + tooltipOffset.y);
+        
+        // Convert screen position to UI position
+        VisualElement root = GetComponent<UIDocument>().rootVisualElement;
+        if (root != null)
+        {
+            Vector2 uiPos = RuntimePanelUtils.ScreenToPanel(root.panel, screenPos);
+            // Fix Y-axis inversion by subtracting from screen height
+            uiPos.y = Screen.height - uiPos.y;
+            tooltipElement.style.left = uiPos.x;
+            tooltipElement.style.top = uiPos.y;
+        }
+    }
+    
+    private string GetTooltipTextFromObject(GameObject obj)
+    {
+        // Try to get tooltip text from TooltipProvider components
+        TooltipProvider[] providers = obj.GetComponents<TooltipProvider>();
+        foreach (TooltipProvider provider in providers)
+        {
+            string text = provider.GetTooltipText();
+            if (!string.IsNullOrEmpty(text))
+            {
+                return text;
+            }
+        }
+        
+        return "";
+    }
+    
+    private void HideTooltip()
+    {
+        if (tooltipElement != null)
+        {
+            tooltipElement.style.display = DisplayStyle.None;
+        }
+        isTooltipVisible = false;
+    }
+    
+    private void Update()
+    {
+        // Update tooltip position if visible
+        if (isTooltipVisible && tooltipElement != null)
+        {
+            Vector2 mousePos = Input.mousePosition;
+            Vector2 screenPos = new Vector2(mousePos.x + tooltipOffset.x, mousePos.y + tooltipOffset.y);
+            
+            VisualElement root = GetComponent<UIDocument>().rootVisualElement;
+            if (root != null)
+            {
+                Vector2 uiPos = RuntimePanelUtils.ScreenToPanel(root.panel, screenPos);
+                // Fix Y-axis inversion by subtracting from screen height
+                uiPos.y = Screen.height - uiPos.y;
+                tooltipElement.style.left = uiPos.x;
+                tooltipElement.style.top = uiPos.y;
+            }
+        }
+    }
+} 

@@ -8,13 +8,17 @@ public class Action : MonoBehaviour
     {
         NONE,
         MOVING,
+        INTERRUPTING,
+        BEING_INTERRUPTED,
         ATTACKING,
+        RESOLVING_ATTACK
     };
 
     public enum TargetType
     {
         NONE,
         MELEE,
+        RANGED,
     };
 
     protected Animator anim;

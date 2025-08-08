@@ -5,6 +5,7 @@ using UnityEngine;
 public class PlayerController : CombatController
 {
     private Tile hoverTile = null;
+    private TooltipManager tooltipManager;
 
     override protected bool ContainsEnemy(Tile tile)
     {
@@ -20,6 +21,12 @@ public class PlayerController : CombatController
     override protected bool DoesGUI()
     {
         return true;
+    }
+
+    override protected void Start()
+    {
+        base.Start();
+        tooltipManager = FindObjectOfType<TooltipManager>();
     }
 
     void Update()
@@ -59,9 +66,10 @@ public class PlayerController : CombatController
         GameObject lineObject = new GameObject("Line");
         lineObject.tag = "LineTag";
         LineRenderer line = lineObject.AddComponent(typeof(LineRenderer)) as LineRenderer;
+        line.material = new Material(Shader.Find("Sprites/Default"));
         line.positionCount = 2;
-        line.startWidth = 0.2f;
-        line.endWidth = 0.2f;
+        line.startWidth = 0.1f;
+        line.endWidth = 0.1f;
         Vector3[] points = new Vector3[2];
         points[0] = start;
         points[1] = end;
@@ -75,6 +83,12 @@ public class PlayerController : CombatController
         {
             Destroy(line);
         }
+        
+        // Stop tooltip for the previous hovered tile
+        if (tooltipManager != null)
+        {
+            tooltipManager.StopHover();
+        }
     }
 
     private void SetMouseHover()
@@ -87,6 +101,12 @@ public class PlayerController : CombatController
         {
             LineBetweenPositions(t.transform.position, t.searchParent.transform.position);
             t = t.searchParent;
+        }
+        
+        // Start tooltip for the new hovered tile
+        if (tooltipManager != null)
+        {
+            tooltipManager.StartHover(hoverTile.gameObject);
         }
     }
 

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 public class Tile : MonoBehaviour
 {
     [SerializeField] public int x, y;
+    [SerializeField] private int moveCost;
 
     public CombatController occupant = null;
     public bool isWalkable = true;
@@ -36,7 +37,7 @@ public class Tile : MonoBehaviour
 
     public int GetMoveCost()
     {
-        return 2;
+        return moveCost;
     }
 
     // Update is called once per frame

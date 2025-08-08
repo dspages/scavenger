@@ -15,10 +15,10 @@ public class CombatController : MonoBehaviour
     private Tile currentTile;
 
     // Use this for initialization
-    void Start()
+    virtual protected void Start()
     {
         manager = FindObjectOfType<TileManager>();
-        selectedAction = GetComponent<ActionMeleeAttack>();
+        selectedAction = GetComponent<ActionWeaponAttack>();
     }
 
     virtual public bool IsPC()

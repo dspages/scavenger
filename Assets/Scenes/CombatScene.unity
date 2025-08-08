@@ -198,6 +198,7 @@ GameObject:
   - component: {fileID: 1740805471}
   - component: {fileID: 1740805473}
   - component: {fileID: 1740805474}
+  - component: {fileID: 1740805475}
   m_Layer: 5
   m_Name: RootDoc
   m_TagString: Untagged
@@ -250,6 +251,23 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   CombatMenuTemplate: {fileID: 9197481963319205126, guid: 44974846734a9d445ba9402097e21d20, type: 3}
   CombatMenuStyles: {fileID: 7433441132597879392, guid: b58b7ba659a95e24e99279871f76c2ed, type: 3}
+--- !u!114 &1740805475
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1740805470}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4923ee32a1d2a764aa2b050556896044, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hoverDelay: 0.1
+  tooltipOffset: {x: 10, y: 10}
+  maxTooltipWidth: 300
+  tooltipTemplate: {fileID: 9197481963319205126, guid: d5ead3d207017174298b53cac413e832, type: 3}
+  tooltipStyles: {fileID: 7433441132597879392, guid: c168d7ebe58b3084690dc790df4c233c, type: 3}
 --- !u!1 &1781391617
 GameObject:
   m_ObjectHideFlags: 0

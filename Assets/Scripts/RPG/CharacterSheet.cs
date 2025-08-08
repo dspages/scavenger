@@ -31,8 +31,11 @@ public class CharacterSheet
         CLASS_WARLOCK, // Caster focused on summoning demons, CC, and other 'evil' powers
     }
 
+    private IndicatorBar healthBar;
+    private IndicatorBar manaBar;
     private GameObject combatPrefab;
     public GameObject avatar;
+    public Inventory inventory;
 
     public int strength; // Carrying capacity, melee damage, thrown range, small impact on life
     public int agility; // Move speed, dodge chance, crit chance
@@ -48,7 +51,7 @@ public class CharacterSheet
 
     public bool dead = false;
 
-    public HandheldEquippable handEquipped;
+    public EquippableWeapon weaponEquipped;
 
     public int currentHealth;
     public int currentMovePoints = 0;
@@ -60,6 +63,7 @@ public class CharacterSheet
     {
         firstName = name;
         currentHealth = MaxHealth();
+        inventory = new Inventory();
     }
 
     private int MoveSpeed()
@@ -91,7 +95,11 @@ public class CharacterSheet
     private GameObject CreateCombatAvatar(Vector3 location, Quaternion rotation)
     {
         combatPrefab = (GameObject)Resources.Load("Prefabs/combatant", typeof(GameObject));
-        return GameObject.Instantiate(combatPrefab, location, rotation) as GameObject;
+        GameObject avatar = GameObject.Instantiate(combatPrefab, location, rotation) as GameObject;
+        healthBar = avatar.transform.Find("Canvas").transform.Find("HealthBar").GetComponent<IndicatorBar>();
+        healthBar.SetSliderMax(MaxHealth());
+        healthBar.SetSlider(currentHealth);
+        return avatar;
     }
 
     public bool CanDeploy()
@@ -108,5 +116,33 @@ public class CharacterSheet
     public void DisplayPopupDuringCombat(string toDisplay)
     {
 
+    }
+
+    public int MinDamage()
+    {
+        return 2;
+    }
+
+    public int MaxDamage()
+    {
+        return 4;
+    }
+
+    public void ReceiveDamage(int amount)
+    {
+        currentHealth -= amount;
+        if (currentHealth <= 0)
+        {
+            currentHealth = 0;
+            dead = true;
+            GameObject.Destroy(avatar);
+        }
+        healthBar.SetSlider(currentHealth);
+    }
+
+    public void PerformBasicAttack(CharacterSheet target)
+    {
+        int dam = MinDamage() + Random.Range(0, 1 + MaxDamage() - MinDamage());
+        target.ReceiveDamage(dam);
     }
 }

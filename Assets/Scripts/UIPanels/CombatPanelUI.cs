@@ -49,9 +49,6 @@ public class CombatPanelUI : MonoBehaviour
 
     private void OnEndTurnButtonClicked()
     {
-        // Add code here to handle the load game button click
-        Debug.Log("End turn button clicked");
-
         PlayerController[] pcs = FindObjectsOfType<PlayerController>();
         foreach (PlayerController pc in pcs)
         {

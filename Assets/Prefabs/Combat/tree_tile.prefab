@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 9179988453338876963}
   - component: {fileID: 9179988453338876964}
   - component: {fileID: -1629110630459835106}
+  - component: {fileID: 4468632721145002392}
   m_Layer: 0
   m_Name: tree_tile
   m_TagString: Untagged
@@ -98,9 +99,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f8a2f5c98c477da4c84273bc3b77ff38, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  neighbors: []
   x: 0
   y: 0
+  moveCost: 3
   occupant: {fileID: 0}
   isWalkable: 1
   isHovered: 0
@@ -134,3 +135,18 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 2, y: 2}
   m_EdgeRadius: 0
+--- !u!114 &4468632721145002392
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9179988453338876965}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 79f6d9ef9cdd05140a72195b620e03dd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tooltipText: 
+  useDynamicText: 1
+  dynamicTextFormat: 
