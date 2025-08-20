@@ -31,28 +31,12 @@ public class TooltipManager : MonoBehaviour
         if (tooltipTemplate == null)
         {
             tooltipElement = new VisualElement();
-            tooltipElement.style.position = Position.Absolute;
-            tooltipElement.style.backgroundColor = new Color(1f, 1f, 1f, 0.95f);
-            tooltipElement.style.borderTopWidth = 1f;
-            tooltipElement.style.borderBottomWidth = 1f;
-            tooltipElement.style.borderLeftWidth = 1f;
-            tooltipElement.style.borderRightWidth = 1f;
-            tooltipElement.style.borderTopColor = new Color(0.78f, 0.78f, 0.78f, 1f);
-            tooltipElement.style.borderBottomColor = new Color(0.78f, 0.78f, 0.78f, 1f);
-            tooltipElement.style.borderLeftColor = new Color(0.78f, 0.78f, 0.78f, 1f);
-            tooltipElement.style.borderRightColor = new Color(0.78f, 0.78f, 0.78f, 1f);
-            tooltipElement.style.paddingTop = 10f;
-            tooltipElement.style.paddingBottom = 10f;
-            tooltipElement.style.paddingLeft = 12f;
-            tooltipElement.style.paddingRight = 12f;
+            tooltipElement.AddToClassList("ui-tooltip");
             tooltipElement.style.maxWidth = maxTooltipWidth;
             tooltipElement.style.display = DisplayStyle.None;
-            
+
             tooltipLabel = new Label();
-            tooltipLabel.style.color = new Color(0.2f, 0.2f, 0.2f, 1f);
-            tooltipLabel.style.whiteSpace = WhiteSpace.Normal;
-            tooltipLabel.style.unityTextAlign = TextAnchor.UpperLeft;
-            tooltipLabel.style.fontSize = 13f;
+            tooltipLabel.AddToClassList("ui-tooltip__label");
             tooltipElement.Add(tooltipLabel);
         }
         else
@@ -68,10 +52,10 @@ public class TooltipManager : MonoBehaviour
             // Ensure the tooltip starts hidden
             tooltipElement.style.display = DisplayStyle.None;
             
-            // Force apply the light theme colors to ensure readability
-            tooltipElement.style.backgroundColor = new Color(1f, 1f, 1f, 0.95f);
-            tooltipLabel.style.color = new Color(0.2f, 0.2f, 0.2f, 1f);
+            // Ensure display hidden until shown
+            tooltipElement.style.display = DisplayStyle.None;
             
+            // Attach theme styles if available
             if (tooltipStyles != null)
             {
                 tooltipElement.styleSheets.Add(tooltipStyles);

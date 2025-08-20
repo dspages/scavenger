@@ -67,9 +67,20 @@ public class TurnManager : MonoBehaviour
         return null;
     }
 
+    public bool IsEnemyTurn()
+    {
+        return enemyTurn;
+    }
+
+    public bool IsPlayerTurn()
+    {
+        return !enemyTurn;
+    }
+
     void BeginTurn()
     {
         CombatController controller = GetCurrentCombatController();
+        enemyTurn = !controller.IsPC();
         controller.BeginTurn();
         // DisplayCurrentCreatureStats();
     }

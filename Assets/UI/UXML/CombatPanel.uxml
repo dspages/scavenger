@@ -1,5 +1,37 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <ui:VisualElement style="bottom: auto; justify-content: flex-start; align-items: flex-end; position: absolute; width: auto; left: 0; right: 0; height: 100px; background-color: rgba(77, 77, 77, 255);">
-        <ui:Button text="End Turn" display-tooltip-when-elided="true" name="EndTurnButton" style="height: 50px; width: 80px; bottom: 25px; position: absolute; right: 25px;" />
+    <ui:VisualElement name="HudRoot" class="ui-transparent" style="position: absolute; left: 0px; right: 0px; top: 0px; bottom: 0px;">
+        <ui:VisualElement name="CombatHudBar" class="hud-bar ui-blocker" style="bottom: 0px; justify-content: flex-start; align-items: center; position: absolute; width: 100%; left: 0; right: 0; height: 72px; background-color: rgba(45, 45, 45, 0.95); picking-mode: position;">
+            <ui:VisualElement class="hud-left" style="flex-grow: 1; flex-direction: row; align-items: center; padding-left: 16px;" />
+            <ui:VisualElement class="hud-right" style="flex-direction: row; align-items: center; margin-left: auto;">
+                <ui:Button text="Inventory" display-tooltip-when-elided="true" name="ToggleInventoryButton" class="secondary" style="height: 40px; width: 110px; margin-right: 8px;" />
+                <ui:Button text="End Turn" display-tooltip-when-elided="true" name="EndTurnButton" class="primary" style="height: 44px; width: 110px; margin-right: 16px;" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="InventoryPanel" class="panel elevated ui-blocker" style="position: absolute; right: 16px; bottom: 84px; width: 520px; height: 420px; background-color: rgba(30,30,30,0.98); border-radius: 8px; padding: 16px; z-index: 100; picking-mode: position;">
+            <ui:Label text="Inventory" class="panel-title" />
+            <ui:VisualElement class="inventory-content ui-blocker" style="flex-direction: row; flex-grow: 1; margin-top: 8px;">
+                <!-- Character Equipment -->
+                <ui:VisualElement name="EquipmentPanel" class="ui-blocker" style="width: 180px; margin-right: 16px;">
+                    <ui:Label text="Equipment" class="section-title" />
+                    <ui:VisualElement class="equipment-grid ui-blocker" style="flex-grow: 1; align-items: center; justify-content: center;">
+                        <!-- Equipment slots arranged in a humanoid pattern -->
+                        <ui:VisualElement name="LeftHandSlot" class="equipment-slot ui-blocker" style="position: absolute; left: 20px; top: 80px; width: 48px; height: 48px;" />
+                        <ui:VisualElement name="ArmorSlot" class="equipment-slot ui-blocker" style="position: absolute; left: 70px; top: 80px; width: 48px; height: 48px;" />
+                        <ui:VisualElement name="RightHandSlot" class="equipment-slot ui-blocker" style="position: absolute; left: 120px; top: 80px; width: 48px; height: 48px;" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                
+                <!-- Inventory Grid -->
+                <ui:VisualElement name="InventoryGrid" class="ui-blocker" style="flex-grow: 1; position: relative;">
+                    <ui:Label text="Backpack" class="section-title" />
+                    <ui:VisualElement name="ItemGrid" class="item-grid ui-blocker" style="flex-direction: row; flex-wrap: wrap; width: 288px; height: 288px;">
+                        <!-- 24 slots in 6x4 grid will be created dynamically -->
+                    </ui:VisualElement>
+                    <ui:VisualElement name="Trash" class="inventory-slot ui-blocker trash-slot" style="position: absolute; right: 0px; bottom: 0px; width: 44px; height: 44px;">
+                        <ui:Label text="🗑️" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

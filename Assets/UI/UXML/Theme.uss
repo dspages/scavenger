@@ -1,0 +1,49 @@
+:root {
+    --color-surface: rgba(30, 30, 30, 0.98);
+    --color-surface-alt: rgba(45, 45, 45, 0.95);
+    --color-text: #e5e7eb;
+    --color-muted: #9ca3af;
+    --color-primary: #3b82f6;
+    --color-secondary: #4b5563;
+    --radius: 8px;
+    --spacing-s: 8px;
+    --spacing-m: 12px;
+    --spacing-l: 16px;
+}
+
+.text-muted { color: var(--color-muted); }
+.text { color: var(--color-text); }
+.bg-surface { background-color: var(--color-surface); }
+.bg-surface-alt { background-color: var(--color-surface-alt); }
+.rounded { border-radius: var(--radius); }
+.pad-s { padding: var(--spacing-s); }
+.pad-m { padding: var(--spacing-m); }
+.pad-l { padding: var(--spacing-l); }
+.btn { border-radius: 6px; color: white; }
+.btn-primary { background-color: var(--color-primary); }
+.btn-secondary { background-color: var(--color-secondary); } 
+
+/* Reusable tooltip styles (shared by in-world and UI tooltips) */
+.ui-tooltip {
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.85);
+    padding-left: 6px;
+    padding-right: 6px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgba(255, 255, 255, 0.15);
+    border-right-color: rgba(255, 255, 255, 0.15);
+    border-top-color: rgba(255, 255, 255, 0.15);
+    border-bottom-color: rgba(255, 255, 255, 0.15);
+    max-width: 300px;
+    border-radius: 4px;
+}
+
+.ui-tooltip__label {
+    color: #ffffff;
+    font-size: 12px;
+}

@@ -1,1 +1,140 @@
 VisualElement {}
+
+.hud-bar {
+    background-color: rgba(45, 45, 45, 0.95);
+    border-top-width: 1px;
+    border-top-color: rgba(255,255,255,0.06);
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(0,0,0,0.5);
+}
+
+.primary {
+    background-color: #3b82f6;
+    color: white;
+    border-radius: 6px;
+}
+
+.secondary {
+    background-color: #4b5563;
+    color: white;
+    border-radius: 6px;
+}
+
+.panel {
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-color: rgba(255,255,255,0.06);
+    border-right-color: rgba(255,255,255,0.06);
+    border-top-color: rgba(255,255,255,0.06);
+    border-bottom-color: rgba(255,255,255,0.06);
+}
+
+.elevated {
+    /* Note: box-shadow not supported in UI Toolkit, removed */
+}
+
+.panel-title {
+    font-size: 16px;
+    -unity-font-style: bold;
+    color: #e5e7eb;
+    margin-bottom: 8px;
+}
+
+.section-title {
+    font-size: 14px;
+    -unity-font-style: bold;
+    color: #d1d5db;
+    margin-bottom: 8px;
+}
+
+.inventory-content {
+    flex-grow: 1;
+}
+
+.equipment-slot {
+    background-color: rgba(75, 85, 99, 0.3);
+    border: 2px solid rgba(156, 163, 175, 0.3);
+    border-radius: 6px;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Note: hover visuals handled via drag classes to avoid conflicting during drag */
+
+/* Drag feedback for equipment slots */
+.equip-drop-valid {
+    background-color: rgba(34, 197, 94, 0.35); /* green */
+    border-color: rgba(34, 197, 94, 0.85);
+}
+
+.equip-drop-invalid {
+    background-color: rgba(239, 68, 68, 0.35); /* red */
+    border-color: rgba(239, 68, 68, 0.85);
+}
+
+.equip-drop-neutral {
+    background-color: rgba(156, 163, 175, 0.35); /* light grey */
+    border-color: rgba(156, 163, 175, 0.85);
+}
+
+.item-grid {
+    background-color: rgba(17, 24, 39, 0.4);
+    border: 1px solid rgba(75, 85, 99, 0.5);
+    border-radius: 4px;
+    padding: 4px;
+}
+
+.inventory-slot {
+    width: 44px;
+    height: 44px;
+    background-color: rgba(75, 85, 99, 0.3);
+    border: 1px solid rgba(156, 163, 175, 0.3);
+    border-radius: 4px;
+    margin: 2px;
+    align-items: center;
+    justify-content: center;
+}
+
+.inventory-slot:hover {
+    border-color: rgba(156, 163, 175, 0.6);
+    background-color: rgba(75, 85, 99, 0.5);
+}
+
+.slot-icon {
+    width: 36px;
+    height: 36px;
+}
+
+.drag-ghost {
+    opacity: 0.9;
+}
+
+.trash-slot {
+    border-color: rgba(239, 68, 68, 0.8);
+    background-color: rgba(239, 68, 68, 0.15);
+}
+
+.stack-count {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    font-size: 10px;
+    color: white;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 2px;
+    padding: 1px 3px;
+}
+
+/* UI Click Blocking Utilities */
+.ui-blocker {
+    /* Elements with this class will block world interactions */
+    /* This class is detected by UIClickBlocker.IsPointerOverBlockingUI() */
+    picking-mode: position;
+}
+
+.ui-transparent {
+    /* Elements with this class allow world interactions to pass through */
+    picking-mode: ignore;
+}

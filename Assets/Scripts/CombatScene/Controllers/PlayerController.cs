@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public class PlayerController : CombatController
 {
@@ -37,6 +38,12 @@ public class PlayerController : CombatController
         }
         if (!isActing)
         {
+            if (UIClickBlocker.IsPointerOverBlockingUI())
+            {
+                // Ensure world hover visuals/tooltips are cleared when over UI
+                ClearMouseHover();
+                return;
+            }
             CheckMouse();
         }
     }
@@ -46,6 +53,8 @@ public class PlayerController : CombatController
         if (!isTurn) return;
         EndTurn();
     }
+
+
 
     private Tile GetMouseTile()
     {

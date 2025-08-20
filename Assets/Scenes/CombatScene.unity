@@ -251,6 +251,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   CombatMenuTemplate: {fileID: 9197481963319205126, guid: 44974846734a9d445ba9402097e21d20, type: 3}
   CombatMenuStyles: {fileID: 7433441132597879392, guid: b58b7ba659a95e24e99279871f76c2ed, type: 3}
+  ThemeStyles: {fileID: 7433441132597879392, guid: 7d1be2d38e920b04980cceed7a34cda8, type: 3}
 --- !u!114 &1740805475
 MonoBehaviour:
   m_ObjectHideFlags: 0
