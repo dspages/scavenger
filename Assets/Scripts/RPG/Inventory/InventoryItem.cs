@@ -21,13 +21,9 @@ public class InventoryItem
         Legendary
     }
 
-    public InventoryItem(string name, string desc = "", Sprite itemIcon = null, int maxStack = 1)
+    public InventoryItem(string name)
     {
         itemName = name;
-        description = desc;
-        icon = itemIcon;
-        stackSize = maxStack;
-        currentStack = 1;
     }
 
     public bool CanStackWith(InventoryItem other)
@@ -49,7 +45,7 @@ public class InventoryItem
         return toTransfer;
     }
 
-    public string GetDisplayName()
+    public virtual string GetDisplayName()
     {
         if (currentStack > 1)
             return $"{itemName} ({currentStack})";

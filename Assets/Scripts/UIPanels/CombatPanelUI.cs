@@ -13,14 +13,9 @@ public class CombatPanelUI : MonoBehaviour
 
     private Button endTurnButton;
     private Button toggleInventoryButton;
-    private VisualElement inventoryPanel;
-    private VisualElement itemGrid;
-    private VisualElement leftHandSlot;
-    private VisualElement rightHandSlot;
-    private VisualElement armorSlot;
     private VisualElement trashSlot;
-    private List<VisualElement> inventorySlots = new List<VisualElement>();
     private CharacterSheet currentCharacter;
+    private InventoryUIManager inventoryUI;
 
     // UI root reference (the cloned VisualTree) for overlays like drag ghost
     private VisualElement uiRoot;
@@ -66,12 +61,15 @@ public class CombatPanelUI : MonoBehaviour
         // Get references to the UI elements
         endTurnButton = visualTree.Q<Button>("EndTurnButton");
         toggleInventoryButton = visualTree.Q<Button>("ToggleInventoryButton");
-        inventoryPanel = visualTree.Q<VisualElement>("InventoryPanel");
-        itemGrid = visualTree.Q<VisualElement>("ItemGrid");
-        leftHandSlot = visualTree.Q<VisualElement>("LeftHandSlot");
-        rightHandSlot = visualTree.Q<VisualElement>("RightHandSlot");
-        armorSlot = visualTree.Q<VisualElement>("ArmorSlot");
+        var inventoryPanel = visualTree.Q<VisualElement>("InventoryPanel");
+        var itemGrid = visualTree.Q<VisualElement>("ItemGrid");
+        var leftHandSlot = visualTree.Q<VisualElement>("LeftHandSlot");
+        var rightHandSlot = visualTree.Q<VisualElement>("RightHandSlot");
+        var armorSlot = visualTree.Q<VisualElement>("ArmorSlot");
         trashSlot = visualTree.Q<VisualElement>("Trash");
+
+        // Initialize inventory UI manager
+        inventoryUI = new InventoryUIManager(inventoryPanel, itemGrid, leftHandSlot, rightHandSlot, armorSlot);
 
         // Ensure HUD bar is visible and blocks clicks (including all buttons and children)
         var hudBar = visualTree.Q<VisualElement>("CombatHudBar");
@@ -104,26 +102,34 @@ public class CombatPanelUI : MonoBehaviour
         }
 
         // Initial state for the inventory panel
-        if (inventoryPanel != null)
-        {
-            inventoryPanel.style.display = DisplayStyle.None;
-        }
+        inventoryUI.SetInventoryPanelVisible(false);
 
         // Initialize drag/drop controller
         drag = new DragDropController(
             uiRoot,
             () => currentCharacter?.inventory,
             () => new EquipmentProxy(currentCharacter),
-            RefreshInventoryUI,
-            RefreshEquipmentUI
+            () => inventoryUI.RefreshInventoryUI(),
+            () => inventoryUI.RefreshEquipmentUI(AttachTooltipHandlers)
         );
 
         // Create inventory slots
-        CreateInventorySlots();
+        inventoryUI.CreateInventorySlots((slot, index) => {
+            AttachTooltipHandlers(slot);
+            AttachDragHandlers(slot, index);
+        });
         // Register trash drop once
         if (trashSlot != null)
         {
             trashSlot.RegisterCallback<PointerUpEvent>(OnTrashPointerUp);
+        }
+
+        // Global listeners to track drag motion and drop (bind once)
+        if (uiRoot != null && !globalDragBound)
+        {
+            uiRoot.RegisterCallback<PointerMoveEvent>(OnGlobalPointerMove);
+            uiRoot.RegisterCallback<PointerUpEvent>(OnGlobalPointerUp);
+            globalDragBound = true;
         }
 
         // Add the UI elements to the root visual element
@@ -167,40 +173,13 @@ public class CombatPanelUI : MonoBehaviour
         }
 
         // If enemy is active and panel is open, close it
-        if (turnManager != null && !playerActive && inventoryPanel != null && inventoryPanel.style.display == DisplayStyle.Flex)
+        if (turnManager != null && !playerActive && inventoryUI.IsInventoryPanelOpen())
         {
-            inventoryPanel.style.display = DisplayStyle.None;
+            inventoryUI.SetInventoryPanelVisible(false);
         }
 
         // Update current character and refresh inventory if needed
         UpdateCurrentCharacter();
-    }
-
-    private void CreateInventorySlots()
-    {
-        if (itemGrid == null) return;
-
-        // Create 24 inventory slots (6x4 grid)
-        for (int i = 0; i < Inventory.MaxSlots; i++)
-        {
-            var slot = new VisualElement();
-            slot.AddToClassList("inventory-slot");
-            slot.AddToClassList("ui-blocker"); // Ensure each slot blocks clicks
-            slot.name = $"InventorySlot_{i}";
-            AttachTooltipHandlers(slot);
-            AttachDragHandlers(slot, i);
-            
-            itemGrid.Add(slot);
-            inventorySlots.Add(slot);
-        }
-
-        // Global listeners to track drag motion and drop (bind once)
-        if (uiRoot != null && !globalDragBound)
-        {
-            uiRoot.RegisterCallback<PointerMoveEvent>(OnGlobalPointerMove);
-            uiRoot.RegisterCallback<PointerUpEvent>(OnGlobalPointerUp);
-            globalDragBound = true;
-        }
     }
 
     private void UpdateCurrentCharacter()
@@ -211,19 +190,21 @@ public class CombatPanelUI : MonoBehaviour
             // Unsubscribe from old character
             if (currentCharacter != null)
             {
-                currentCharacter.OnInventoryChanged -= RefreshInventoryUI;
-                currentCharacter.OnEquipmentChanged -= RefreshEquipmentUI;
+                currentCharacter.OnInventoryChanged -= inventoryUI.RefreshInventoryUI;
+                currentCharacter.OnEquipmentChanged -= () => inventoryUI.RefreshEquipmentUI(AttachTooltipHandlers);
             }
 
             currentCharacter = newCharacter;
+            inventoryUI.SetCurrentCharacter(currentCharacter);
 
             // Subscribe to new character
             if (currentCharacter != null)
             {
-                currentCharacter.OnInventoryChanged += RefreshInventoryUI;
-                currentCharacter.OnEquipmentChanged += RefreshEquipmentUI;
-                RefreshInventoryUI();
-                RefreshEquipmentUI();
+                currentCharacter.OnInventoryChanged += inventoryUI.RefreshInventoryUI;
+                currentCharacter.OnEquipmentChanged += () => inventoryUI.RefreshEquipmentUI(AttachTooltipHandlers);
+                inventoryUI.RefreshInventoryUI();
+                inventoryUI.RefreshEquipmentUI(AttachTooltipHandlers);
+                AttachEquipmentDragTargets();
             }
         }
     }
@@ -243,127 +224,18 @@ public class CombatPanelUI : MonoBehaviour
         return null;
     }
 
-    private void RefreshInventoryUI()
-    {
-        if (currentCharacter?.inventory == null || inventorySlots.Count == 0) return;
 
-        var items = currentCharacter.inventory.Items;
-        for (int i = 0; i < inventorySlots.Count; i++)
-        {
-            var slot = inventorySlots[i];
-            slot.Clear();
-            // Clear any previous tooltip
-            slot.tooltip = null;
-
-            if (i < items.Count && items[i] != null)
-            {
-                var item = items[i];
-                
-                // Add icon if available
-                if (item.icon != null)
-                {
-                    var icon = new VisualElement();
-                    icon.AddToClassList("slot-icon");
-                    icon.style.backgroundImage = new StyleBackground(item.icon);
-                    // Mirror tooltip on child so hover over child still shows
-                    icon.tooltip = item.GetDisplayName();
-                    slot.Add(icon);
-                }
-                else
-                {
-                    // Placeholder text for items without icons
-                    var label = new Label(item.itemName.Substring(0, Mathf.Min(2, item.itemName.Length)));
-                    label.style.fontSize = 10;
-                    label.style.color = Color.white;
-                    label.tooltip = item.GetDisplayName();
-                    slot.Add(label);
-                }
-
-                // Add stack count if > 1
-                if (item.currentStack > 1)
-                {
-                    var stackLabel = new Label(item.currentStack.ToString());
-                    stackLabel.AddToClassList("stack-count");
-                    stackLabel.tooltip = item.GetDisplayName();
-                    slot.Add(stackLabel);
-                }
-
-                // Set tooltip on slot itself
-                slot.tooltip = item.GetDisplayName();
-            }
-        }
-        
-        // Re-apply click blocking to all inventory slots and their new children
-        UIClickBlocker.MakeElementAndChildrenBlockClicks(itemGrid);
-    }
-
-    private void RefreshEquipmentUI()
-    {
-        if (currentCharacter == null) return;
-
-        RefreshEquipmentSlot(leftHandSlot, EquippableItem.EquipmentSlot.LeftHand);
-        RefreshEquipmentSlot(rightHandSlot, EquippableItem.EquipmentSlot.RightHand);
-        RefreshEquipmentSlot(armorSlot, EquippableItem.EquipmentSlot.Armor);
-        AttachEquipmentDragTargets();
-    }
-
-    private void RefreshEquipmentSlot(VisualElement slot, EquippableItem.EquipmentSlot equipmentSlot)
-    {
-        if (slot == null) return;
-
-        slot.Clear();
-        // Ensure tooltip handlers are attached once
-        AttachTooltipHandlers(slot);
-        var equippedItem = currentCharacter.GetEquippedItem(equipmentSlot);
-        
-        // Clear any previous tooltip
-        slot.tooltip = null;
-
-        if (equippedItem != null)
-        {
-            if (equippedItem.icon != null)
-            {
-                var icon = new VisualElement();
-                icon.AddToClassList("slot-icon");
-                icon.style.backgroundImage = new StyleBackground(equippedItem.icon);
-                icon.tooltip = equippedItem.GetDisplayName();
-                slot.Add(icon);
-            }
-            else
-            {
-                var label = new Label(equippedItem.itemName.Substring(0, Mathf.Min(2, equippedItem.itemName.Length)));
-                label.style.fontSize = 10;
-                label.style.color = Color.white;
-                label.tooltip = equippedItem.GetDisplayName();
-                slot.Add(label);
-            }
-
-            // Tooltip on the slot itself
-            slot.tooltip = equippedItem.GetDisplayName();
-        }
-        
-        // Re-apply click blocking to this slot and its children
-        UIClickBlocker.MakeElementAndChildrenBlockClicks(slot);
-    }
 
     private void AttachEquipmentDragTargets()
     {
-        ForEachEquipSlot((slot, es) => AttachEquipmentDrop(slot, es));
+        inventoryUI.ForEachEquipSlot((slot, es) => AttachEquipmentDrop(slot, es));
         // Begin drag when pressing on equipped slots
-        ForEachEquipSlot((slot, es) => AttachEquipmentDrag(slot, es));
+        inventoryUI.ForEachEquipSlot((slot, es) => AttachEquipmentDrag(slot, es));
         // Global hover feedback is applied during drag via UpdateEquipHoverFeedbackGlobal
-        if (trashSlot != null)
-        {
-            trashSlot.RegisterCallback<PointerUpEvent>(OnTrashPointerUp);
-        }
+        // Note: Trash registration happens once in Start() method
     }
 
-    private void ForEachEquipSlot(System.Action<VisualElement, EquippableItem.EquipmentSlot> action)
-    {
-        if (leftHandSlot != null) action(leftHandSlot, EquippableItem.EquipmentSlot.LeftHand);
-        if (rightHandSlot != null) action(rightHandSlot, EquippableItem.EquipmentSlot.RightHand);
-        if (armorSlot != null) action(armorSlot, EquippableItem.EquipmentSlot.Armor);
-    }
+
 
     private void ClearEquipSlotFeedback(VisualElement slot)
     {
@@ -374,18 +246,19 @@ public class CombatPanelUI : MonoBehaviour
 
     private void SetAllEquipNeutral()
     {
-        if (leftHandSlot != null) { ClearEquipSlotFeedback(leftHandSlot); leftHandSlot.AddToClassList("equip-drop-neutral"); }
-        if (rightHandSlot != null) { ClearEquipSlotFeedback(rightHandSlot); rightHandSlot.AddToClassList("equip-drop-neutral"); }
-        if (armorSlot != null) { ClearEquipSlotFeedback(armorSlot); armorSlot.AddToClassList("equip-drop-neutral"); }
+        inventoryUI.ForEachEquipSlot((slot, es) => {
+            ClearEquipSlotFeedback(slot);
+            slot.AddToClassList("equip-drop-neutral");
+        });
     }
 
     private void ClearAllHoverFeedback()
     {
         // Clear equipment slot feedback
-        if (leftHandSlot != null) ClearEquipSlotFeedback(leftHandSlot);
-        if (rightHandSlot != null) ClearEquipSlotFeedback(rightHandSlot);
-        if (armorSlot != null) ClearEquipSlotFeedback(armorSlot);
+        inventoryUI.ForEachEquipSlot((slot, es) => ClearEquipSlotFeedback(slot));
+        
         // Clear any lingering classes on inventory slots (in case they were applied)
+        var inventorySlots = inventoryUI.GetInventorySlots();
         for (int i = 0; i < inventorySlots.Count; i++)
         {
             var s = inventorySlots[i];
@@ -399,9 +272,7 @@ public class CombatPanelUI : MonoBehaviour
     private void UpdateEquipHoverFeedbackGlobal(Vector2 panelPosition)
     {
         // Clear all first
-        if (leftHandSlot != null) ClearEquipSlotFeedback(leftHandSlot);
-        if (rightHandSlot != null) ClearEquipSlotFeedback(rightHandSlot);
-        if (armorSlot != null) ClearEquipSlotFeedback(armorSlot);
+        inventoryUI.ForEachEquipSlot((slot, es) => ClearEquipSlotFeedback(slot));
 
         if (!drag.Context.isDragging) { SetAllEquipNeutral(); return; }
 
@@ -409,16 +280,35 @@ public class CombatPanelUI : MonoBehaviour
         var ve = uiRoot?.panel?.Pick(panelPosition) as VisualElement;
         while (ve != null)
         {
+            var leftHandSlot = inventoryUI.GetEquipmentSlot(EquippableItem.EquipmentSlot.LeftHand);
+            var rightHandSlot = inventoryUI.GetEquipmentSlot(EquippableItem.EquipmentSlot.RightHand);
+            var armorSlot = inventoryUI.GetEquipmentSlot(EquippableItem.EquipmentSlot.Armor);
+            
             if (ve == leftHandSlot || ve == rightHandSlot || ve == armorSlot)
             {
                 bool isValid = false;
                 if (drag.Context.payload is EquippableItem eq)
                 {
-                    if ((ve == leftHandSlot && eq.slot == EquippableItem.EquipmentSlot.LeftHand) ||
-                        (ve == rightHandSlot && eq.slot == EquippableItem.EquipmentSlot.RightHand) ||
-                        (ve == armorSlot && eq.slot == EquippableItem.EquipmentSlot.Armor))
+                    if (ve == armorSlot && eq.slot == EquippableItem.EquipmentSlot.Armor)
                     {
+                        // Armor slots only accept armor items
                         isValid = true;
+                    }
+                    else if (ve == leftHandSlot || ve == rightHandSlot)
+                    {
+                        // Hand slots need to check dual-wielding compatibility
+                        var targetSlot = (ve == leftHandSlot) ? EquippableItem.EquipmentSlot.LeftHand : EquippableItem.EquipmentSlot.RightHand;
+                        
+                        if (eq is EquippableHandheld)
+                        {
+                            // Use the actual equipment compatibility check
+                            isValid = currentCharacter.IsSlotCompatible(targetSlot, eq);
+                        }
+                        else
+                        {
+                            // Non-hand-held items must match their designated slot
+                            isValid = (eq.slot == targetSlot);
+                        }
                     }
                 }
                 ve.AddToClassList(isValid ? "equip-drop-valid" : "equip-drop-invalid");
@@ -450,37 +340,20 @@ public class CombatPanelUI : MonoBehaviour
             if (!drag.Context.isDragging || drag.Context.payload == null) return;
             if (!(drag.Context.payload is EquippableItem eq)) { drag.EndDrag(); return; }
 
-            if (eq.slot == equipmentSlot)
+            if (eq.slot == equipmentSlot || (eq is EquippableHandheld && (equipmentSlot == EquippableItem.EquipmentSlot.LeftHand || equipmentSlot == EquippableItem.EquipmentSlot.RightHand)))
             {
                 // From inventory -> equipment
                 if (drag.Context.sourceSlot.slotType == SlotType.Inventory)
                 {
-                    int srcIdx = drag.Context.sourceSlot.inventoryIndex;
-                    if (srcIdx >= 0) currentCharacter.inventory.SetItemAt(srcIdx, null);
-                    var prev = currentCharacter.UnequipItem(equipmentSlot);
-                    currentCharacter.TryEquipItem(eq);
-                    if (prev != null)
-                    {
-                        int target = srcIdx >= 0 ? srcIdx : currentCharacter.inventory.FindFirstEmptySlot();
-                        if (target >= 0) currentCharacter.inventory.SetItemAt(target, prev);
-                    }
+                    HandleInventoryToEquipmentTransfer(eq, equipmentSlot);
                 }
                 else // equipment -> equipment
                 {
-                    var prev = currentCharacter.UnequipItem(equipmentSlot);
-                    currentCharacter.TryEquipItem(eq);
-                    if (prev is EquippableItem prevEq && prevEq.slot == drag.Context.sourceSlot.equipmentSlot)
-                    {
-                        currentCharacter.TryEquipItem(prevEq);
-                    }
-                    else if (prev != null)
-                    {
-                        int empty = currentCharacter.inventory.FindFirstEmptySlot();
-                        if (empty >= 0) currentCharacter.inventory.SetItemAt(empty, prev);
-                    }
+                    HandleEquipmentToEquipmentTransfer(eq, equipmentSlot);
                 }
-                RefreshInventoryUI();
-                RefreshEquipmentUI();
+                
+                inventoryUI.RefreshInventoryUI();
+                inventoryUI.RefreshEquipmentUI(AttachTooltipHandlers);
             }
             else
             {
@@ -488,13 +361,87 @@ public class CombatPanelUI : MonoBehaviour
                 if (drag.Context.sourceSlot.slotType == SlotType.Equipment)
                 {
                     currentCharacter.TryEquipItem(eq);
-                    RefreshEquipmentUI();
+                    inventoryUI.RefreshEquipmentUI(AttachTooltipHandlers);
                 }
                 // else: inventory origin stays where it was
             }
             ClearAllHoverFeedback();
             drag.EndDrag();
         });
+    }
+
+    private void HandleInventoryToEquipmentTransfer(EquippableItem eq, EquippableItem.EquipmentSlot equipmentSlot)
+    {
+        int srcIdx = drag.Context.sourceSlot.inventoryIndex;
+        if (srcIdx >= 0) currentCharacter.inventory.SetItemAt(srcIdx, null);
+        var prev = currentCharacter.UnequipItem(equipmentSlot);
+        
+        // Try to equip the item
+        bool equipSuccess = currentCharacter.TryEquipItemToSlot(eq, equipmentSlot);
+        
+        if (equipSuccess)
+        {
+            // Equipment successful - handle the item that was previously in the target slot
+            if (prev != null)
+            {
+                int target = srcIdx >= 0 ? srcIdx : currentCharacter.inventory.FindFirstEmptySlot();
+                if (target >= 0) currentCharacter.inventory.SetItemAt(target, prev);
+            }
+        }
+        else
+        {
+            // Equipment failed due to dual-wielding incompatibility
+            // Put the item back in inventory
+            currentCharacter.inventory.SetItemAt(srcIdx, eq);
+            
+            // Put the target slot's previous item back
+            if (prev != null)
+            {
+                currentCharacter.TryEquipItemToSlot(prev, equipmentSlot);
+            }
+        }
+    }
+
+    private void HandleEquipmentToEquipmentTransfer(EquippableItem eq, EquippableItem.EquipmentSlot equipmentSlot)
+    {
+        // Check dual-wielding compatibility BEFORE attempting to equip
+        var sourceSlot = drag.Context.sourceSlot.equipmentSlot;
+        var targetSlot = equipmentSlot;
+        
+        // Unequip any existing item in the target slot
+        var prev = currentCharacter.UnequipItem(targetSlot);
+        
+        // Now try to equip the dragged item to the target slot
+        bool equipSuccess = currentCharacter.TryEquipItemToSlot(eq, targetSlot);
+        
+        if (equipSuccess)
+        {
+            // Equipment successful - handle the item that was previously in the target slot
+            if (prev != null)
+            {
+                // Try to put it in the source slot (this creates the swap effect)
+                bool swapSuccess = currentCharacter.TryEquipItemToSlot(prev, sourceSlot);
+                
+                if (!swapSuccess)
+                {
+                    // If it can't go back to source slot (e.g., dual-wielding conflict), put it in inventory
+                    int empty = currentCharacter.inventory.FindFirstEmptySlot();
+                    if (empty >= 0) currentCharacter.inventory.SetItemAt(empty, prev);
+                }
+            }
+        }
+        else
+        {
+            // Equipment failed due to dual-wielding incompatibility
+            // Put the dragged item back in its original slot
+            currentCharacter.TryEquipItemToSlot(eq, sourceSlot);
+            
+            // Put the target slot's previous item back
+            if (prev != null)
+            {
+                currentCharacter.TryEquipItemToSlot(prev, targetSlot);
+            }
+        }
     }
 
     private void OnTrashPointerUp(PointerUpEvent evt)
@@ -505,7 +452,7 @@ public class CombatPanelUI : MonoBehaviour
         if (confirmed && drag.Context.sourceSlot != null && drag.Context.sourceSlot.slotType == SlotType.Inventory)
         {
             currentCharacter.inventory.SetItemAt(drag.Context.sourceSlot.inventoryIndex, null);
-            RefreshInventoryUI();
+            inventoryUI.RefreshInventoryUI();
         }
         ClearAllHoverFeedback();
         drag.EndDrag();
@@ -543,6 +490,7 @@ public class CombatPanelUI : MonoBehaviour
         if (sourceIndex < 0 || sourceIndex >= currentCharacter.inventory.Items.Count) return;
         var item = currentCharacter.inventory.Items[sourceIndex];
         if (item == null) return;
+        var inventorySlots = inventoryUI.GetInventorySlots();
         var slotEl = (sourceIndex >= 0 && sourceIndex < inventorySlots.Count) ? inventorySlots[sourceIndex] : null;
         drag.BeginDrag(SlotModel.CreateInventory(slotEl, sourceIndex), item, panelPos);
         UpdateEquipHoverFeedbackGlobal(panelPos);
@@ -564,6 +512,7 @@ public class CombatPanelUI : MonoBehaviour
         SlotModel target = null;
         if (destIndex >= 0)
         {
+            var inventorySlots = inventoryUI.GetInventorySlots();
             var slotEl = (destIndex >= 0 && destIndex < inventorySlots.Count) ? inventorySlots[destIndex] : null;
             target = SlotModel.CreateInventory(slotEl, destIndex);
         }
@@ -572,6 +521,10 @@ public class CombatPanelUI : MonoBehaviour
             var ve = evt.target as VisualElement;
             while (ve != null)
             {
+                var leftHandSlot = inventoryUI.GetEquipmentSlot(EquippableItem.EquipmentSlot.LeftHand);
+                var rightHandSlot = inventoryUI.GetEquipmentSlot(EquippableItem.EquipmentSlot.RightHand);
+                var armorSlot = inventoryUI.GetEquipmentSlot(EquippableItem.EquipmentSlot.Armor);
+                
                 if (ve == leftHandSlot) { target = SlotModel.CreateEquipment(leftHandSlot, EquippableItem.EquipmentSlot.LeftHand); break; }
                 if (ve == rightHandSlot) { target = SlotModel.CreateEquipment(rightHandSlot, EquippableItem.EquipmentSlot.RightHand); break; }
                 if (ve == armorSlot) { target = SlotModel.CreateEquipment(armorSlot, EquippableItem.EquipmentSlot.Armor); break; }
@@ -590,12 +543,12 @@ public class CombatPanelUI : MonoBehaviour
                     if (src != null && src.slotType == SlotType.Inventory)
                     {
                         currentCharacter.inventory.SetItemAt(src.inventoryIndex, null);
-                        RefreshInventoryUI();
+                        inventoryUI.RefreshInventoryUI();
                     }
                     else if (src != null && src.slotType == SlotType.Equipment)
                     {
                         currentCharacter.UnequipItem(src.equipmentSlot);
-                        RefreshEquipmentUI();
+                        inventoryUI.RefreshEquipmentUI(AttachTooltipHandlers);
                     }
                 }
             }
@@ -623,6 +576,7 @@ public class CombatPanelUI : MonoBehaviour
                 }
             }
             // Or check if this exact element is in our list
+            var inventorySlots = inventoryUI.GetInventorySlots();
             int listIndex = inventorySlots.IndexOf(ve);
             if (listIndex >= 0) return listIndex;
 
@@ -695,17 +649,7 @@ public class CombatPanelUI : MonoBehaviour
 
     private void OnToggleInventoryClicked()
     {
-        if (inventoryPanel == null)
-        {
-            Debug.LogWarning("InventoryPanel not found in UI tree.");
-            return;
-        }
-        bool isOpen = inventoryPanel.style.display == DisplayStyle.Flex;
-        inventoryPanel.style.display = isOpen ? DisplayStyle.None : DisplayStyle.Flex;
-        if (!isOpen)
-        {
-            inventoryPanel.BringToFront();
-        }
-
+        bool isOpen = inventoryUI.IsInventoryPanelOpen();
+        inventoryUI.SetInventoryPanelVisible(!isOpen);
     }
 }

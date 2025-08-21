@@ -21,30 +21,27 @@ public class TurnManager : MonoBehaviour
         // combatants.Sort(new SortCombatantDescendant());
     }
 
-    public List<CombatController> AllLivingPCs()
+    private List<CombatController> GetLivingCombatants(System.Func<CombatController, bool> filter)
     {
-        List<CombatController> r = new List<CombatController>();
+        List<CombatController> result = new List<CombatController>();
         foreach (CombatController pick in combatants)
         {
             if (pick == null) continue;
-            if (!pick.IsPC()) continue;
             if (pick.Dead()) continue;
-            r.Add(pick);
+            if (!filter(pick)) continue;
+            result.Add(pick);
         }
-        return r;
+        return result;
+    }
+
+    public List<CombatController> AllLivingPCs()
+    {
+        return GetLivingCombatants(c => c.IsPC());
     }
 
     public List<CombatController> AllLivingEnemies()
     {
-        List<CombatController> r = new List<CombatController>();
-        foreach (CombatController pick in combatants)
-        {
-            if (pick == null) continue;
-            if (pick.IsEnemy()) continue;
-            if (pick.Dead()) continue;
-            r.Add(pick);
-        }
-        return r;
+        return GetLivingCombatants(c => c.IsEnemy());
     }
 
     // Picks an arbitrary/random Player controlled character

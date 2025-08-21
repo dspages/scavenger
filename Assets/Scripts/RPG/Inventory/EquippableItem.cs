@@ -17,8 +17,8 @@ public class EquippableItem : InventoryItem
         Amulet
     }
 
-    public EquippableItem(string name, EquipmentSlot equipSlot, string desc = "", Sprite itemIcon = null) 
-        : base(name, desc, itemIcon, 1) // Equipment items don't stack
+    public EquippableItem(string name, EquipmentSlot equipSlot) 
+        : base(name)
     {
         slot = equipSlot;
     }

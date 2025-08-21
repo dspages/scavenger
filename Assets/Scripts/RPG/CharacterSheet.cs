@@ -57,7 +57,7 @@ public class CharacterSheet
 
     public bool dead = false;
 
-    public EquippableWeapon weaponEquipped;
+    public EquippableHandheld weaponEquipped;
     private Equipment equipment;
 
     public int currentHealth;
@@ -181,11 +181,49 @@ public class CharacterSheet
         equipment.TryEquip(item);
         
         // Update legacy weapon reference for backwards compatibility
-        if (item is EquippableWeapon weapon && (item.slot == EquippableItem.EquipmentSlot.RightHand || item.slot == EquippableItem.EquipmentSlot.LeftHand))
+        if (item is EquippableHandheld weapon && (item.slot == EquippableItem.EquipmentSlot.RightHand || item.slot == EquippableItem.EquipmentSlot.LeftHand))
         {
             weaponEquipped = weapon;
         }
         return true;
+    }
+
+    public bool TryEquipItemToSlot(EquippableItem item, EquippableItem.EquipmentSlot slot)
+    {
+        if (item == null) return false;
+        
+        // For hand slots, allow hand-held items regardless of their default slot
+        if (slot == EquippableItem.EquipmentSlot.LeftHand || slot == EquippableItem.EquipmentSlot.RightHand)
+        {
+            if (item is EquippableHandheld)
+            {
+                // Temporarily change the item's slot to the target slot for equipping
+                var originalSlot = item.slot;
+                item.slot = slot;
+                
+                var success = equipment.TryEquipToSlot(item, slot, out var previous);
+                
+                if (success)
+                {
+                    // Update legacy weapon reference for backwards compatibility
+                    if (slot == EquippableItem.EquipmentSlot.RightHand || slot == EquippableItem.EquipmentSlot.LeftHand)
+                    {
+                        weaponEquipped = item as EquippableHandheld;
+                    }
+                    return true;
+                }
+                else
+                {
+                    // Restore original slot if equipping failed
+                    item.slot = originalSlot;
+                    return false;
+                }
+            }
+        }
+        
+        // For non-hand slots or non-hand-held items, use the default equipping logic
+        if (item.slot != slot) return false;
+        return TryEquipItem(item);
     }
 
     public EquippableItem UnequipItem(EquippableItem.EquipmentSlot slot)
@@ -194,7 +232,7 @@ public class CharacterSheet
         if (item == null) return null;
         
         // Clear legacy weapon reference if needed
-        if (item is EquippableWeapon && (slot == EquippableItem.EquipmentSlot.RightHand || slot == EquippableItem.EquipmentSlot.LeftHand))
+        if (item is EquippableHandheld && (slot == EquippableItem.EquipmentSlot.RightHand || slot == EquippableItem.EquipmentSlot.LeftHand))
         {
             weaponEquipped = null;
         }
@@ -206,6 +244,11 @@ public class CharacterSheet
         return equipment.GetAll();
     }
 
+    public bool IsSlotCompatible(EquippableItem.EquipmentSlot slot, InventoryItem item)
+    {
+        return equipment.IsSlotCompatible(slot, item);
+    }
+
     public void PerformBasicAttack(CharacterSheet target)
     {
         int dam = MinDamage() + UnityEngine.Random.Range(0, 1 + MaxDamage() - MinDamage());
@@ -215,19 +258,136 @@ public class CharacterSheet
     private void AddTestItems()
     {
         // Add some test inventory items
-        inventory.TryAddItem(new InventoryItem("Health Potion", "Restores 50 HP", null, 10));
-        inventory.TryAddItem(new InventoryItem("Mana Potion", "Restores 30 MP", null, 5));
-        inventory.TryAddItem(new InventoryItem("Bread", "Basic food item", null, 20));
-        inventory.TryAddItem(new InventoryItem("Gold Coin", "Currency", null, 99));
+        inventory.TryAddItem(new InventoryItem("Health Potion") { 
+            description = "Restores 50 HP", 
+            stackSize = 10 
+        });
+        inventory.TryAddItem(new InventoryItem("Mana Potion") { 
+            description = "Restores 30 MP", 
+            stackSize = 5 
+        });
+        inventory.TryAddItem(new InventoryItem("Bread") { 
+            description = "Basic food item", 
+            stackSize = 20 
+        });
+        inventory.TryAddItem(new InventoryItem("Gold Coin") { 
+            description = "Currency", 
+            stackSize = 99 
+        });
         
-        // Add and equip a test weapon
-        var testSword = new EquippableWeapon("Iron Sword", 3, 6, EquippableItem.EquipmentSlot.RightHand, "A basic iron sword");
-        inventory.TryAddItem(testSword);
-        TryEquipItem(testSword);
+        // Add various weapon types for testing
+        var cutlass = new EquippableHandheld(
+            name: "Cutlass", 
+            type: EquippableHandheld.WeaponType.OneHanded,
+            minDmg: 3,
+            maxDmg: 6,
+            minRange: 1,
+            maxRange: 1,
+            dmgType: EquippableHandheld.DamageType.Slashing
+        ) { 
+            description = "A basic sword",
+            actionPointCost = 10,
+            rangeType = EquippableHandheld.RangeType.Melee
+        };
+        
+        var steelShield = new EquippableHandheld(
+            name: "Steel Shield", 
+            type: EquippableHandheld.WeaponType.Shield, 
+            minDmg: 0, 
+            maxDmg: 0,
+            minRange: 1,
+            maxRange: 1,
+            dmgType: EquippableHandheld.DamageType.Bludgeoning
+        ) { 
+            description = "A sturdy steel shield",
+            armorBonus = 2,
+            dodgeBonus = 1,
+            rangeType = EquippableHandheld.RangeType.Melee
+        };
+        
+        var pike = new EquippableHandheld(
+            name: "Reach Pike", 
+            type: EquippableHandheld.WeaponType.TwoHanded, 
+            minDmg: 8, 
+            maxDmg: 12,
+            minRange: 2,
+            maxRange: 2,
+            dmgType: EquippableHandheld.DamageType.Piercing
+        ) { 
+            description = "A long pike that requires distance to use effectively",
+            actionPointCost = 15,
+            rangeType = EquippableHandheld.RangeType.Melee
+        };
+        inventory.TryAddItem(pike);
+        
+        // Note: minRange prevents weapons from being used at point-blank
+        // This prevents self-harm with explosives and creates tactical positioning
+        var musket = new EquippableHandheld(
+            name: "Long Musket", 
+            type: EquippableHandheld.WeaponType.TwoHanded, 
+            minDmg: 12, 
+            maxDmg: 18,
+            minRange: 2,
+            maxRange: 10,
+            dmgType: EquippableHandheld.DamageType.Bludgeoning
+        ) { 
+            description = "A musket that requires distance to avoid muzzle flash",
+            actionPointCost = 30,
+            rangeType = EquippableHandheld.RangeType.Ranged,
+            requiresAmmo = true,
+            ammoType = "Musket Ball"
+        };
+        inventory.TryAddItem(musket);
+        
+        var dagger = new EquippableHandheld(
+            name: "Iron Dagger", 
+            type: EquippableHandheld.WeaponType.OneHanded, 
+            minDmg: 2, 
+            maxDmg: 4,
+            minRange: 1,
+            maxRange: 1,
+            dmgType: EquippableHandheld.DamageType.Piercing
+        ) { 
+            description = "A quick dagger",
+            actionPointCost = 4,
+            rangeType = EquippableHandheld.RangeType.Melee
+        };
+        inventory.TryAddItem(dagger);
+
+        var grenade = new EquippableHandheld(
+            name: "Frag Grenade", 
+            type: EquippableHandheld.WeaponType.OneHanded, 
+            minDmg: 12,
+            maxDmg: 18,
+            minRange: 3,
+            maxRange: 8,
+            dmgType: EquippableHandheld.DamageType.Fire
+        ) { 
+            description = "A grenade that explodes on impact - keep your distance!",
+            actionPointCost = 20,
+            splashRadius = 2,
+            rangeType = EquippableHandheld.RangeType.Ranged,
+            isConsumable = true
+        };
+        inventory.TryAddItem(grenade);
+        
+        // Add ammo for ranged weapons
+        inventory.TryAddItem(new InventoryItem("Musket Ball") { 
+            description = "Ammunition for muskets",
+            stackSize = 50 
+        });
+        
+        // Equip starting gear (these items go directly to equipment, not inventory)
+        TryEquipItem(cutlass);
+        TryEquipItem(steelShield);
         
         // Add test armor
-        var testArmor = new EquippableItem("Leather Armor", EquippableItem.EquipmentSlot.Armor, "Basic protection");
-        inventory.TryAddItem(testArmor);
-        TryEquipItem(testArmor);
+        var leatherArmor = new EquippableItem(
+            name: "Leather Armor", 
+            equipSlot: EquippableItem.EquipmentSlot.Armor
+        ) { 
+            description = "Basic protection" 
+        };
+        TryEquipItem(leatherArmor);
     }
 }

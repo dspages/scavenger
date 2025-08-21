@@ -41,28 +41,55 @@ public class TileManager : MonoBehaviour
         return tileGrid[xCoord, yCoord];
     }
 
+    public enum Direction { North, South, East, West }
+
+    public Tile GetAdjacentTile(Tile origin, Direction direction)
+    {
+        int newX = origin.x;
+        int newY = origin.y;
+
+        switch (direction)
+        {
+            case Direction.North:
+                newY += 1;
+                break;
+            case Direction.South:
+                newY -= 1;
+                break;
+            case Direction.East:
+                newX += 1;
+                break;
+            case Direction.West:
+                newX -= 1;
+                break;
+        }
+
+        // Check bounds
+        if (newX < 0 || newX >= Globals.COMBAT_WIDTH || 
+            newY < 0 || newY >= Globals.COMBAT_HEIGHT)
+            return null;
+
+        return tileGrid[newX, newY];
+    }
+
     public Tile GetNorthTile(Tile origin)
     {
-        if (origin.y + 1 >= Globals.COMBAT_HEIGHT) return null;
-        return tileGrid[origin.x, origin.y + 1];
+        return GetAdjacentTile(origin, Direction.North);
     }
 
     public Tile GetSouthTile(Tile origin)
     {
-        if (origin.y - 1 < 0 ) return null;
-        return tileGrid[origin.x, origin.y - 1];
+        return GetAdjacentTile(origin, Direction.South);
     }
 
     public Tile GetEastTile(Tile origin)
     {
-        if (origin.x + 1 >= Globals.COMBAT_HEIGHT) return null;
-        return tileGrid[origin.x + 1, origin.y];
+        return GetAdjacentTile(origin, Direction.East);
     }
 
     public Tile GetWestTile(Tile origin)
     {
-        if (origin.x - 1 < 0) return null;
-        return tileGrid[origin.x - 1, origin.y];
+        return GetAdjacentTile(origin, Direction.West);
     }
 
     public void ResetTileSearch()

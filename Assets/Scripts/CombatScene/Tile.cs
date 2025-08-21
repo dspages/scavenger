@@ -11,6 +11,8 @@ public class Tile : MonoBehaviour
 
     public bool isHovered = false;
 
+    public bool blocksVision = false;
+
     // Needed for breadth-first search
     public bool searchWasVisited = false;
     public bool searchCanBeChosen = false;

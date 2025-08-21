@@ -127,6 +127,17 @@ VisualElement {}
     padding: 1px 3px;
 }
 
+.weapon-type-label {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 2px;
+    padding: 1px 2px;
+    font-weight: bold;
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.8);
+}
+
 /* UI Click Blocking Utilities */
 .ui-blocker {
     /* Elements with this class will block world interactions */

@@ -78,18 +78,11 @@ public class DragDropController
                         refreshInventoryUI();
                     }
                 }
-                else if (target.slotType == SlotType.Equipment && Context.payload is EquippableItem eq && eq.slot == target.equipmentSlot)
+                else if (target.slotType == SlotType.Equipment)
                 {
-                    // Remove from source
-                    inv.SetItemAt(Context.sourceSlot.inventoryIndex, null);
-                    // Equip and return previous to source slot or first empty
-                    if (eqp.TryEquipToSlot(eq, target.equipmentSlot, out var prev))
-                    {
-                        int idx = Context.sourceSlot.inventoryIndex >= 0 ? Context.sourceSlot.inventoryIndex : inv.FindFirstEmptySlot();
-                        if (prev != null && idx >= 0) inv.SetItemAt(idx, prev);
-                    }
-                    refreshInventoryUI();
-                    refreshEquipmentUI();
+                    // Equipment transfers are now handled by CombatPanelUI
+                    // This method is kept for inventory-only operations
+                    break;
                 }
                 // Trash handled by caller
                 break;
@@ -119,6 +112,18 @@ public class DragDropController
                     var fromSlot = Context.sourceSlot.equipmentSlot;
                     if (Context.payload is EquippableItem eq && eq.slot == target.equipmentSlot)
                     {
+                        // Check weapon compatibility before swapping
+                        if (!eqp.IsSlotCompatible(target.equipmentSlot, eq))
+                        {
+                            // Incompatible weapons - return item to source slot
+                            if (eq is EquippableItem re)
+                            {
+                                eqp.TryEquipToSlot(re, fromSlot, out _);
+                                refreshEquipmentUI();
+                            }
+                            return;
+                        }
+                        
                         // Swap equipment
                         eqp.Unequip(fromSlot);
                         var prev = eqp.Unequip(target.equipmentSlot);
