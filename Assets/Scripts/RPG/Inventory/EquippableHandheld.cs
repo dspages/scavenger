@@ -32,46 +32,43 @@ public class EquippableHandheld : EquippableItem
 
     public WeaponType weaponType = WeaponType.OneHanded;
     public RangeType rangeType = RangeType.Melee;
-    public int minDamage = 1;
-    public int maxDamage = 3;
+    public int damage = 1;
     public int minRange = 1;
     public int maxRange = 1;
     public int splashRadius = 0;
     public int actionPointCost = 1;
     public DamageType damageType = DamageType.Slashing;
     
-    // For shields and defensive items
-    public int armorBonus = 0;
-    public int dodgeBonus = 0;
+    // Illumination support for items that provide light (e.g., torches)
+    public bool providesIllumination = false;
+    public int illuminationRange = 0;
+    
     
     // Ammo/consumable properties
     public bool isConsumable = false;        // Reduces stack when used
     public bool requiresAmmo = false;        // Needs separate ammo item
     public string ammoType = "";             // Type of ammo required
 
-    public EquippableHandheld(string name, WeaponType type, int minDmg, int maxDmg)
+    public EquippableHandheld(string name, WeaponType type, int dmg, int actionPointCost, DamageType dmgType)
         : base(name, EquippableItem.EquipmentSlot.RightHand) // Default slot, will be overridden when equipped
     {
         weaponType = type;
-        minDamage = minDmg;
-        maxDamage = maxDmg;
-    }
-
-    public EquippableHandheld(string name, WeaponType type, int minDmg, int maxDmg, int minRange, int maxRange, DamageType dmgType)
-        : base(name, EquippableItem.EquipmentSlot.RightHand) // Default slot, will be overridden when equipped
-    {
-        weaponType = type;
-        minDamage = minDmg;
-        maxDamage = maxDmg;
-        this.minRange = minRange;
-        this.maxRange = maxRange;
+        damage = dmg;
+        actionPointCost = actionPointCost;
         damageType = dmgType;
     }
 
-    public int GetRandomDamage()
+    public EquippableHandheld(string name, WeaponType type, int dmg, int minRange, int maxRange, int actionPointCost, DamageType dmgType)
+        : base(name, EquippableItem.EquipmentSlot.RightHand) // Default slot, will be overridden when equipped
     {
-        return Random.Range(minDamage, maxDamage + 1);
+        weaponType = type;
+        damage = dmg;
+        minRange = minRange;
+        maxRange = maxRange;
+        actionPointCost = actionPointCost;
+        damageType = dmgType;
     }
+
 
     /// <summary>
     /// Check if this weapon can be used at the given range

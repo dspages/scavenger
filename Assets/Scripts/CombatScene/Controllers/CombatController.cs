@@ -19,6 +19,11 @@ public class CombatController : MonoBehaviour
     {
         manager = FindObjectOfType<TileManager>();
         selectedAction = GetComponent<ActionWeaponAttack>();
+        // Setup illumination handling for equipped items
+        if (characterSheet != null)
+        {
+            characterSheet.OnEquipmentChanged += UpdateEquippedLight;
+        }
     }
 
     virtual public bool IsPC()
@@ -37,12 +42,87 @@ public class CombatController : MonoBehaviour
     // for player-controlled, enemies are AI and vice versa.
     virtual protected bool ContainsEnemy(Tile tile)
     {
-        return false;
+        if (tile.occupant == null) return false;
+        
+        // Check if the occupant is an enemy
+        bool isEnemy = tile.occupant.IsEnemy();
+        if (!isEnemy) return false;
+        
+        // Check if the enemy is visible according to vision system
+        VisionSystem visionSystem = FindObjectOfType<VisionSystem>();
+        if (visionSystem != null)
+        {
+            return visionSystem.CanSeeUnit(this, tile.occupant);
+        }
+        
+        return true; // Fallback if no vision system
     }
 
     public void SetCharacterSheet(CharacterSheet c)
     {
+        // Unsubscribe previous
+        if (characterSheet != null)
+        {
+            characterSheet.OnEquipmentChanged -= UpdateEquippedLight;
+        }
         characterSheet = c;
+        characterSheet.OnEquipmentChanged += UpdateEquippedLight;
+    }
+
+    private IlluminationSource equippedLight = null;
+
+    private void UpdateEquippedLight()
+    {
+        // Remove existing light if any
+        if (characterSheet == null || characterSheet.avatar == null)
+        {
+            if (equippedLight != null)
+            {
+                Destroy(equippedLight.gameObject);
+                equippedLight = null;
+            }
+            return;
+        }
+
+        // Find any equipped handheld that provides illumination
+        var equipped = characterSheet.GetEquippedItems();
+        EquippableHandheld lightItem = null;
+        foreach (var kv in equipped)
+        {
+            if (kv.Value is EquippableHandheld h && h.providesIllumination)
+            {
+                lightItem = h;
+                break;
+            }
+        }
+
+        if (lightItem != null)
+        {
+            if (equippedLight == null)
+            {
+                GameObject lightObj = new GameObject($"EquippedLight_{characterSheet.firstName}");
+                lightObj.transform.SetParent(characterSheet.avatar.transform);
+                lightObj.transform.localPosition = Vector3.zero;
+                equippedLight = lightObj.AddComponent<IlluminationSource>();
+                equippedLight.isMovable = true;
+            }
+            equippedLight.illuminationRange = lightItem.illuminationRange;
+            equippedLight.SetActive(true);
+        }
+        else
+        {
+            if (equippedLight != null)
+            {
+                Destroy(equippedLight.gameObject);
+                equippedLight = null;
+            }
+        }
+    }
+
+    // Public entry to apply equipment-driven effects (used by VisionSystem after initialization)
+    public void ApplyEquipmentEffects()
+    {
+        UpdateEquippedLight();
     }
 
     public void Die()
@@ -61,11 +141,37 @@ public class CombatController : MonoBehaviour
     {
         return characterSheet.dead;
     }
-
-    public void BeginTurn()
+    
+    public void DisplayPopupDuringCombat(string message)
     {
-        if (Dead()) return;
+        // This can be overridden by subclasses to show UI messages
+        Debug.Log($"{characterSheet.firstName}: {message}");
+    }
+    
+    public void NotifyStatusEffectChanged(StatusEffect.EffectType effectType)
+    {
+        // Notify vision system when HIDDEN status effects change
+        if (effectType == StatusEffect.EffectType.HIDDEN)
+        {
+            // Delay the vision update to the next frame to avoid recursive updates
+            StartCoroutine(NotifyVisionNextFrame());
+        }
+    }
+
+    private IEnumerator NotifyVisionNextFrame()
+    {
+        yield return null; // wait a frame to let current update cycles finish
+        VisionSystem visionSystem = FindObjectOfType<VisionSystem>();
+        if (visionSystem != null)
+        {
+            visionSystem.CheckForHiddenStatusChanges();
+        }
+    }
+
+    public bool BeginTurn()
+    {
         characterSheet.BeginTurn();
+        if (Dead()) return false;
         if (DoesGUI())
         {
             // characterSheet.UpdateUI();
@@ -73,6 +179,7 @@ public class CombatController : MonoBehaviour
         isTurn = true;
         hasMoved = false;
         FindSelectableBasicTiles();
+        return true;
     }
 
     // Defaults to false, but can be overridden by subclasses.
@@ -97,6 +204,9 @@ public class CombatController : MonoBehaviour
         isActing = false;
         manager.ResetTileSearch();
         FindSelectableBasicTiles();
+        
+        // Vision system updates are now handled by specific actions when needed
+        // (e.g., ActionMove updates vision when tiles change, not after action completes)
     }
 
     public void SetCurrentTile(Tile t)
@@ -108,6 +218,17 @@ public class CombatController : MonoBehaviour
         }
         t.occupant = this;
         currentTile = t;
+    }
+    
+    public Tile GetCurrentTile()
+    {
+        return currentTile;
+    }
+    
+    public Vector2 GetFacingDirection()
+    {
+        // Default facing direction (can be overridden by subclasses)
+        return transform.up;
     }
 
     virtual protected bool HasEnemy(Tile t)
@@ -141,7 +262,7 @@ public class CombatController : MonoBehaviour
                 if (!adjacentTile.searchWasVisited)
                 {
                     // Potential melee attacks
-                    if (characterSheet.canAttack && ContainsEnemy(adjacentTile))
+                    if (ContainsEnemy(adjacentTile))
                     {
                         AttachTile(adjacentTile, tile, 0);
                     }

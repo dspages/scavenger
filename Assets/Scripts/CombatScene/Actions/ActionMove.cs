@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class ActionMove : Action
 {
-    [SerializeField] private float moveSpeed = 2;
+    [SerializeField] private float moveSpeed = 10;
     protected Stack<Tile> path = new Stack<Tile>();
     protected int reserveTiles = 0;
     private int moveCost = 0;
@@ -54,8 +54,28 @@ public class ActionMove : Action
             {
                 // Center of tile reached
                 transform.position = targetPos;
-                if (path.Count == 1) combatController.SetCurrentTile(tile);
+                
+                // Check for hidden enemies in the target tile
+                if (CheckForHiddenEnemy(tile))
+                {
+                    // Stop movement and refund remaining points
+                    HandleHiddenEnemyCollision(tile);
+                    return;
+                }
+                
+                // Update tile occupancy for every tile we enter (not just the final destination)
+                // This ensures vision updates appropriately as the unit moves through tiles
+                combatController.SetCurrentTile(tile);
+                
+                // Pop the completed tile from the path
                 path.Pop();
+                
+                // Trigger vision update when we actually change tiles
+                VisionSystem visionSystem = FindObjectOfType<VisionSystem>();
+                if (visionSystem != null)
+                {
+                    visionSystem.UpdateVision();
+                }
             }
         }
         else
@@ -63,6 +83,51 @@ public class ActionMove : Action
             // Done moving.
             currentPhase = Phase.ATTACKING;
         }
+    }
+    
+    private bool CheckForHiddenEnemy(Tile tile)
+    {
+        if (tile.occupant == null) return false;
+        
+        // Check if the occupant is an enemy and has HIDDEN status effect
+        if (tile.occupant.IsEnemy() && 
+            StatusEffect.HasEffectType(ref tile.occupant.characterSheet.statusEffects, StatusEffect.EffectType.HIDDEN))
+        {
+            return true;
+        }
+        
+        return false;
+    }
+    
+    private void HandleHiddenEnemyCollision(Tile tile)
+    {
+        CombatController hiddenEnemy = tile.occupant;
+        
+        // Remove HIDDEN status effect using the CharacterSheet method
+        // This will automatically notify the VisionSystem through the CombatController
+        hiddenEnemy.characterSheet.RemoveStatusEffect(StatusEffect.EffectType.HIDDEN);
+        
+        // Calculate remaining movement points to refund
+        int remainingMoveCost = 0;
+        foreach (Tile remainingTile in path)
+        {
+            if (remainingTile != tile) // Don't count the tile with the hidden enemy
+            {
+                remainingMoveCost += remainingTile.GetMoveCost();
+            }
+        }
+        
+        // Refund movement points
+        combatController.characterSheet.currentMovePoints += remainingMoveCost;
+        
+        // Clear the path and stop movement
+        path.Clear();
+        EndAction();
+        
+        // Display message
+        combatController.DisplayPopupDuringCombat("Hidden enemy revealed!");
+        
+        // Vision system will be notified automatically by the CharacterSheet method
     }
 
     override public void BeginAction(Tile targetTile)

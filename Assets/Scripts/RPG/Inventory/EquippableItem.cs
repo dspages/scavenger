@@ -16,6 +16,10 @@ public class EquippableItem : InventoryItem
         Ring,
         Amulet
     }
+    
+    // For shields and defensive items
+    public int armorBonus = 0;
+    public int dodgeBonus = 0;
 
     public EquippableItem(string name, EquipmentSlot equipSlot) 
         : base(name)

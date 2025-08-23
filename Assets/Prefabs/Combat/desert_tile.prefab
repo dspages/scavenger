@@ -101,14 +101,37 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   x: 0
   y: 0
-  moveCost: 2
+  moveCost: 5
   occupant: {fileID: 0}
   isWalkable: 1
   isHovered: 0
+  blocksVision: 0
+  isFogged: 1
+  isIlluminated: 0
   searchWasVisited: 0
   searchCanBeChosen: 0
   searchParent: {fileID: 0}
   searchDistance: 0
+  fogDarkeningFactor: 0.4
+  illuminationTint: {r: 1, g: 1, b: 0.8, a: 1}
+  illuminationBrightness: 1.2
+  selectionTintColor: {r: 0.85, g: 0.95, b: 1, a: 0.15}
+  moveTargetColor: {r: 0, g: 1, b: 0, a: 0.3}
+  attackTargetColor: {r: 1, g: 0, b: 0, a: 0.4}
+  hoverIconColor: {r: 1, g: 1, b: 1, a: 0.9}
+  hoverIconScale: 0.3
+  useDropShadow: 1
+  iconType: 4
+  outlineColor: {r: 1, g: 1, b: 1, a: 0.9}
+  outlineWidth: 0.04
+  outlineSortingOrder: 9
+  useIlluminationOverlay: 1
+  illuminationOverlayAlpha: 0.18
+  illuminationOverlaySortingOrder: 3
+  useFogTexture: 0
+  fogTextureSprite: {fileID: 0}
+  fogOverlayColor: {r: 0, g: 0, b: 0, a: 0.55}
+  fogOverlaySortingOrder: 2
 --- !u!61 &-9111039715499404283
 BoxCollider2D:
   m_ObjectHideFlags: 0

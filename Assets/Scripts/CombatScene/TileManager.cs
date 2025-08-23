@@ -34,6 +34,21 @@ public class TileManager : MonoBehaviour
 
         //manager.combatants.Sort(new SortCombatants());
         manager.InitiateCombat();
+        
+        // Initialize vision system after all units are spawned
+        StartCoroutine(InitializeVisionSystemAfterDelay());
+    }
+    
+    private IEnumerator InitializeVisionSystemAfterDelay()
+    {
+        // Wait a frame to ensure all units are properly spawned
+        yield return null;
+        
+        VisionSystem visionSystem = FindObjectOfType<VisionSystem>();
+        if (visionSystem != null)
+        {
+            visionSystem.UpdateVision();
+        }
     }
 
     public Tile getTile(int xCoord, int yCoord)

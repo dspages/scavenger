@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System;
+using System.Linq;
 
 public class CharacterSheet
 {
@@ -42,13 +43,15 @@ public class CharacterSheet
     public GameObject avatar;
     public Inventory inventory;
 
-    public int strength; // Carrying capacity, melee damage, thrown range
-    public int agility; // dodge chance, crit chance
-    public int speed; // Action point pool
-    public int intellect; // Controls how many special abilities you can learn and level up
-    public int endurance; // Life points, physical resistances
-    public int perception; // Fog of war clearing, ranged accuracy, bonus loot
-    public int willpower; // Mental resistances, mana pool
+    public List<StatusEffect> statusEffects = new List<StatusEffect>();
+
+    public int strength = 4; // Carrying capacity, melee damage, thrown range
+    public int agility = 4; // dodge chance, crit chance
+    public int speed = 4; // Action point pool, turn order
+    public int intellect = 4; // Controls how many special abilities you can learn and level up
+    public int endurance = 4; // Life points, physical resistances
+    public int perception = 4; // Fog of war clearing, ranged accuracy, bonus loot
+    public int willpower = 4; // Mental resistances, mana pool
 
     public int level = 1;
     public int xp = 0;
@@ -62,7 +65,6 @@ public class CharacterSheet
 
     public int currentHealth;
     public int currentMovePoints = 0;
-    public bool canAttack = false;
 
     private CharacterClass characterClass;
 
@@ -84,34 +86,34 @@ public class CharacterSheet
         // Subscribe to inventory/equipment changes
         inventory.OnInventoryChanged += () => OnInventoryChanged?.Invoke();
         equipment.OnEquipmentChanged += () => OnEquipmentChanged?.Invoke();
-        
-        // Add some test items for demonstration
-        AddTestItems();
+        CharacterSetup.SeedWithTestItems(this);
     }
 
     private int MoveSpeed()
     {
-        return 20;
+        return 20 + 5 * speed;
     }
 
     public int MaxHealth()
     {
-        return (10 * level) + (5 * endurance) + strength;
+        return (10 * level) + (5 * endurance);
     }
 
-    public PlayerController CreateCombatAvatarAsPC(Vector3 location, Quaternion rotation)
+    public PlayerController CreateCombatAvatarAsPC(Vector3 location, Quaternion rotation, Tile tile)
     {
         GameObject combatant = CreateCombatAvatar(location, rotation);
         PlayerController c = combatant.AddComponent<PlayerController>();
-        c.characterSheet = this;
+        c.SetCurrentTile(tile);
+        c.SetCharacterSheet(this);
         return c;
     }
 
-    public EnemyController CreateCombatAvatarAsNPC(Vector3 location, Quaternion rotation)
+    public EnemyController CreateCombatAvatarAsNPC(Vector3 location, Quaternion rotation, Tile tile)
     {
         GameObject combatant = CreateCombatAvatar(location, rotation);
         EnemyController c = combatant.AddComponent<EnemyController>();
-        c.characterSheet = this;
+        c.SetCurrentTile(tile);
+        c.SetCharacterSheet(this);
         return c;
     }
 
@@ -119,6 +121,8 @@ public class CharacterSheet
     {
         combatPrefab = (GameObject)Resources.Load("Prefabs/combatant", typeof(GameObject));
         GameObject avatar = GameObject.Instantiate(combatPrefab, location, rotation) as GameObject;
+        // Track the instantiated avatar on this character sheet
+        this.avatar = avatar;
         healthBar = avatar.transform.Find("Canvas").transform.Find("HealthBar").GetComponent<IndicatorBar>();
         healthBar.SetSliderMax(MaxHealth());
         healthBar.SetSlider(currentHealth);
@@ -130,15 +134,83 @@ public class CharacterSheet
         return true;
     }
 
-    public void BeginTurn()
+    // Returns true if the unit is still alive.
+    public bool BeginTurn()
     {
         currentMovePoints = MoveSpeed();
-        canAttack = true;
+        foreach (StatusEffect effect in statusEffects)
+        {
+            currentMovePoints = effect.PerRoundEffect(currentMovePoints);
+            // The PerRoundEffect may have killed the unit (poison, burning).
+            if (dead) return false;
+        }
+        statusEffects.RemoveAll(e => e.expired);
+        return true;
     }
 
     public void DisplayPopupDuringCombat(string toDisplay)
     {
 
+    }
+
+    public int GetVisionRange()
+    {
+        // Later, maybe equipment and status (blinded, eagle-eyed, etc.) can change this.
+        return perception * 2;
+    }
+
+    public void ReceiveHealing(int amount)
+    {
+        currentHealth += amount;
+        if (currentHealth > MaxHealth())
+        {
+            currentHealth = MaxHealth();
+        }
+        if (healthBar != null)
+        {
+            healthBar.SetSlider(currentHealth);
+        }
+        OnHealthChanged?.Invoke();
+    }
+
+    public void ReceivePureDamage(int amount)
+    {
+        ReceiveDamage(amount);
+    }
+
+    public void RegisterStatusEffect(StatusEffect effect)
+    {
+        // Add the status effect to the list
+        statusEffects.Add(effect);
+        
+        // Note: Vision system will be notified through the CombatController
+        // when the status effect is applied
+    }
+    
+    public void RemoveStatusEffect(StatusEffect.EffectType effectType, bool notify = true)
+    {
+        // Remove the status effect
+        StatusEffect.RemoveStatusEffect(statusEffects, effectType);
+
+        // Notify the CombatController if HIDDEN status was removed (unless suppressed)
+        if (notify && effectType == StatusEffect.EffectType.HIDDEN && avatar != null)
+        {
+            CombatController combatController = avatar.GetComponent<CombatController>();
+            if (combatController != null)
+            {
+                combatController.NotifyStatusEffectChanged(StatusEffect.EffectType.HIDDEN);
+            }
+        }
+    }
+
+    public void RefreshStatusIcons()
+    {
+        // TODO: Implement status icon cleanup
+    }
+
+    public bool HasStatusEffect(StatusEffect.EffectType effectType)
+    {
+        return StatusEffect.HasEffectType(ref statusEffects, effectType);
     }
 
     public int MinDamage()
@@ -255,139 +327,4 @@ public class CharacterSheet
         target.ReceiveDamage(dam);
     }
 
-    private void AddTestItems()
-    {
-        // Add some test inventory items
-        inventory.TryAddItem(new InventoryItem("Health Potion") { 
-            description = "Restores 50 HP", 
-            stackSize = 10 
-        });
-        inventory.TryAddItem(new InventoryItem("Mana Potion") { 
-            description = "Restores 30 MP", 
-            stackSize = 5 
-        });
-        inventory.TryAddItem(new InventoryItem("Bread") { 
-            description = "Basic food item", 
-            stackSize = 20 
-        });
-        inventory.TryAddItem(new InventoryItem("Gold Coin") { 
-            description = "Currency", 
-            stackSize = 99 
-        });
-        
-        // Add various weapon types for testing
-        var cutlass = new EquippableHandheld(
-            name: "Cutlass", 
-            type: EquippableHandheld.WeaponType.OneHanded,
-            minDmg: 3,
-            maxDmg: 6,
-            minRange: 1,
-            maxRange: 1,
-            dmgType: EquippableHandheld.DamageType.Slashing
-        ) { 
-            description = "A basic sword",
-            actionPointCost = 10,
-            rangeType = EquippableHandheld.RangeType.Melee
-        };
-        
-        var steelShield = new EquippableHandheld(
-            name: "Steel Shield", 
-            type: EquippableHandheld.WeaponType.Shield, 
-            minDmg: 0, 
-            maxDmg: 0,
-            minRange: 1,
-            maxRange: 1,
-            dmgType: EquippableHandheld.DamageType.Bludgeoning
-        ) { 
-            description = "A sturdy steel shield",
-            armorBonus = 2,
-            dodgeBonus = 1,
-            rangeType = EquippableHandheld.RangeType.Melee
-        };
-        
-        var pike = new EquippableHandheld(
-            name: "Reach Pike", 
-            type: EquippableHandheld.WeaponType.TwoHanded, 
-            minDmg: 8, 
-            maxDmg: 12,
-            minRange: 2,
-            maxRange: 2,
-            dmgType: EquippableHandheld.DamageType.Piercing
-        ) { 
-            description = "A long pike that requires distance to use effectively",
-            actionPointCost = 15,
-            rangeType = EquippableHandheld.RangeType.Melee
-        };
-        inventory.TryAddItem(pike);
-        
-        // Note: minRange prevents weapons from being used at point-blank
-        // This prevents self-harm with explosives and creates tactical positioning
-        var musket = new EquippableHandheld(
-            name: "Long Musket", 
-            type: EquippableHandheld.WeaponType.TwoHanded, 
-            minDmg: 12, 
-            maxDmg: 18,
-            minRange: 2,
-            maxRange: 10,
-            dmgType: EquippableHandheld.DamageType.Bludgeoning
-        ) { 
-            description = "A musket that requires distance to avoid muzzle flash",
-            actionPointCost = 30,
-            rangeType = EquippableHandheld.RangeType.Ranged,
-            requiresAmmo = true,
-            ammoType = "Musket Ball"
-        };
-        inventory.TryAddItem(musket);
-        
-        var dagger = new EquippableHandheld(
-            name: "Iron Dagger", 
-            type: EquippableHandheld.WeaponType.OneHanded, 
-            minDmg: 2, 
-            maxDmg: 4,
-            minRange: 1,
-            maxRange: 1,
-            dmgType: EquippableHandheld.DamageType.Piercing
-        ) { 
-            description = "A quick dagger",
-            actionPointCost = 4,
-            rangeType = EquippableHandheld.RangeType.Melee
-        };
-        inventory.TryAddItem(dagger);
-
-        var grenade = new EquippableHandheld(
-            name: "Frag Grenade", 
-            type: EquippableHandheld.WeaponType.OneHanded, 
-            minDmg: 12,
-            maxDmg: 18,
-            minRange: 3,
-            maxRange: 8,
-            dmgType: EquippableHandheld.DamageType.Fire
-        ) { 
-            description = "A grenade that explodes on impact - keep your distance!",
-            actionPointCost = 20,
-            splashRadius = 2,
-            rangeType = EquippableHandheld.RangeType.Ranged,
-            isConsumable = true
-        };
-        inventory.TryAddItem(grenade);
-        
-        // Add ammo for ranged weapons
-        inventory.TryAddItem(new InventoryItem("Musket Ball") { 
-            description = "Ammunition for muskets",
-            stackSize = 50 
-        });
-        
-        // Equip starting gear (these items go directly to equipment, not inventory)
-        TryEquipItem(cutlass);
-        TryEquipItem(steelShield);
-        
-        // Add test armor
-        var leatherArmor = new EquippableItem(
-            name: "Leather Armor", 
-            equipSlot: EquippableItem.EquipmentSlot.Armor
-        ) { 
-            description = "Basic protection" 
-        };
-        TryEquipItem(leatherArmor);
-    }
 }

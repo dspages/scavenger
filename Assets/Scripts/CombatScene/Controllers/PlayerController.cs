@@ -7,6 +7,7 @@ public class PlayerController : CombatController
 {
     private Tile hoverTile = null;
     private TooltipManager tooltipManager;
+    private PathRenderer pathRenderer;
 
     override protected bool ContainsEnemy(Tile tile)
     {
@@ -28,6 +29,13 @@ public class PlayerController : CombatController
     {
         base.Start();
         tooltipManager = FindObjectOfType<TooltipManager>();
+        // Ensure a PathRenderer exists for drawing paths
+        pathRenderer = FindObjectOfType<PathRenderer>();
+        if (pathRenderer == null)
+        {
+            GameObject pr = new GameObject("PathRenderer");
+            pathRenderer = pr.AddComponent<PathRenderer>();
+        }
     }
 
     void Update()
@@ -70,20 +78,17 @@ public class PlayerController : CombatController
         return null;
     }
 
+    // Use PathRenderer to draw the path segments (moved out of PlayerController)
     void LineBetweenPositions(Vector3 start, Vector3 end)
     {
-        GameObject lineObject = new GameObject("Line");
-        lineObject.tag = "LineTag";
-        LineRenderer line = lineObject.AddComponent(typeof(LineRenderer)) as LineRenderer;
-        line.material = new Material(Shader.Find("Sprites/Default"));
-        line.positionCount = 2;
-        line.startWidth = 0.1f;
-        line.endWidth = 0.1f;
-        Vector3[] points = new Vector3[2];
-        points[0] = start;
-        points[1] = end;
-        line.SetPositions(points);
+        if (pathRenderer != null)
+        {
+            pathRenderer.DrawSegment(start, end);
+        }
     }
+
+
+// PathDashAnimator moved to PathRenderer.cs
 
     void ClearMouseHover()
     {
@@ -105,11 +110,16 @@ public class PlayerController : CombatController
         hoverTile = GetMouseTile();
         if (hoverTile == null) return;
         hoverTile.isHovered = true;
-        Tile t = hoverTile;
-        while (t.searchParent)
+        
+        // Only render the path if this tile is actually reachable
+        if (hoverTile.searchCanBeChosen)
         {
-            LineBetweenPositions(t.transform.position, t.searchParent.transform.position);
-            t = t.searchParent;
+            Tile t = hoverTile;
+            while (t.searchParent)
+            {
+                LineBetweenPositions(t.transform.position, t.searchParent.transform.position);
+                t = t.searchParent;
+            }
         }
         
         // Start tooltip for the new hovered tile
@@ -121,30 +131,50 @@ public class PlayerController : CombatController
 
     private void CheckMouse()
     {
-        if (Input.GetMouseButtonUp(0))
+        Tile mouseTile = GetMouseTile();
+        if (mouseTile != null)
         {
-            Tile clickedTile = GetMouseTile();
-            if (clickedTile == null || !clickedTile.searchCanBeChosen) return;
-            ClearMouseHover();
-            if (clickedTile.occupant != null)
+            if (mouseTile != hoverTile)
             {
-                selectedAction.BeginAction(clickedTile);
-                // selectedAction = GetComponent<ActionBasicAttack>();
-                return;
+                // Clear old hover and path before setting new one
+                if (hoverTile != null) 
+                {
+                    hoverTile.isHovered = false;
+                    ClearMouseHover(); // Clear old path
+                }
+                hoverTile = mouseTile;
+                hoverTile.isHovered = true;
+                
+                // Render the movement path when hovering over a new tile
+                SetMouseHover();
             }
-            else
+            
+            // Handle mouse clicks
+            if (Input.GetMouseButtonUp(0))
             {
-                Action move = GetComponent<ActionMove>();
-                move.BeginAction(clickedTile);
-                return;
+                Tile clickedTile = mouseTile;
+                if (clickedTile == null || !clickedTile.searchCanBeChosen) return;
+                ClearMouseHover();
+                if (clickedTile.occupant != null)
+                {
+                    selectedAction.BeginAction(clickedTile);
+                    return;
+                }
+                else
+                {
+                    Action move = GetComponent<ActionMove>();
+                    move.BeginAction(clickedTile);
+                    return;
+                }
             }
         }
         else
         {
-            if (GetMouseTile() != hoverTile)
+            if (hoverTile != null)
             {
-                ClearMouseHover();
-                SetMouseHover();
+                hoverTile.isHovered = false;
+                hoverTile = null;
+                ClearMouseHover(); // Clear path when not hovering over anything
             }
         }
     }

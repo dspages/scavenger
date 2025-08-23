@@ -11,7 +11,8 @@ public class Action : MonoBehaviour
         INTERRUPTING,
         BEING_INTERRUPTED,
         ATTACKING,
-        RESOLVING_ATTACK
+        RESOLVING_ATTACK,
+        CASTING,
     };
 
     public enum TargetType
@@ -19,6 +20,9 @@ public class Action : MonoBehaviour
         NONE,
         MELEE,
         RANGED,
+        SELF_ONLY,
+        SELF_AND_ALLY,
+        GROUND_TILE,
     };
 
     protected Animator anim;
@@ -28,6 +32,7 @@ public class Action : MonoBehaviour
 
     virtual public int MOVE_COST { get { return 0; } }
     virtual public bool ATTACK_COST { get { return false; } }
+    virtual public int CAST_MOVE_POINT_COST { get { return 0; } }
     virtual public int MANA_COST { get { return 0; } }
 
     // Target type for special moves, lets UI/AI know when it can use special moves.
@@ -68,7 +73,6 @@ public class Action : MonoBehaviour
         inProgress = false;
         currentPhase = Phase.NONE;
         characterSheet.currentMovePoints -= MOVE_COST;
-        if (ATTACK_COST) characterSheet.canAttack = false;
         combatController.EndAction();
     }
 }

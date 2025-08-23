@@ -78,14 +78,25 @@ public class TurnManager : MonoBehaviour
     {
         CombatController controller = GetCurrentCombatController();
         enemyTurn = !controller.IsPC();
-        controller.BeginTurn();
+        bool activeUnitAlive = controller.BeginTurn();
+        if (!activeUnitAlive) { // If it's dead, skip its turn
+            AdvanceToNextTurn();
+        }
+        
+        // Update vision system for the new turn
+        VisionSystem visionSystem = FindObjectOfType<VisionSystem>();
+        if (visionSystem != null)
+        {
+            visionSystem.UpdateVision();
+        }
+        
         // DisplayCurrentCreatureStats();
     }
 
     private IEnumerator BeginTurnAfterDelay(float fDuration)
     {
         frozen = true;
-        float elapsed = 0f;
+        float elapsed = 0.2f;
         while (elapsed < fDuration)
         {
             elapsed += Time.deltaTime;

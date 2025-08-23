@@ -19,7 +19,6 @@ public class CharacterTooltipProvider : TooltipProvider
         text += $"Level: {character.level}\n";
         text += $"Health: {character.currentHealth}/{character.MaxHealth()}\n";
         text += $"Move Points: {character.currentMovePoints}\n";
-        text += $"Can Attack: {(character.canAttack ? "Yes" : "No")}";
         
         if (character.weaponEquipped != null)
         {

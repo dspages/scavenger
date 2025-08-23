@@ -22,8 +22,7 @@ public static class PlayerParty
         {
             if (c.CanDeploy())
             {
-                PlayerController avatar = c.CreateCombatAvatarAsPC(new Vector3(xPos, yPos, 0f), facing);
-                avatar.SetCurrentTile(tileManager.getTile(xPos, yPos));
+                PlayerController avatar = c.CreateCombatAvatarAsPC(new Vector3(xPos, yPos, 0f), facing, tileManager.getTile(xPos, yPos));
                 avatar.transform.SetParent(turnManager.transform);
                 xPos += 1;
             }
