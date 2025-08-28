@@ -53,6 +53,11 @@ public class PlayerController : CombatController
                 return;
             }
             CheckMouse();
+            // Right-click to reset to default attack action
+            if (Input.GetMouseButtonUp(1))
+            {
+                ResetSelectedActionToDefault();
+            }
         }
     }
 
@@ -79,11 +84,11 @@ public class PlayerController : CombatController
     }
 
     // Use PathRenderer to draw the path segments (moved out of PlayerController)
-    void LineBetweenPositions(Vector3 start, Vector3 end)
+    void LineBetweenPositions(Vector3 start, Vector3 end, PathRenderer.LineType lineType = PathRenderer.LineType.MovementPath)
     {
         if (pathRenderer != null)
         {
-            pathRenderer.DrawSegment(start, end);
+            pathRenderer.DrawSegment(start, end, lineType);
         }
     }
 
@@ -92,7 +97,24 @@ public class PlayerController : CombatController
 
     void ClearMouseHover()
     {
-        if (hoverTile != null) hoverTile.isHovered = false;
+        // Clear all hovered tiles (including AoE highlights)
+        TileManager tileManager = FindObjectOfType<TileManager>();
+        if (tileManager != null)
+        {
+            // Clear all tile hover states
+            for (int x = 0; x < Globals.COMBAT_WIDTH; x++)
+            {
+                for (int y = 0; y < Globals.COMBAT_HEIGHT; y++)
+                {
+                    Tile tile = tileManager.getTile(x, y);
+                    if (tile != null && tile.isHovered)
+                    {
+                        tile.isHovered = false;
+                    }
+                }
+            }
+        }
+        
         foreach (GameObject line in GameObject.FindGameObjectsWithTag("LineTag"))
         {
             Destroy(line);
@@ -103,6 +125,8 @@ public class PlayerController : CombatController
         {
             tooltipManager.StopHover();
         }
+        
+        hoverTile = null;
     }
 
     private void SetMouseHover()
@@ -114,11 +138,20 @@ public class PlayerController : CombatController
         // Only render the path if this tile is actually reachable
         if (hoverTile.searchCanBeChosen)
         {
-            Tile t = hoverTile;
-            while (t.searchParent)
+            // Check if we're in ground-target mode
+            if (selectedAction != null && selectedAction is ActionGroundAttack groundAttack)
             {
-                LineBetweenPositions(t.transform.position, t.searchParent.transform.position);
-                t = t.searchParent;
+                ShowGroundTargetPreview(hoverTile, groundAttack);
+            }
+            else
+            {
+                // Normal movement path
+                Tile t = hoverTile;
+                while (t.searchParent)
+                {
+                    LineBetweenPositions(t.transform.position, t.searchParent.transform.position);
+                    t = t.searchParent;
+                }
             }
         }
         
@@ -126,6 +159,50 @@ public class PlayerController : CombatController
         if (tooltipManager != null)
         {
             tooltipManager.StartHover(hoverTile.gameObject);
+        }
+    }
+
+    private void ShowGroundTargetPreview(Tile targetTile, ActionGroundAttack groundAttack)
+    {
+        // Draw a straight line from caster to target with spell targeting animation
+        Tile origin = GetCurrentTile();
+        if (origin != null)
+        {
+            LineBetweenPositions(origin.transform.position, targetTile.transform.position, PathRenderer.LineType.SpellTarget);
+        }
+
+        // Highlight all tiles that would be affected by the AoE
+        HighlightAoETiles(targetTile, groundAttack.radius);
+    }
+
+    private void HighlightAoETiles(Tile center, int radius)
+    {
+        // Use the same radius calculation as ActionGroundAttack
+        Queue<Tile> queue = new Queue<Tile>();
+        HashSet<Tile> visited = new HashSet<Tile>();
+        Dictionary<Tile, int> depth = new Dictionary<Tile, int>();
+        
+        queue.Enqueue(center);
+        visited.Add(center);
+        depth[center] = 0;
+
+        while (queue.Count > 0)
+        {
+            Tile t = queue.Dequeue();
+            int d = depth[t];
+            
+            // Mark this tile as affected (visual indication)
+            t.isHovered = true; // Reuse existing hover visual for now
+            
+            if (d >= radius) continue;
+            
+            foreach (Tile n in t.Neighbors())
+            {
+                if (n == null || visited.Contains(n)) continue;
+                visited.Add(n);
+                depth[n] = d + 1;
+                queue.Enqueue(n);
+            }
         }
     }
 
@@ -157,13 +234,23 @@ public class PlayerController : CombatController
                 ClearMouseHover();
                 if (clickedTile.occupant != null)
                 {
+                    // If an enemy is clicked, run selected action (melee/ranged/etc.)
                     selectedAction.BeginAction(clickedTile);
                     return;
                 }
                 else
                 {
-                    Action move = GetComponent<ActionMove>();
-                    move.BeginAction(clickedTile);
+                    // If a ground-target action is selected, and it's a ground tile, cast it
+                    if (selectedAction != null && selectedAction.TARGET_TYPE == Action.TargetType.GROUND_TILE)
+                    {
+                        selectedAction.BeginAction(clickedTile);
+                    }
+                    else
+                    {
+                        // Otherwise move
+                        Action move = GetComponent<ActionMove>();
+                        move.BeginAction(clickedTile);
+                    }
                     return;
                 }
             }

@@ -8,6 +8,32 @@ VisualElement {}
     border-bottom-color: rgba(0,0,0,0.5);
 }
 
+.action-bar {
+    gap: 8px;
+}
+
+.action-btn {
+    background-color: #374151;
+    color: #e5e7eb;
+    border-radius: 6px;
+    height: 40px;
+    min-width: 40px;
+    padding-left: 10px;
+    padding-right: 10px;
+    margin-top: 4px;
+}
+
+.action-btn--selected {
+    border-top-width: 2px;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
+    border-left-width: 2px;
+    border-top-color: #fbbf24; /* glowing amber */
+    border-right-color: #fbbf24;
+    border-bottom-color: #fbbf24;
+    border-left-color: #fbbf24;
+}
+
 .primary {
     background-color: #3b82f6;
     color: white;
@@ -148,4 +174,20 @@ VisualElement {}
 .ui-transparent {
     /* Elements with this class allow world interactions to pass through */
     picking-mode: ignore;
+}
+
+.action-points-indicator {
+    background-color: rgba(55, 65, 81, 0.8);
+    border-radius: 6px;
+    border-width: 1px;
+    border-color: rgba(156, 163, 175, 0.4);
+    padding: 8px 12px;
+    min-width: 60px;
+}
+
+.action-points-text {
+    color: #f8fafc;
+    font-size: 14px;
+    font-weight: bold;
+    -unity-text-align: middle-center;
 }

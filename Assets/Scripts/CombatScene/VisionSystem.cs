@@ -231,43 +231,7 @@ public class VisionSystem : MonoBehaviour
     
     private bool HasLineOfSight(Tile from, Tile to)
     {
-        // Simple line of sight using Bresenham's line algorithm
-        int x0 = from.x, y0 = from.y;
-        int x1 = to.x, y1 = to.y;
-        
-        int dx = Mathf.Abs(x1 - x0);
-        int dy = Mathf.Abs(y1 - y0);
-        int sx = x0 < x1 ? 1 : -1;
-        int sy = y0 < y1 ? 1 : -1;
-        int err = dx - dy;
-        
-        int x = x0, y = y0;
-        
-        while (true)
-        {
-            if (x == x1 && y == y1) break;
-            
-            // Check if current tile blocks vision
-            Tile currentTile = tileManager.getTile(x, y);
-            if (currentTile != null && currentTile.blocksVision && currentTile != from)
-            {
-                return false;
-            }
-            
-            int e2 = 2 * err;
-            if (e2 > -dy)
-            {
-                err -= dy;
-                x += sx;
-            }
-            if (e2 < dx)
-            {
-                err += dx;
-                y += sy;
-            }
-        }
-        
-        return true;
+        return LineOfSightUtils.HasLineOfSight(from, to, tileManager);
     }
     
     private void UnfogTile(Tile tile)

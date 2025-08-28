@@ -13,7 +13,9 @@ public class CombatPanelUI : MonoBehaviour
 
     private Button endTurnButton;
     private Button toggleInventoryButton;
+    private VisualElement actionBar;
     private VisualElement trashSlot;
+    private Label actionPointsLabel;
     private CharacterSheet currentCharacter;
     private InventoryUIManager inventoryUI;
 
@@ -67,6 +69,8 @@ public class CombatPanelUI : MonoBehaviour
         var rightHandSlot = visualTree.Q<VisualElement>("RightHandSlot");
         var armorSlot = visualTree.Q<VisualElement>("ArmorSlot");
         trashSlot = visualTree.Q<VisualElement>("Trash");
+        actionBar = visualTree.Q<VisualElement>("ActionBar");
+        actionPointsLabel = visualTree.Q<Label>("ActionPointsLabel");
 
         // Initialize inventory UI manager
         inventoryUI = new InventoryUIManager(inventoryPanel, itemGrid, leftHandSlot, rightHandSlot, armorSlot);
@@ -192,6 +196,7 @@ public class CombatPanelUI : MonoBehaviour
             {
                 currentCharacter.OnInventoryChanged -= inventoryUI.RefreshInventoryUI;
                 currentCharacter.OnEquipmentChanged -= () => inventoryUI.RefreshEquipmentUI(AttachTooltipHandlers);
+                currentCharacter.OnActionPointsChanged -= UpdateActionPointsDisplay;
             }
 
             currentCharacter = newCharacter;
@@ -201,10 +206,23 @@ public class CombatPanelUI : MonoBehaviour
             if (currentCharacter != null)
             {
                 currentCharacter.OnInventoryChanged += inventoryUI.RefreshInventoryUI;
-                currentCharacter.OnEquipmentChanged += () => inventoryUI.RefreshEquipmentUI(AttachTooltipHandlers);
+                currentCharacter.OnInventoryChanged += () => RefreshActionBar();
+                currentCharacter.OnEquipmentChanged += () => { inventoryUI.RefreshEquipmentUI(AttachTooltipHandlers); RefreshActionBar(); };
+                currentCharacter.OnActionPointsChanged += UpdateActionPointsDisplay;
+                // Also reapply selection validity on equipment changes
+                currentCharacter.OnEquipmentChanged += () => {
+                    var controller = GetActivePlayerController();
+                    if (controller != null)
+                    {
+                        // Ensure controller validates and UI reflects current selection
+                        RefreshActionBar();
+                    }
+                };
                 inventoryUI.RefreshInventoryUI();
                 inventoryUI.RefreshEquipmentUI(AttachTooltipHandlers);
                 AttachEquipmentDragTargets();
+                RefreshActionBar();
+                UpdateActionPointsDisplay();
             }
         }
     }
@@ -645,6 +663,181 @@ public class CombatPanelUI : MonoBehaviour
             // The controller is responsible for only ending turn if the click is valid.
             pc.EndTurnButtonClick();
         }
+    }
+
+    // -------------------- Action Bar --------------------
+    private void RefreshActionBar()
+    {
+        if (actionBar == null) return;
+        actionBar.Clear();
+        var controller = GetActivePlayerController();
+        if (controller == null) return;
+        
+        // Update action points display
+        UpdateActionPointsDisplay();
+
+        // Collect actions: up to 2 from hands, plus specials from character class
+        List<(string key, string className, string label)> actions = new List<(string, string, string)>();
+        var right = currentCharacter?.GetEquippedItem(EquippableItem.EquipmentSlot.RightHand) as EquippableHandheld;
+        var left = currentCharacter?.GetEquippedItem(EquippableItem.EquipmentSlot.LeftHand) as EquippableHandheld;
+
+        // Default punch if no handheld at all
+        if (right == null && left == null)
+        {
+            actions.Add((nameof(ActionWeaponAttack), nameof(ActionWeaponAttack), "Punch"));
+        }
+        else
+        {
+            if (right != null)
+            {
+                string rn = string.IsNullOrEmpty(right.associatedActionClass) ? nameof(ActionWeaponAttack) : right.associatedActionClass;
+                actions.Add(($"{rn}:RightHand", rn, right.itemName));
+            }
+            if (left != null)
+            {
+                string ln = string.IsNullOrEmpty(left.associatedActionClass) ? nameof(ActionWeaponAttack) : left.associatedActionClass;
+                actions.Add(($"{ln}:LeftHand", ln, left.itemName));
+            }
+        }
+
+        // Specials
+        foreach (var t in currentCharacter.GetKnownSpecialActionTypes())
+        {
+            if (t == null) continue;
+            actions.Add((t.Name, t.Name, t.Name));
+        }
+
+        string selectedName = controller.GetSelectedActionClassName();
+        string selectedKey = controller.GetSelectedActionKey();
+        for (int i = 0; i < actions.Count; i++)
+        {
+            var tuple = actions[i];
+            var btn = new Button();
+            btn.text = tuple.label;
+            btn.AddToClassList("action-btn");
+            // Ensure this element blocks world clicks
+            btn.AddToClassList("ui-blocker");
+            if (!string.IsNullOrEmpty(selectedKey) ? (tuple.key == selectedKey) : (tuple.className == selectedName))
+            {
+                btn.AddToClassList("action-btn--selected");
+            }
+            // Use a local copy to avoid closure capture issues
+            string key = tuple.key;
+            string cls = tuple.className;
+            btn.clicked += () => { OnActionButtonClicked(controller, key, cls); };
+            // Ensure button is clickable even inside a ui-blocker container
+            btn.pickingMode = PickingMode.Position;
+            // Tooltip: show item or action description
+            btn.tooltip = BuildActionTooltip(key, cls);
+            AttachTooltipHandlers(btn);
+            actionBar.Add(btn);
+        }
+    }
+
+    private PlayerController GetActivePlayerController()
+    {
+        var players = FindObjectsOfType<PlayerController>();
+        for (int i = 0; i < players.Length; i++)
+        {
+            if (players[i] != null && players[i].isTurn)
+            {
+                return players[i];
+            }
+        }
+        return null;
+    }
+
+    private void OnActionButtonClicked(PlayerController controller, string key, string className)
+    {
+        // Toggle logic: if click current, reset to default; else select new
+        string currentKey = controller.GetSelectedActionKey();
+        if (!string.IsNullOrEmpty(currentKey) ? (currentKey == key) : (controller.GetSelectedActionClassName() == className))
+        {
+            controller.ResetSelectedActionToDefault();
+        }
+        else
+        {
+            controller.SelectAction(key, className);
+        }
+        RefreshActionBar();
+    }
+
+    private void UpdateActionPointsDisplay()
+    {
+        if (actionPointsLabel == null || currentCharacter == null) return;
+        
+        int currentAP = currentCharacter.currentActionPoints;
+        actionPointsLabel.text = $"AP: {currentAP}";
+        
+        // Color the text based on action points remaining
+        if (currentAP == 0)
+        {
+            actionPointsLabel.style.color = new Color(0.9f, 0.4f, 0.4f); // Red when no AP
+        }
+        else if (currentAP <= 3)
+        {
+            actionPointsLabel.style.color = new Color(1f, 0.8f, 0.4f); // Orange when low AP
+        }
+        else
+        {
+            actionPointsLabel.style.color = new Color(0.9f, 0.95f, 1f); // Normal white
+        }
+    }
+
+    private string BuildActionTooltip(string key, string className)
+    {
+        var controller = GetActivePlayerController();
+        
+        // Get the action to determine cost
+        Action action = null;
+        if (controller != null)
+        {
+            var t = FindTypeByName(className);
+            if (t != null)
+            {
+                action = controller.GetComponent(t) as Action;
+            }
+        }
+
+        // If this corresponds to a hand-held item action, combine item description with action cost
+        bool isRight = key != null && key.EndsWith(":RightHand");
+        bool isLeft = key != null && key.EndsWith(":LeftHand");
+        if ((isRight || isLeft) && currentCharacter != null)
+        {
+            var slot = isRight ? EquippableItem.EquipmentSlot.RightHand : EquippableItem.EquipmentSlot.LeftHand;
+            var item = currentCharacter.GetEquippedItem(slot) as EquippableHandheld;
+            if (item != null)
+            {
+                string tooltip = "";
+                if (action != null && action.ACTION_COST > 0)
+                {
+                    tooltip += $"Action Cost: {action.ACTION_COST} AP\n";
+                }
+                if (!string.IsNullOrEmpty(item.description))
+                {
+                    tooltip += item.description;
+                }
+                return tooltip;
+            }
+        }
+
+        // For special abilities, use the action's Description() method
+        if (action != null)
+        {
+            return action.Description();
+        }
+        
+        return className;
+    }
+
+    private static System.Type FindTypeByName(string className)
+    {
+        foreach (var asm in System.AppDomain.CurrentDomain.GetAssemblies())
+        {
+            var t = System.Linq.Enumerable.FirstOrDefault(asm.GetTypes(), x => x.Name == className);
+            if (t != null) return t;
+        }
+        return null;
     }
 
     private void OnToggleInventoryClicked()

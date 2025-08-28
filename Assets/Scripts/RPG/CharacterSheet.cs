@@ -64,21 +64,27 @@ public class CharacterSheet
     private Equipment equipment;
 
     public int currentHealth;
-    public int currentMovePoints = 0;
+    public int currentActionPoints = 0;
 
-    private CharacterClass characterClass;
+    public CharacterClass characterClass;
 
     public delegate void HealthChangedDelegate();
     public delegate void InventoryChangedDelegate();
     public delegate void EquipmentChangedDelegate();
+    public delegate void ActionPointsChangedDelegate();
 
     public event HealthChangedDelegate OnHealthChanged;
     public event InventoryChangedDelegate OnInventoryChanged;
     public event EquipmentChangedDelegate OnEquipmentChanged;
+    public event ActionPointsChangedDelegate OnActionPointsChanged;
 
-    public CharacterSheet(string name)
+    // Special actions known by this character (types); instances attach to avatar components
+    private readonly List<System.Type> knownSpecialActionTypes = new List<System.Type>();
+
+    public CharacterSheet(string name, CharacterClass characterClass)
     {
         firstName = name;
+        this.characterClass = characterClass;
         currentHealth = MaxHealth();
         inventory = new Inventory();
         equipment = new Equipment();
@@ -86,7 +92,8 @@ public class CharacterSheet
         // Subscribe to inventory/equipment changes
         inventory.OnInventoryChanged += () => OnInventoryChanged?.Invoke();
         equipment.OnEquipmentChanged += () => OnEquipmentChanged?.Invoke();
-        CharacterSetup.SeedWithTestItems(this);
+        CharacterSetup.AssignStartingGear(this);
+        CharacterSetup.AssignStartingAbilities(this);
     }
 
     private int MoveSpeed()
@@ -105,6 +112,7 @@ public class CharacterSheet
         PlayerController c = combatant.AddComponent<PlayerController>();
         c.SetCurrentTile(tile);
         c.SetCharacterSheet(this);
+        AttachKnownActionsToAvatar(combatant);
         return c;
     }
 
@@ -114,6 +122,7 @@ public class CharacterSheet
         EnemyController c = combatant.AddComponent<EnemyController>();
         c.SetCurrentTile(tile);
         c.SetCharacterSheet(this);
+        AttachKnownActionsToAvatar(combatant);
         return c;
     }
 
@@ -137,15 +146,29 @@ public class CharacterSheet
     // Returns true if the unit is still alive.
     public bool BeginTurn()
     {
-        currentMovePoints = MoveSpeed();
+        SetActionPoints(MoveSpeed());
         foreach (StatusEffect effect in statusEffects)
         {
-            currentMovePoints = effect.PerRoundEffect(currentMovePoints);
+            SetActionPoints(effect.PerRoundEffect(currentActionPoints));
             // The PerRoundEffect may have killed the unit (poison, burning).
             if (dead) return false;
         }
         statusEffects.RemoveAll(e => e.expired);
         return true;
+    }
+    
+    public void SetActionPoints(int newValue)
+    {
+        if (currentActionPoints != newValue)
+        {
+            currentActionPoints = newValue;
+            OnActionPointsChanged?.Invoke();
+        }
+    }
+    
+    public void ModifyActionPoints(int deltaValue)
+    {
+        SetActionPoints(currentActionPoints + deltaValue);
     }
 
     public void DisplayPopupDuringCombat(string toDisplay)
@@ -327,4 +350,31 @@ public class CharacterSheet
         target.ReceiveDamage(dam);
     }
 
+    // Special actions knowledge and attachment
+    public void LearnSpecialAction<T>() where T : Action
+    {
+        var t = typeof(T);
+        if (!knownSpecialActionTypes.Contains(t))
+        {
+            knownSpecialActionTypes.Add(t);
+        }
+    }
+
+    public IEnumerable<System.Type> GetKnownSpecialActionTypes()
+    {
+        return knownSpecialActionTypes;
+    }
+
+    private void AttachKnownActionsToAvatar(GameObject go)
+    {
+        if (go == null) return;
+        foreach (var t in knownSpecialActionTypes)
+        {
+            if (t == null) continue;
+            if (go.GetComponent(t) == null)
+            {
+                go.AddComponent(t);
+            }
+        }
+    }
 }

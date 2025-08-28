@@ -30,7 +30,7 @@ public class Action : MonoBehaviour
     protected CombatController combatController;
     protected CharacterSheet characterSheet;
 
-    virtual public int MOVE_COST { get { return 0; } }
+    virtual public int ACTION_COST { get { return 0; } }
     virtual public bool ATTACK_COST { get { return false; } }
     virtual public int CAST_MOVE_POINT_COST { get { return 0; } }
     virtual public int MANA_COST { get { return 0; } }
@@ -53,6 +53,7 @@ public class Action : MonoBehaviour
         return "";
     }
 
+
     // Start is called before the first frame update
     virtual protected void Start()
     {
@@ -68,11 +69,21 @@ public class Action : MonoBehaviour
         combatController.BeginAction();
     }
 
+    virtual public string Description()
+    {
+        string desc = "";
+        if (ACTION_COST > 0)
+        {
+            desc += $"Action Cost: {ACTION_COST} AP\n";
+        }
+        return desc;
+    }
+
     protected void EndAction()
     {
         inProgress = false;
         currentPhase = Phase.NONE;
-        characterSheet.currentMovePoints -= MOVE_COST;
+        characterSheet.ModifyActionPoints(-ACTION_COST);
         combatController.EndAction();
     }
 }

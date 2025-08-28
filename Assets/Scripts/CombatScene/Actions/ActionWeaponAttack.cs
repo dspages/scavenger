@@ -2,37 +2,22 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ActionWeaponAttack : ActionMove
+public class ActionWeaponAttack : ActionAttack
 {
-    virtual protected float ATTACK_DURATION { get { return 1.0f; } }
     override public bool ATTACK_COST { get { return true; } }
     override public TargetType TARGET_TYPE { get { return TargetType.MELEE; } }
 
-    // Update is called once per frame
-    protected override void Update()
-    {
-        if (!inProgress)
-        {
-            return;
-        }
-        if (currentPhase == Phase.MOVING)
-        {
-            Move();
-        }
-        else if (currentPhase == Phase.ATTACKING)
-        {
-            AttackPhase();
-        }
-        else
-        {
-            currentPhase = Phase.NONE;
-        }
-    }
+    // Weapon attacks target enemies only and don't need line of sight (melee range)
+    public override bool RequiresLineOfSight { get { return false; } }
+    public override bool TargetsEnemiesOnly { get { return true; } }
+    public override bool CanTargetEmptyTiles { get { return false; } }
 
-    void ResolveAttack(CharacterSheet targetSheet)
+    protected override void PerformAttack(Tile targetTile)
     {
-        // CharacterSheet targetSheet = target.GetComponent<CharacterSheet>();
-        AttackEffects(targetSheet);
+        if (targetTile.occupant?.characterSheet != null)
+        {
+            AttackEffects(targetTile.occupant.characterSheet);
+        }
     }
 
     virtual protected void AttackEffects(CharacterSheet targetSheet)
@@ -40,20 +25,8 @@ public class ActionWeaponAttack : ActionMove
         characterSheet.PerformBasicAttack(targetSheet);
     }
 
-    void AttackPhase()
+    protected override float GetAttackDuration()
     {
-        if (path.Count == 1)
-        {
-            Tile targetTile = path.Pop();
-            Vector3 direction = CalculateDirection(targetTile.transform.position);
-            direction.y = 0f;
-            if (direction != Vector3.zero)
-                transform.forward = direction;
-            ResolveAttack(targetTile.occupant.characterSheet);
-        }
-        else
-        {
-            StartCoroutine(EndActionAfterDelay(ATTACK_DURATION));
-        }
+        return 1.0f;
     }
 }

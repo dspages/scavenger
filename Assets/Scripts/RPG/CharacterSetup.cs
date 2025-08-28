@@ -4,8 +4,23 @@ using UnityEngine;
 
 public static class CharacterSetup
 {
-    // Move test item seeding out of CharacterSheet so it can be called by tests or setup code
-    public static void SeedWithTestItems(CharacterSheet sheet)
+    public static void AssignStartingAbilities(CharacterSheet sheet) {
+        if (sheet == null) return;
+        switch (sheet.characterClass) {
+            case CharacterSheet.CharacterClass.CLASS_FIREMAGE:
+                sheet.LearnSpecialAction<ActionFireball>();
+                break;
+            case CharacterSheet.CharacterClass.CLASS_ROGUE:
+                sheet.LearnSpecialAction<ActionStealth>();
+                break;
+            default:
+                // Treat all others as warrior-like for now
+                sheet.LearnSpecialAction<ActionBulwark>();
+                break;
+        }
+    }
+
+    public static void AssignStartingGear(CharacterSheet sheet)
     {
         if (sheet == null) return;
 
@@ -84,7 +99,8 @@ public static class CharacterSetup
             description = "A musket that requires distance to avoid muzzle flash",
             rangeType = EquippableHandheld.RangeType.Ranged,
             requiresAmmo = true,
-            ammoType = "Musket Ball"
+            ammoType = "Musket Ball",
+            associatedActionClass = nameof(ActionRangedAttack)
         };
         inventory.TryAddItem(musket);
 
@@ -107,7 +123,7 @@ public static class CharacterSetup
             type: EquippableHandheld.WeaponType.OneHanded,
             dmg: 12,
             actionPointCost: 20,
-            minRange: 3,
+            minRange: 2,
             maxRange: 8,
             dmgType: EquippableHandheld.DamageType.Fire
         ) {
@@ -116,6 +132,8 @@ public static class CharacterSetup
             rangeType = EquippableHandheld.RangeType.Ranged,
             isConsumable = true
         };
+        // Map grenade to a ground attack action by default
+        grenade.associatedActionClass = nameof(ActionGroundAttack);
         inventory.TryAddItem(grenade);
 
         // Add ammo for ranged weapons

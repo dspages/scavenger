@@ -39,6 +39,10 @@ public class EquippableHandheld : EquippableItem
     public int actionPointCost = 1;
     public DamageType damageType = DamageType.Slashing;
     
+    // Name of the Action component this item maps to when used (defaults to melee attack)
+    // Examples: "ActionWeaponAttack", "ActionGroundAttack", "ActionStealth" (for scrolls)
+    public string associatedActionClass = "ActionWeaponAttack";
+    
     // Illumination support for items that provide light (e.g., torches)
     public bool providesIllumination = false;
     public int illuminationRange = 0;
@@ -54,7 +58,7 @@ public class EquippableHandheld : EquippableItem
     {
         weaponType = type;
         damage = dmg;
-        actionPointCost = actionPointCost;
+        this.actionPointCost = actionPointCost;
         damageType = dmgType;
     }
 
@@ -63,9 +67,9 @@ public class EquippableHandheld : EquippableItem
     {
         weaponType = type;
         damage = dmg;
-        minRange = minRange;
-        maxRange = maxRange;
-        actionPointCost = actionPointCost;
+        this.minRange = minRange;
+        this.maxRange = maxRange;
+        this.actionPointCost = actionPointCost;
         damageType = dmgType;
     }
 

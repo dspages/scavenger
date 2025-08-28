@@ -9,7 +9,9 @@ public static class PlayerParty
     public static void Reset()
     {
         partyMembers = new List<CharacterSheet> { };
-        partyMembers.Add(new CharacterSheet("Main Character"));
+        partyMembers.Add(new CharacterSheet("Rogue", CharacterSheet.CharacterClass.CLASS_ROGUE));
+        partyMembers.Add(new CharacterSheet("Warrior", CharacterSheet.CharacterClass.CLASS_SOLDIER));
+        partyMembers.Add(new CharacterSheet("Fire Mage", CharacterSheet.CharacterClass.CLASS_FIREMAGE));
     }
 
     public static void SpawnPartyMembers(TurnManager turnManager)

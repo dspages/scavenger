@@ -1,10 +1,18 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <ui:VisualElement name="HudRoot" class="ui-transparent" style="position: absolute; left: 0px; right: 0px; top: 0px; bottom: 0px;">
         <ui:VisualElement name="CombatHudBar" class="hud-bar ui-blocker" style="bottom: 0px; justify-content: flex-start; align-items: center; position: absolute; width: 100%; left: 0; right: 0; height: 72px; background-color: rgba(45, 45, 45, 0.95); picking-mode: position;">
-            <ui:VisualElement class="hud-left" style="flex-grow: 1; flex-direction: row; align-items: center; padding-left: 16px;" />
-            <ui:VisualElement class="hud-right" style="flex-direction: row; align-items: center; margin-left: auto;">
-                <ui:Button text="Inventory" display-tooltip-when-elided="true" name="ToggleInventoryButton" class="secondary" style="height: 40px; width: 110px; margin-right: 8px;" />
-                <ui:Button text="End Turn" display-tooltip-when-elided="true" name="EndTurnButton" class="primary" style="height: 44px; width: 110px; margin-right: 16px;" />
+            <ui:VisualElement name="HudButtons" class="hud-buttons ui-blocker" style="flex-direction: row; align-items: center; width: 100%; height: 100%;">
+                <ui:VisualElement class="hud-left ui-blocker" style="flex-grow: 1; flex-direction: row; align-items: center; padding-left: 16px; height: 100%;">
+                    <ui:VisualElement name="ActionPointsIndicator" class="action-points-indicator ui-blocker" style="margin-right: 16px; align-items: center; justify-content: center;">
+                        <ui:Label name="ActionPointsLabel" text="AP: 12" class="action-points-text" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="ActionBar" class="action-bar ui-blocker" style="flex-direction: row; align-items: center;">
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement class="hud-right ui-blocker" style="flex-direction: row; align-items: center; margin-left: auto; height: 100%; padding-right: 16px;">
+                    <ui:Button text="Inventory" display-tooltip-when-elided="true" name="ToggleInventoryButton" class="secondary" style="height: 40px; width: 110px; margin-right: 8px;" />
+                    <ui:Button text="End Turn" display-tooltip-when-elided="true" name="EndTurnButton" class="primary" style="height: 44px; width: 110px; margin-right: 16px;" />
+                </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="InventoryPanel" class="panel elevated ui-blocker" style="position: absolute; right: 16px; bottom: 84px; width: 520px; height: 420px; background-color: rgba(30,30,30,0.98); border-radius: 8px; padding: 16px; z-index: 100; picking-mode: position;">

@@ -4,8 +4,14 @@ using UnityEngine;
 
 public class PathRenderer : MonoBehaviour
 {
+    public enum LineType
+    {
+        MovementPath,   // Marches toward the target (normal behavior)
+        SpellTarget     // Emanates outward from the caster
+    }
+
     // Draw a dashed line segment between two world positions
-    public void DrawSegment(Vector3 start, Vector3 end)
+    public void DrawSegment(Vector3 start, Vector3 end, LineType lineType = LineType.MovementPath)
     {
         // Draw a dashed line by creating short line segments with gaps between them.
         float dashLength = 0.1f;
@@ -17,7 +23,9 @@ public class PathRenderer : MonoBehaviour
         Vector3 direction = (end - start).normalized;
 
         float dashWidth = 0.08f;
-        Color baseColor = new Color(0.9f, 0.95f, 1f, 0.6f); // semi-transparent soft bluish white
+        Color baseColor = lineType == LineType.SpellTarget 
+            ? new Color(1f, 0.6f, 0.2f, 0.7f)  // Orange-ish for spells
+            : new Color(0.9f, 0.95f, 1f, 0.6f); // Bluish white for movement
 
         for (int i = 0; i < segmentCount; i++)
         {
@@ -51,9 +59,10 @@ public class PathRenderer : MonoBehaviour
             PathDashAnimator animator = dashObj.AddComponent<PathDashAnimator>();
             animator.segmentIndex = i;
             animator.segmentCount = segmentCount;
-            animator.marchSpeed = 1f;
+            animator.marchSpeed = lineType == LineType.SpellTarget ? 2f : 1f; // Faster for spells
             animator.baseAlpha = baseColor.a;
             animator.marchAmplitude = 2f;
+            animator.lineType = lineType;
             // Phase offset so the whole line contains a full cycle (marching effect aligned)
             animator.phase = (i / (float)segmentCount) * Mathf.PI * 2f;
         }
@@ -77,6 +86,7 @@ public class PathDashAnimator : MonoBehaviour
     public float baseAlpha = 0.6f;
     public float marchAmplitude = 0.5f; // 0..1 scale of variation
     public float phase;
+    public PathRenderer.LineType lineType = PathRenderer.LineType.MovementPath;
 
     private LineRenderer line;
     private Color baseColor;
@@ -93,9 +103,22 @@ public class PathDashAnimator : MonoBehaviour
     void Update()
     {
         if (line == null) return;
-        // progress moves forward over time and each segment is offset by its index
+        
         float offset = (float)segmentIndex / Mathf.Max(1, segmentCount);
-        float progress = (Time.time * marchSpeed + offset) % 1f;
+        float progress;
+        
+        if (lineType == PathRenderer.LineType.SpellTarget)
+        {
+            // For spell targeting, reverse the direction so it emanates outward from the caster
+            // Also make segments closer to origin activate first
+            progress = (Time.time * marchSpeed - offset) % 1f;
+        }
+        else
+        {
+            // Normal movement: marches toward the target
+            progress = (Time.time * marchSpeed + offset) % 1f;
+        }
+        
         float wave = 0.5f + 0.5f * Mathf.Sin(progress * Mathf.PI * 2f + phase);
         // Map wave (0..1) to alpha around baseAlpha with amplitude
         float a = baseAlpha * (1f + (wave - 0.5f) * 2f * marchAmplitude);

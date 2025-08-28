@@ -9,7 +9,9 @@ public static class EnemyParty
     public static void GenerateNewEnemies()
     {
         partyMembers = new List<CharacterSheet> { };
-        partyMembers.Add(new CharacterSheet("Enemy"));
+        partyMembers.Add(new CharacterSheet("Enemy Rogue", CharacterSheet.CharacterClass.CLASS_ROGUE));
+        partyMembers.Add(new CharacterSheet("Enemy Warrior", CharacterSheet.CharacterClass.CLASS_SOLDIER));
+        partyMembers.Add(new CharacterSheet("Enemy Fire Mage", CharacterSheet.CharacterClass.CLASS_FIREMAGE));
     }
 
     public static void SpawnPartyMembers(TurnManager turnManager)

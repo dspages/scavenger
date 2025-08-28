@@ -7,9 +7,9 @@ public class ActionMove : Action
     [SerializeField] private float moveSpeed = 10;
     protected Stack<Tile> path = new Stack<Tile>();
     protected int reserveTiles = 0;
-    private int moveCost = 0;
+    protected int moveCost = 0;
 
-    override public int MOVE_COST {
+    override public int ACTION_COST {
         get {
             return moveCost;
         }
@@ -118,7 +118,7 @@ public class ActionMove : Action
         }
         
         // Refund movement points
-        combatController.characterSheet.currentMovePoints += remainingMoveCost;
+        combatController.characterSheet.ModifyActionPoints(remainingMoveCost);
         
         // Clear the path and stop movement
         path.Clear();
@@ -137,7 +137,7 @@ public class ActionMove : Action
         base.BeginAction(targetTile);
     }
 
-    private void PreparePath(Tile targetTile)
+    protected void PreparePath(Tile targetTile)
     {
         path.Clear();
         moveCost = 0;

@@ -18,7 +18,7 @@ public class CharacterTooltipProvider : TooltipProvider
         string text = $"Name: {character.firstName}\n";
         text += $"Level: {character.level}\n";
         text += $"Health: {character.currentHealth}/{character.MaxHealth()}\n";
-        text += $"Move Points: {character.currentMovePoints}\n";
+        text += $"Move Points: {character.currentActionPoints}\n";
         
         if (character.weaponEquipped != null)
         {
