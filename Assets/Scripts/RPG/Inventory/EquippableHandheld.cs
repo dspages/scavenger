@@ -40,8 +40,8 @@ public class EquippableHandheld : EquippableItem
     public DamageType damageType = DamageType.Slashing;
     
     // Name of the Action component this item maps to when used (defaults to melee attack)
-    // Examples: "ActionWeaponAttack", "ActionGroundAttack", "ActionStealth" (for scrolls)
-    public string associatedActionClass = "ActionWeaponAttack";
+    // Examples: "ActionMeleeAttack", "ActionGroundAttack", "ActionStealth" (for scrolls)
+    public string associatedActionClass = "ActionMeleeAttack";
     
     // Illumination support for items that provide light (e.g., torches)
     public bool providesIllumination = false;
@@ -73,18 +73,7 @@ public class EquippableHandheld : EquippableItem
         damageType = dmgType;
     }
 
-
-    /// <summary>
-    /// Check if this weapon can be used at the given range
-    /// </summary>
-    public bool CanUseAtRange(int range)
-    {
-        return range >= minRange && range <= maxRange;
-    }
-
-    /// <summary>
     /// Get a description of the weapon's range requirements
-    /// </summary>
     public string GetRangeDescription()
     {
         if (minRange == maxRange)
@@ -93,9 +82,7 @@ public class EquippableHandheld : EquippableItem
             return $"Range: {minRange}-{maxRange}";
     }
 
-    /// <summary>
     /// Check if this weapon can be equipped alongside another weapon in the other hand
-    /// </summary>
     public bool CanDualWieldWith(EquippableHandheld other)
     {
         if (other == null) return true;
@@ -117,9 +104,7 @@ public class EquippableHandheld : EquippableItem
         return false;
     }
 
-    /// <summary>
     /// Get a display name that includes weapon type, range type, and range requirements
-    /// </summary>
     public override string GetDisplayName()
     {
         string typeLabel = weaponType switch
@@ -140,5 +125,28 @@ public class EquippableHandheld : EquippableItem
         string rangeInfo = GetRangeDescription();
         
         return $"{base.GetDisplayName()} ({typeLabel}/{rangeLabel} {rangeInfo})";
+    }
+
+    // Configure an ActionAttack with this item's properties
+    public bool ConfigureAction(Action action)
+    {
+        if (action == null) return false;
+
+        // Check if the action class matches this item's associated action
+        string expectedActionClass = string.IsNullOrEmpty(associatedActionClass) ? nameof(ActionMeleeAttack) : associatedActionClass;
+        if (expectedActionClass != action.GetType().Name) return false;
+
+        // Configure the action with this item's properties
+        if (action is ActionAttack attackAction)
+        {
+            attackAction.minRange = this.minRange;
+            attackAction.maxRange = this.maxRange;
+            attackAction.actionDisplayName = this.itemName;
+            attackAction.baseDamage = this.damage;
+            attackAction.BASE_ACTION_COST = this.actionPointCost; // Base action cost (excludes movement)
+            return true;
+        }
+
+        return false;
     }
 }

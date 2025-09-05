@@ -4,9 +4,16 @@ using UnityEngine;
 
 public class ActionRangedAttack : ActionAttack
 {
-    public override TargetType TARGET_TYPE { get { return TargetType.RANGED; } }
+    public override void ConfigureAction()
+    {
+        // Default ranged configuration
+        minRange = 2;
+        maxRange = 4;
+        actionDisplayName = "Ranged Attack";
+        baseDamage = 4;
+    }
 
-    // Ranged attacks target enemies only and require line of sight
+    public override TargetType TARGET_TYPE { get { return TargetType.RANGED; } }
     public override bool RequiresLineOfSight { get { return true; } }
     public override bool TargetsEnemiesOnly { get { return true; } }
     public override bool CanTargetEmptyTiles { get { return false; } }

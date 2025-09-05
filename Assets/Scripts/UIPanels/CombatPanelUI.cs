@@ -684,18 +684,18 @@ public class CombatPanelUI : MonoBehaviour
         // Default punch if no handheld at all
         if (right == null && left == null)
         {
-            actions.Add((nameof(ActionWeaponAttack), nameof(ActionWeaponAttack), "Punch"));
+            actions.Add((nameof(ActionMeleeAttack), nameof(ActionMeleeAttack), "Punch"));
         }
         else
         {
             if (right != null)
             {
-                string rn = string.IsNullOrEmpty(right.associatedActionClass) ? nameof(ActionWeaponAttack) : right.associatedActionClass;
+                string rn = string.IsNullOrEmpty(right.associatedActionClass) ? nameof(ActionMeleeAttack) : right.associatedActionClass;
                 actions.Add(($"{rn}:RightHand", rn, right.itemName));
             }
             if (left != null)
             {
-                string ln = string.IsNullOrEmpty(left.associatedActionClass) ? nameof(ActionWeaponAttack) : left.associatedActionClass;
+                string ln = string.IsNullOrEmpty(left.associatedActionClass) ? nameof(ActionMeleeAttack) : left.associatedActionClass;
                 actions.Add(($"{ln}:LeftHand", ln, left.itemName));
             }
         }
@@ -809,9 +809,9 @@ public class CombatPanelUI : MonoBehaviour
             if (item != null)
             {
                 string tooltip = "";
-                if (action != null && action.ACTION_COST > 0)
+                if (action != null && action.BASE_ACTION_COST > 0)
                 {
-                    tooltip += $"Action Cost: {action.ACTION_COST} AP\n";
+                    tooltip += $"Action Cost: {action.BASE_ACTION_COST} AP\n";
                 }
                 if (!string.IsNullOrEmpty(item.description))
                 {

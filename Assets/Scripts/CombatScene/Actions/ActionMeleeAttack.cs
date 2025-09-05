@@ -2,12 +2,18 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class ActionWeaponAttack : ActionAttack
+public class ActionMeleeAttack : ActionAttack
 {
-    override public bool ATTACK_COST { get { return true; } }
-    override public TargetType TARGET_TYPE { get { return TargetType.MELEE; } }
+    public override void ConfigureAction()
+    {
+        // Default melee configuration
+        minRange = 1;
+        maxRange = 1;
+        actionDisplayName = "Melee Attack";
+        baseDamage = 5;
+    }
 
-    // Weapon attacks target enemies only and don't need line of sight (melee range)
+    override public TargetType TARGET_TYPE { get { return TargetType.MELEE; } }
     public override bool RequiresLineOfSight { get { return false; } }
     public override bool TargetsEnemiesOnly { get { return true; } }
     public override bool CanTargetEmptyTiles { get { return false; } }
@@ -16,13 +22,8 @@ public class ActionWeaponAttack : ActionAttack
     {
         if (targetTile.occupant?.characterSheet != null)
         {
-            AttackEffects(targetTile.occupant.characterSheet);
+            characterSheet.PerformBasicAttack(targetTile.occupant.characterSheet);
         }
-    }
-
-    virtual protected void AttackEffects(CharacterSheet targetSheet)
-    {
-        characterSheet.PerformBasicAttack(targetSheet);
     }
 
     protected override float GetAttackDuration()

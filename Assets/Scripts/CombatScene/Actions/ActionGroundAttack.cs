@@ -7,6 +7,8 @@ public class ActionGroundAttack : ActionAttack
 {
 	[SerializeField] public int radius = 1;   // How far the effect spreads from impact tile (tile + adjacencies, etc.)
 
+	public override int AOE_RADIUS { get { return radius; } }
+
 	public override TargetType TARGET_TYPE { get { return TargetType.GROUND_TILE; } }
 
 	// Ground attacks can target any tile and require line of sight
@@ -21,30 +23,8 @@ public class ActionGroundAttack : ActionAttack
 
 	private void ApplyAreaDamage(Tile center)
 	{
-		// Collect all tiles within radius using layered BFS from the center tile
-		Queue<Tile> queue = new Queue<Tile>();
-		HashSet<Tile> visited = new HashSet<Tile>();
-		Dictionary<Tile, int> depth = new Dictionary<Tile, int>();
-		queue.Enqueue(center);
-		visited.Add(center);
-		depth[center] = 0;
-
-		List<Tile> affected = new List<Tile>();
-		while (queue.Count > 0)
-		{
-			Tile t = queue.Dequeue();
-			affected.Add(t);
-			int d = depth[t];
-			if (d >= radius) continue;
-			foreach (Tile n in t.Neighbors())
-			{
-				if (n == null || visited.Contains(n)) continue;
-				visited.Add(n);
-				depth[n] = d + 1;
-				queue.Enqueue(n);
-			}
-		}
-
+		if (center == null) return;
+		var affected = AttackPreviewHelper.EnumerateAoETiles(center, radius);
 		foreach (Tile t in affected)
 		{
 			if (t.occupant != null)

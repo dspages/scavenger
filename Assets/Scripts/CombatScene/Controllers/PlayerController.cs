@@ -9,7 +9,7 @@ public class PlayerController : CombatController
     private TooltipManager tooltipManager;
     private PathRenderer pathRenderer;
 
-    override protected bool ContainsEnemy(Tile tile)
+    override public bool ContainsEnemy(Tile tile)
     {
         if (tile.occupant == null) return false;
         return tile.occupant.IsEnemy();
@@ -115,9 +115,9 @@ public class PlayerController : CombatController
             }
         }
         
-        foreach (GameObject line in GameObject.FindGameObjectsWithTag("LineTag"))
+        if (pathRenderer != null)
         {
-            Destroy(line);
+            pathRenderer.ClearAll();
         }
         
         // Stop tooltip for the previous hovered tile
@@ -138,19 +138,28 @@ public class PlayerController : CombatController
         // Only render the path if this tile is actually reachable
         if (hoverTile.searchCanBeChosen)
         {
-            // Check if we're in ground-target mode
-            if (selectedAction != null && selectedAction is ActionGroundAttack groundAttack)
+            if (selectedAction != null)
             {
-                ShowGroundTargetPreview(hoverTile, groundAttack);
-            }
-            else
-            {
-                // Normal movement path
-                Tile t = hoverTile;
-                while (t.searchParent)
+                bool isGround = selectedAction.TARGET_TYPE == Action.TargetType.GROUND_TILE || (selectedAction is ActionAttack atk && atk.AOE_RADIUS > 0);
+                bool isRanged = selectedAction is ActionRangedAttack || selectedAction.TARGET_TYPE == Action.TargetType.RANGED;
+                if (isGround || (isRanged && hoverTile.occupant != null && ContainsEnemy(hoverTile)))
                 {
-                    LineBetweenPositions(t.transform.position, t.searchParent.transform.position);
-                    t = t.searchParent;
+                    int aoeRadius = 0;
+                    if (selectedAction is ActionAttack aa)
+                    {
+                        aoeRadius = aa.AOE_RADIUS;
+                    }
+                    AttackPreviewHelper.DrawCompositeAttackPreview(pathRenderer, hoverTile, GetCurrentTile(), isGround ? aoeRadius : 0);
+                }
+                else
+                {
+                    // Normal movement path
+                    Tile t = hoverTile;
+                    while (t.searchParent)
+                    {
+                        LineBetweenPositions(t.transform.position, t.searchParent.transform.position);
+                        t = t.searchParent;
+                    }
                 }
             }
         }
@@ -164,15 +173,15 @@ public class PlayerController : CombatController
 
     private void ShowGroundTargetPreview(Tile targetTile, ActionGroundAttack groundAttack)
     {
-        // Draw a straight line from caster to target with spell targeting animation
-        Tile origin = GetCurrentTile();
-        if (origin != null)
-        {
-            LineBetweenPositions(origin.transform.position, targetTile.transform.position, PathRenderer.LineType.SpellTarget);
-        }
+        int radius = groundAttack != null ? groundAttack.radius : 0;
+        AttackPreviewHelper.DrawCompositeAttackPreview(pathRenderer, targetTile, GetCurrentTile(), radius);
+    }
 
-        // Highlight all tiles that would be affected by the AoE
-        HighlightAoETiles(targetTile, groundAttack.radius);
+    // Draw movement path to the launch tile (closest tile from which the action can hit the target),
+    // then draw a projectile/spell line from the launch tile to the target. If ground attack, also show AoE.
+    private void ShowCompositeAttackPreview(Tile targetTile, int aoeRadius)
+    {
+        AttackPreviewHelper.DrawCompositeAttackPreview(pathRenderer, targetTile, GetCurrentTile(), aoeRadius);
     }
 
     private void HighlightAoETiles(Tile center, int radius)

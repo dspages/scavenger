@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class EnemyController : CombatController
 {
-    override protected bool ContainsEnemy(Tile tile)
+    override public bool ContainsEnemy(Tile tile)
     {
         if (tile.occupant == null) return false;
         return tile.occupant.IsPC();

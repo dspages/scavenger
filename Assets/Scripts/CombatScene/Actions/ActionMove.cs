@@ -4,16 +4,12 @@ using UnityEngine;
 
 public class ActionMove : Action
 {
-    [SerializeField] private float moveSpeed = 10;
+    [SerializeField] private float moveSpeed = 6;
     protected Stack<Tile> path = new Stack<Tile>();
     protected int reserveTiles = 0;
-    protected int moveCost = 0;
 
-    override public int ACTION_COST {
-        get {
-            return moveCost;
-        }
-    }
+
+
 
     override protected void Start()
     {
@@ -44,15 +40,16 @@ public class ActionMove : Action
             Tile tile = path.Peek();
             Vector3 targetPos = tile.transform.position;
 
+            // Inbetween tiles, move toward the next tile in the chain.
             if (Vector3.Distance(transform.position, targetPos) >= 0.01f)
             {
                 Vector3 direction = CalculateDirection(targetPos);
                 transform.up = new Vector3(direction.x, direction.y, 0f);
                 transform.Translate(direction * Time.deltaTime * moveSpeed, Space.World);
             }
+             // Center of a new tile in the chain reached.
             else
             {
-                // Center of tile reached
                 transform.position = targetPos;
                 
                 // Check for hidden enemies in the target tile
@@ -107,19 +104,6 @@ public class ActionMove : Action
         // This will automatically notify the VisionSystem through the CombatController
         hiddenEnemy.characterSheet.RemoveStatusEffect(StatusEffect.EffectType.HIDDEN);
         
-        // Calculate remaining movement points to refund
-        int remainingMoveCost = 0;
-        foreach (Tile remainingTile in path)
-        {
-            if (remainingTile != tile) // Don't count the tile with the hidden enemy
-            {
-                remainingMoveCost += remainingTile.GetMoveCost();
-            }
-        }
-        
-        // Refund movement points
-        combatController.characterSheet.ModifyActionPoints(remainingMoveCost);
-        
         // Clear the path and stop movement
         path.Clear();
         EndAction();
@@ -140,12 +124,12 @@ public class ActionMove : Action
     protected void PreparePath(Tile targetTile)
     {
         path.Clear();
-        moveCost = 0;
+        actionPointCost = 0;
         Tile next = targetTile;
         while (next != null)
         {
             // Only has a move cost if it isn't the origin tile.
-            if (next.searchParent) moveCost += next.GetMoveCost();
+            if (next.searchParent) actionPointCost += next.GetMoveCost();
             path.Push(next);
             next = next.searchParent;
         }

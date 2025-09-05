@@ -1,15 +1,18 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class ActionFireball : ActionGroundAttack
 {
-	private void Reset()
+	public override void ConfigureAction()
 	{
-		// Defaults tailored for fireball
+		// Configure fireball-specific properties
 		actionDisplayName = "Fireball";
+		minRange = 3;
 		maxRange = 6;
 		radius = 2;
 		baseDamage = 12;
+		BASE_ACTION_COST = 20; // Base action cost (excludes movement)
 	}
 
 	public override string DisplayName()

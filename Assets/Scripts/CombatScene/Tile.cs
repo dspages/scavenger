@@ -24,6 +24,8 @@ public class Tile : MonoBehaviour
     public bool searchCanBeChosen = false;
     public Tile searchParent = null;
     public int searchDistance = 0;
+    // For attack target tiles: where to launch the attack from (separate from movement parent)
+    public Tile searchAttackParent = null;
 
     private TileManager manager;
     
@@ -384,6 +386,7 @@ public class Tile : MonoBehaviour
         searchWasVisited = false;
         searchParent = null;
         searchDistance = 0;
+        searchAttackParent = null;
     }
 
 }

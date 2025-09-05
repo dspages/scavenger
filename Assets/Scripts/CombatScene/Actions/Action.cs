@@ -29,10 +29,10 @@ public class Action : MonoBehaviour
     protected bool inProgress = false;
     protected CombatController combatController;
     protected CharacterSheet characterSheet;
+    protected int actionPointCost = 0;
+    protected int baseActionCost = 0;
 
-    virtual public int ACTION_COST { get { return 0; } }
-    virtual public bool ATTACK_COST { get { return false; } }
-    virtual public int CAST_MOVE_POINT_COST { get { return 0; } }
+    virtual public int BASE_ACTION_COST { get { return baseActionCost; } set { baseActionCost = value; } }
     virtual public int MANA_COST { get { return 0; } }
 
     // Target type for special moves, lets UI/AI know when it can use special moves.
@@ -62,6 +62,12 @@ public class Action : MonoBehaviour
         characterSheet = combatController.characterSheet;
     }
 
+    // Virtual method for actions to configure themselves (spells, abilities, etc.)
+    virtual public void ConfigureAction()
+    {
+        // Base implementation does nothing - spells/abilities override this
+    }
+
     virtual public void BeginAction(Tile targetTile)
     {
         inProgress = true;
@@ -72,9 +78,9 @@ public class Action : MonoBehaviour
     virtual public string Description()
     {
         string desc = "";
-        if (ACTION_COST > 0)
+        if (BASE_ACTION_COST > 0)
         {
-            desc += $"Action Cost: {ACTION_COST} AP\n";
+            desc += $"Action Cost: {BASE_ACTION_COST} AP\n";
         }
         return desc;
     }
@@ -83,7 +89,7 @@ public class Action : MonoBehaviour
     {
         inProgress = false;
         currentPhase = Phase.NONE;
-        characterSheet.ModifyActionPoints(-ACTION_COST);
+        characterSheet.ModifyActionPoints(-actionPointCost);
         combatController.EndAction();
     }
 }

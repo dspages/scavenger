@@ -1,3 +1,4 @@
+
 using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
@@ -23,7 +24,7 @@ public partial class CombatController : MonoBehaviour
     {
         manager = FindObjectOfType<TileManager>();
         // Ensure a baseline attack action exists
-        GetOrAddActionByType(typeof(ActionWeaponAttack));
+        GetOrAddActionByType(typeof(ActionMeleeAttack));
         ResetSelectedActionToDefault();
         // Setup illumination handling for equipped items
         if (characterSheet != null)
@@ -46,22 +47,10 @@ public partial class CombatController : MonoBehaviour
     // Defaults to false, but can be overridden by subclasses.
     // Note that 'enemy' is from the perspective of the actor;
     // for player-controlled, enemies are AI and vice versa.
-    virtual protected bool ContainsEnemy(Tile tile)
+    virtual public bool ContainsEnemy(Tile tile)
     {
         if (tile.occupant == null) return false;
-        
-        // Check if the occupant is an enemy
-        bool isEnemy = tile.occupant.IsEnemy();
-        if (!isEnemy) return false;
-        
-        // Check if the enemy is visible according to vision system
-        VisionSystem visionSystem = FindObjectOfType<VisionSystem>();
-        if (visionSystem != null)
-        {
-            return visionSystem.CanSeeUnit(this, tile.occupant);
-        }
-        
-        return true; // Fallback if no vision system
+        return true;
     }
 
     public void SetCharacterSheet(CharacterSheet c)
@@ -257,14 +246,14 @@ public partial class CombatController : MonoBehaviour
         selectableTiles.Clear();
 
         // Unified targeting system that handles movement+attack combinations
-        // Use priority queue for performance optimization
+        // TODO: Change this queue to a priority queue for performance optimization
         List<Tile> queue = new List<Tile>();
         queue.Add(currentTile);
         currentTile.searchWasVisited = true;
         currentTile.searchDistance = 0;
 
-        // Cache for range calculations to avoid duplicates
-        Dictionary<Tile, HashSet<Tile>> rangeCache = new Dictionary<Tile, HashSet<Tile>>();
+        // Cache for line-of-sight checks across from/to pairs during this search
+        Dictionary<(Tile, Tile), bool> losCache = new Dictionary<(Tile, Tile), bool>();
 
         while (queue.Count > 0)
         {
@@ -272,8 +261,11 @@ public partial class CombatController : MonoBehaviour
             Tile tile = queue[0];
             queue.RemoveAt(0);
 
-            // Check for attacks from this position
-            FindAttackTargetsFromTile(tile, rangeCache);
+            if (tile.searchDistance + selectedAction.BASE_ACTION_COST <= characterSheet.currentActionPoints)
+            {
+                // Check for attacks from this position
+                FindAttackTargetsFromTile(tile, losCache);
+            }
 
             // Expand movement options
             foreach (Tile adjacentTile in tile.Neighbors())
@@ -283,7 +275,8 @@ public partial class CombatController : MonoBehaviour
                     int newDistance = tile.searchDistance + adjacentTile.GetMoveCost();
                     if (adjacentTile.occupant == null && newDistance <= characterSheet.currentActionPoints)
                     {
-                        AttachTile(adjacentTile, tile);
+                        // If the selected action is a ground attack, tiles don't become available as walking targets (they are attack targets instead).
+                        AttachTile(adjacentTile, tile, -1, selectedAction.TARGET_TYPE != Action.TargetType.GROUND_TILE, markVisited:true);
                         queue.Add(adjacentTile);
                     }
                 }
@@ -292,7 +285,7 @@ public partial class CombatController : MonoBehaviour
     }
 
     // Find attack targets from a specific tile position
-    private void FindAttackTargetsFromTile(Tile fromTile, Dictionary<Tile, HashSet<Tile>> rangeCache)
+    private void FindAttackTargetsFromTile(Tile fromTile, Dictionary<(Tile, Tile), bool> losCache)
     {
         if (selectedAction == null) return;
 
@@ -309,56 +302,107 @@ public partial class CombatController : MonoBehaviour
             return; // Not enough AP to move here and attack
         }
 
-        // Use cached range calculation if available
-        HashSet<Tile> targetsInRange;
-        if (!rangeCache.TryGetValue(fromTile, out targetsInRange))
+        // If this action targets empty tiles (e.g., ground attacks), enumerate all tiles in range
+        if (selectedAction is ActionAttack aa && aa.CanTargetEmptyTiles)
         {
-            targetsInRange = FindTilesInRange(fromTile, minRange, maxRange, requiresLineOfSight);
-            rangeCache[fromTile] = targetsInRange;
+            HashSet<Tile> tilesInRange = FindTilesInRange(fromTile, minRange, maxRange, requiresLineOfSight);
+            foreach (Tile targetTile in tilesInRange)
+            {
+                if (targetTile.searchCanBeChosen) continue;
+                // Attach as an attack target without marking visited (so movement BFS is unaffected)
+                // Record launch tile separately to avoid cycles with movement parent
+                targetTile.searchAttackParent = fromTile;
+                selectableTiles.Add(targetTile);
+                targetTile.searchCanBeChosen = true;
+                targetTile.searchDistance = movementCost + actionCost;
+            }
+            return;
         }
 
-        // Filter targets and attach tiles
-        foreach (Tile targetTile in targetsInRange)
+        // Otherwise, we only care about occupied enemy tiles (and visibility rules)
+        // Iterate enemy-occupied tiles only
+        for (int x = 0; x < Globals.COMBAT_WIDTH; x++)
         {
-            bool isValidTarget = false;
-            
-            if (selectedAction is ActionAttack attackAction && attackAction.CanTargetEmptyTiles)
+            for (int y = 0; y < Globals.COMBAT_HEIGHT; y++)
             {
-                // Ground attacks can target any tile
-                isValidTarget = true;
-            }
-            else if (targetEnemiesOnly)
-            {
-                // Ranged/melee attacks target enemies only
-                isValidTarget = ContainsEnemy(targetTile);
-            }
-            else
-            {
-                // Other actions might target any occupied tile
-                isValidTarget = targetTile.occupant != null;
-            }
+                Tile targetTile = manager.getTile(x, y);
+                if (targetTile == null) continue;
+                if (targetTile.searchCanBeChosen) continue;
+                if (!ContainsEnemy(targetTile)) continue;
 
-            if (isValidTarget)
-            {
-                AttachTile(targetTile, fromTile, movementCost + actionCost);
+                // Enforce visibility: melee and ranged should only target visible enemies
+                if (!IsTileVisibleByCurrentActor(targetTile)) continue;
+
+                // Range check using Manhattan distance on 4-connected grid
+                int dist = Mathf.Abs(targetTile.x - fromTile.x) + Mathf.Abs(targetTile.y - fromTile.y);
+                if (dist < minRange || dist > maxRange) continue;
+
+                // If required, check line of sight with caching
+                if (requiresLineOfSight)
+                {
+                    bool hasLOS;
+                    if (!losCache.TryGetValue((fromTile, targetTile), out hasLOS))
+                    {
+                        hasLOS = LineOfSightUtils.HasLineOfSight(fromTile, targetTile, manager);
+                        losCache[(fromTile, targetTile)] = hasLOS;
+                    }
+                    if (!hasLOS) continue;
+                }
+
+                // Attach as an attack target without marking visited
+                targetTile.searchAttackParent = fromTile;
+                selectableTiles.Add(targetTile);
+                targetTile.searchCanBeChosen = true;
+                targetTile.searchDistance = movementCost + actionCost;
             }
         }
     }
 
-    private void AttachTile(Tile tile, Tile parent, int moveCostOverride = -1)
+    // Visibility helper for filtering targets appropriately per controller type
+    private bool IsTileVisibleByCurrentActor(Tile tile)
     {
-        tile.searchParent = parent;
-        selectableTiles.Add(tile);
-        tile.searchCanBeChosen = true;
-        tile.searchWasVisited = true;
-        if (moveCostOverride != -1)
+        VisionSystem visionSystem = FindObjectOfType<VisionSystem>();
+        if (visionSystem == null) return true;
+
+        if (IsPC())
         {
-            tile.searchDistance = moveCostOverride;
+            return visionSystem.IsTileVisible(tile);
         }
         else
         {
-            tile.searchDistance = tile.GetMoveCost() + parent.searchDistance;
+            // For AI, visibility depends on whether this unit can see the occupant
+            if (tile.occupant == null) return false;
+            return visionSystem.CanSeeUnit(this, tile.occupant);
         }
+    }
+
+    private void AttachTile(Tile tile, Tile parent, int moveCostOverride = -1, bool canBeChosen = true, bool markVisited = false)
+    {
+        // If we're adding a movement node over an already-selectable target tile (e.g., ground attack target),
+        // mark it visited and set distance, but DO NOT overwrite its attack launch parent or selectability.
+        if (markVisited && tile.searchCanBeChosen)
+        {
+            tile.searchWasVisited = true;
+            if (tile.searchParent == null)
+            {
+                tile.searchParent = parent;
+            }
+            tile.searchDistance = (moveCostOverride != -1)
+                ? moveCostOverride
+                : (tile.GetMoveCost() + parent.searchDistance);
+            return;
+        }
+
+        tile.searchParent = parent;
+        selectableTiles.Add(tile);
+        tile.searchCanBeChosen = canBeChosen;
+        if (markVisited)
+        {
+            tile.searchWasVisited = true;
+        }
+        tile.searchDistance = (moveCostOverride != -1)
+            ? moveCostOverride
+            : (tile.GetMoveCost() + parent.searchDistance);
     }
 
     // Get range and cost parameters for the currently selected action
@@ -372,7 +416,7 @@ public partial class CombatController : MonoBehaviour
 
         if (selectedAction == null) return;
 
-        actionCost = selectedAction.ACTION_COST;
+        actionCost = selectedAction.BASE_ACTION_COST;
 
         if (selectedAction is ActionAttack attackAction)
         {
@@ -387,38 +431,22 @@ public partial class CombatController : MonoBehaviour
     private HashSet<Tile> FindTilesInRange(Tile fromTile, int minRange, int maxRange, bool requiresLineOfSight)
     {
         HashSet<Tile> tilesInRange = new HashSet<Tile>();
-        Queue<Tile> queue = new Queue<Tile>();
-        HashSet<Tile> visited = new HashSet<Tile>();
-        Dictionary<Tile, int> distance = new Dictionary<Tile, int>();
         
-        queue.Enqueue(fromTile);
-        visited.Add(fromTile);
-        distance[fromTile] = 0;
-
-        while (queue.Count > 0)
+        // For grid-based movement, use Manhattan distance directly
+        for (int x = 0; x < Globals.COMBAT_WIDTH; x++)
         {
-            Tile tile = queue.Dequeue();
-            int dist = distance[tile];
-
-            // If this tile is within range, check line of sight if required
-            if (dist >= minRange && dist <= maxRange)
+            for (int y = 0; y < Globals.COMBAT_HEIGHT; y++)
             {
-                if (!requiresLineOfSight || LineOfSightUtils.HasLineOfSight(fromTile, tile, manager))
+                Tile tile = manager.getTile(x, y);
+                if (tile == null || tile == fromTile) continue;
+                
+                int dist = Mathf.Abs(tile.x - fromTile.x) + Mathf.Abs(tile.y - fromTile.y);
+                
+                if (dist >= minRange && dist <= maxRange)
                 {
-                    tilesInRange.Add(tile);
-                }
-            }
-
-            // Continue expanding to neighbors if we haven't reached max range
-            if (dist < maxRange)
-            {
-                foreach (Tile neighbor in tile.Neighbors())
-                {
-                    if (neighbor != null && !visited.Contains(neighbor))
+                    if (!requiresLineOfSight || LineOfSightUtils.HasLineOfSight(fromTile, tile, manager))
                     {
-                        visited.Add(neighbor);
-                        distance[neighbor] = dist + 1;
-                        queue.Enqueue(neighbor);
+                        tilesInRange.Add(tile);
                     }
                 }
             }
@@ -466,14 +494,17 @@ public partial class CombatController
 		Action act = GetOrAddActionByName(className);
 		if (act == null)
 		{
-			act = GetOrAddActionByType(typeof(ActionWeaponAttack));
+			act = GetOrAddActionByType(typeof(ActionMeleeAttack));
 		}
 		selectedAction = act;
 		// Prefer right hand for default if present
 		var right = characterSheet != null ? characterSheet.GetEquippedItem(EquippableItem.EquipmentSlot.RightHand) as EquippableHandheld : null;
 		selectedActionKey = right != null ? ($"{className}:RightHand") : className;
-		// Configure ground attack ranges from equipped item if applicable
-		ConfigureSelectedActionFromEquippedItem();
+		// Configure from equipped item if applicable, otherwise initialize spell action
+		if (!ConfigureSelectedActionFromEquippedItem())
+		{
+			InitializeSpellAction();
+		}
 	}
 
 	public void SelectActionByType(Type t)
@@ -482,8 +513,11 @@ public partial class CombatController
 		if (act != null)
 		{
 			selectedAction = act;
-			// Configure ground attack ranges from equipped item if applicable
-			ConfigureSelectedActionFromEquippedItem();
+			// Configure from equipped item if applicable, otherwise initialize spell action
+			if (!ConfigureSelectedActionFromEquippedItem())
+			{
+				InitializeSpellAction();
+			}
 		}
         FindSelectableTiles();
 	}
@@ -494,8 +528,11 @@ public partial class CombatController
 		if (act != null)
 		{
 			selectedAction = act;
-			// Configure ground attack ranges from equipped item if applicable
-			ConfigureSelectedActionFromEquippedItem();
+			// Configure from equipped item if applicable, otherwise initialize spell action
+			if (!ConfigureSelectedActionFromEquippedItem())
+			{
+				InitializeSpellAction();
+			}
 		}
         FindSelectableTiles();
 	}
@@ -507,13 +544,13 @@ public partial class CombatController
 
 	public string GetDefaultActionClassName()
 	{
-		if (characterSheet == null) return nameof(ActionWeaponAttack);
+		if (characterSheet == null) return nameof(ActionMeleeAttack);
 		var right = characterSheet.GetEquippedItem(EquippableItem.EquipmentSlot.RightHand) as EquippableHandheld;
 		if (right != null && !string.IsNullOrEmpty(right.associatedActionClass))
 		{
 			return right.associatedActionClass;
 		}
-		return nameof(ActionWeaponAttack);
+		return nameof(ActionMeleeAttack);
 	}
 
 	public Action GetOrAddActionByType(Type t)
@@ -549,8 +586,11 @@ public partial class CombatController
 	{
 		SelectActionByName(className);
 		selectedActionKey = key;
-		// Configure ground attack ranges from equipped item if applicable
-		ConfigureSelectedActionFromEquippedItem();
+		// Configure from equipped item if applicable, otherwise initialize spell action
+		if (!ConfigureSelectedActionFromEquippedItem())
+		{
+			InitializeSpellAction();
+		}
         FindSelectableTiles();
 	}
 }
@@ -559,28 +599,25 @@ public partial class CombatController
 public partial class CombatController
 {
 	// Configure the selected Action using min/max range from equipped item
-	private void ConfigureSelectedActionFromEquippedItem()
+	// Returns true if successfully configured from an item, false if no matching item found
+	private bool ConfigureSelectedActionFromEquippedItem()
 	{
-		if (characterSheet == null || selectedAction == null) return;
+		if (characterSheet == null || selectedAction == null) return false;
 
 		EquippableHandheld equipped = GetEquippedWeaponForSelectedAction();
-		if (equipped == null) return;
+		if (equipped == null) return false;
 
-		string itemActionClass = string.IsNullOrEmpty(equipped.associatedActionClass) ? nameof(ActionWeaponAttack) : equipped.associatedActionClass;
-		
-		// Only configure when the selected action class matches the item's associated action
-		if (itemActionClass == selectedAction.GetType().Name)
-		{
-			// All attack actions inherit from ActionAttack and share the same configuration
-			if (selectedAction is ActionAttack attackAction)
-			{
-				attackAction.minRange = equipped.minRange;
-				attackAction.maxRange = equipped.maxRange;
-				attackAction.actionDisplayName = equipped.itemName;
-				attackAction.baseDamage = equipped.damage;
-				attackAction.actionPointCost = equipped.actionPointCost;
-			}
-		}
+		// Let the item configure the action - it knows its own properties and requirements
+		return equipped.ConfigureAction(selectedAction);
+	}
+
+	// Initialize spell actions that don't depend on equipped items
+	private void InitializeSpellAction()
+	{
+		if (selectedAction == null) return;
+
+		// Call the virtual ConfigureAction method - spells/abilities override this
+		selectedAction.ConfigureAction();
 	}
 }
 
@@ -594,7 +631,7 @@ public partial class CombatController
         // Determine which hand (if any) the current selection depends on
         bool dependsOnRight = !string.IsNullOrEmpty(selectedActionKey) && selectedActionKey.EndsWith(":RightHand");
         bool dependsOnLeft = !string.IsNullOrEmpty(selectedActionKey) && selectedActionKey.EndsWith(":LeftHand");
-        bool isPunchSelected = string.IsNullOrEmpty(selectedActionKey) || selectedActionKey == nameof(ActionWeaponAttack);
+        bool isPunchSelected = string.IsNullOrEmpty(selectedActionKey) || selectedActionKey == nameof(ActionMeleeAttack);
 
         var right = characterSheet.GetEquippedItem(EquippableItem.EquipmentSlot.RightHand) as EquippableHandheld;
         var left = characterSheet.GetEquippedItem(EquippableItem.EquipmentSlot.LeftHand) as EquippableHandheld;
@@ -623,18 +660,18 @@ public partial class CombatController
             // Priority: right hand, then left hand, then punch
             if (right != null)
             {
-                string cls = string.IsNullOrEmpty(right.associatedActionClass) ? nameof(ActionWeaponAttack) : right.associatedActionClass;
+                string cls = string.IsNullOrEmpty(right.associatedActionClass) ? nameof(ActionMeleeAttack) : right.associatedActionClass;
                 SelectAction($"{cls}:RightHand", cls);
             }
             else if (left != null)
             {
-                string cls = string.IsNullOrEmpty(left.associatedActionClass) ? nameof(ActionWeaponAttack) : left.associatedActionClass;
+                string cls = string.IsNullOrEmpty(left.associatedActionClass) ? nameof(ActionMeleeAttack) : left.associatedActionClass;
                 SelectAction($"{cls}:LeftHand", cls);
             }
             else
             {
                 // No weapons – default to punch
-                SelectAction(nameof(ActionWeaponAttack), nameof(ActionWeaponAttack));
+                SelectAction(nameof(ActionMeleeAttack), nameof(ActionMeleeAttack));
             }
         }
     }
