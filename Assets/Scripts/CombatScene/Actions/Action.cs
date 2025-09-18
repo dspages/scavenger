@@ -19,9 +19,11 @@ public class Action : MonoBehaviour
     {
         NONE,
         MELEE,
+        CHARGE, // Like melee, but movement cost is halved.
+        MELEE_REACH, // Like melee, but range is 2.
         RANGED,
         SELF_ONLY,
-        SELF_AND_ALLY,
+        SELF_OR_ALLY,
         GROUND_TILE,
     };
 
@@ -31,6 +33,8 @@ public class Action : MonoBehaviour
     protected CharacterSheet characterSheet;
     protected int actionPointCost = 0;
     protected int baseActionCost = 0;
+    public int minRange = 1;
+    public int maxRange = 1;
 
     virtual public int BASE_ACTION_COST { get { return baseActionCost; } set { baseActionCost = value; } }
     virtual public int MANA_COST { get { return 0; } }

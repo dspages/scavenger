@@ -195,7 +195,7 @@ public class VisionSystem : MonoBehaviour
                 // Check if tile is in the forward-facing cone (120 degree arc)
                 Vector2 tileDirection = new Vector2(x, y).normalized;
                 float angle = Vector2.Angle(facingDirection, tileDirection);
-                if (angle > 60f) continue; // 120 degree cone
+                if (angle > 60f || (angle <= 90f && distance == 1.0f)) continue; // 120 degree cone, or 180 degree cone if adjacent
                 
                 int targetX = currentTile.x + x;
                 int targetY = currentTile.y + y;

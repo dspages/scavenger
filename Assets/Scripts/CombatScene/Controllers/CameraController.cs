@@ -17,6 +17,11 @@ public class CameraController : MonoBehaviour
     const float MIN_SCROLL = -0.5f;
     const float MAX_SCROLL_BUFFER = 0.5f;
 
+	// Zoom settings for orthographic camera
+	[SerializeField] private float zoomSpeed = 2f; // Units of orthographic size per wheel tick
+	[SerializeField] private float minOrthographicSize = 3f;
+	[SerializeField] private float maxOrthographicSize = 25f;
+
     public void RotateLeft()
     {
         if (rotationFrozen) return;
@@ -80,6 +85,17 @@ public class CameraController : MonoBehaviour
         );
     }
 
+	void HandleMouseWheelZoom()
+	{
+		Camera cam = Camera.main;
+		if (cam == null) return;
+		if (!cam.orthographic) return;
+		float scroll = Input.mouseScrollDelta.y; // positive = wheel up
+		if (Mathf.Approximately(scroll, 0f)) return;
+		float newSize = cam.orthographicSize - scroll * zoomSpeed;
+		cam.orthographicSize = Mathf.Clamp(newSize, minOrthographicSize, maxOrthographicSize);
+	}
+
     private IEnumerator GradualizeRotation(int delta, float duration)
     {
         rotationFrozen = true;
@@ -115,6 +131,7 @@ public class CameraController : MonoBehaviour
             RotateRight();
         }
         MouseScroll();
+		HandleMouseWheelZoom();
     }
 
     private IEnumerator GradualizeMove(Vector3 loc)

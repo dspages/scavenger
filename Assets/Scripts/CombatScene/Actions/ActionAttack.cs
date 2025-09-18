@@ -7,8 +7,6 @@ using UnityEngine;
 public abstract class ActionAttack : ActionMove
 {
     // Configurable parameters (can be set dynamically when mapped to an item)
-    [SerializeField] public int maxRange = 1;
-    [SerializeField] public int minRange = 1;
     [SerializeField] public int baseDamage = 5;
     [SerializeField] public string actionDisplayName = "Attack";
     

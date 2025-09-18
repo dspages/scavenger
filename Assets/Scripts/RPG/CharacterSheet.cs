@@ -64,6 +64,7 @@ public class CharacterSheet
     private Equipment equipment;
 
     public int currentHealth;
+    public int currentMana;
     public int currentActionPoints = 0;
 
     public CharacterClass characterClass;
@@ -86,6 +87,7 @@ public class CharacterSheet
         firstName = name;
         this.characterClass = characterClass;
         currentHealth = MaxHealth();
+        currentMana = MaxMana();
         inventory = new Inventory();
         equipment = new Equipment();
         
@@ -104,6 +106,11 @@ public class CharacterSheet
     public int MaxHealth()
     {
         return (10 * level) + (5 * endurance);
+    }
+
+    public int MaxMana()
+    {
+        return (10 * level) + (5 * willpower);
     }
 
     public PlayerController CreateCombatAvatarAsPC(Vector3 location, Quaternion rotation, Tile tile)
@@ -266,6 +273,23 @@ public class CharacterSheet
     public EquippableItem GetEquippedItem(EquippableItem.EquipmentSlot slot)
     {
         return equipment.Get(slot);
+    }
+
+    public void DisplayPopup(string text)
+    {
+        if (text == "") return;
+        PopupTextController.CreatePopupText(text, avatar.transform);
+    }
+
+    // Delayed popup is handled by PopupTextController
+    public void DisplayPopupAfterDelay(float time, string text)
+    {
+        if (avatar == null)
+        {
+            DisplayPopup(text);
+            return;
+        }
+        PopupTextController.CreatePopupTextAfterDelay(text, avatar.transform, time);
     }
 
     public bool TryEquipItem(EquippableItem item)

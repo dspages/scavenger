@@ -10,6 +10,7 @@ public partial class CombatController : MonoBehaviour
     public CharacterSheet characterSheet = null;
     public bool isTurn = false;
     public bool isActing = false;
+    protected List<Action> possibleActions = new List<Action>();
     protected Action selectedAction = null;
     // Distinguishes between actions that share a class (e.g., left/right hand)
     private string selectedActionKey = null;
@@ -48,6 +49,17 @@ public partial class CombatController : MonoBehaviour
     // Note that 'enemy' is from the perspective of the actor;
     // for player-controlled, enemies are AI and vice versa.
     virtual public bool ContainsEnemy(Tile tile)
+    {
+        if (tile.occupant == null) return false;
+        return true;
+    }
+
+    // Checks to see if the input tile contains an ally of this.
+    // Defaults to false, but can be overridden by subclasses.
+    // Note that 'ally' is from the perspective of the actor;
+    // for player-controlled, allies are player-controlled and
+    // vice versa for enemies.
+    virtual protected bool ContainsAlly(Tile tile)
     {
         if (tile.occupant == null) return false;
         return true;
@@ -237,6 +249,30 @@ public partial class CombatController : MonoBehaviour
 
     protected void FindSelectableBasicTiles()
     {
+        FindSelectableTiles();
+    }
+
+    protected  void FindSelectableChargeTiles(int actionCost) {
+        FindSelectableTiles();
+    }
+
+    protected void FindSelectableMeleeAttackTiles(int actionCost) {
+        FindSelectableTiles();
+    }
+
+    protected void FindSelectableAllyBuffTiles(int actionCost, int minRange, int maxRange, bool requiresLineOfSight) {
+        FindSelectableTiles();
+    }
+
+    protected void FindSelectableMeleeReachAttackTiles(int actionCost, bool requiresLineOfSight = true) {
+        FindSelectableTiles();
+    }
+
+    protected void FindSelectableRangedAttackTiles(int actionCost, int minRange, int maxRange, bool requiresLineOfSight) {
+        FindSelectableTiles();
+    }
+
+    protected void FindSelectableGroundAttackTiles(int actionCost, int minRange, int maxRange, int radius, bool requiresLineOfSight) {
         FindSelectableTiles();
     }
 
@@ -451,7 +487,6 @@ public partial class CombatController : MonoBehaviour
                 }
             }
         }
-
         return tilesInRange;
     }
 

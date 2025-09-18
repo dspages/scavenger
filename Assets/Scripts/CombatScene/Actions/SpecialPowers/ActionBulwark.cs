@@ -14,7 +14,7 @@ public class ActionBulwark : ActionSelfCast
     protected override void ApplySelfStatusEffect()
     {
         // Apply BULWARK status effect that provides armor bonus
-        new StatusEffect(StatusEffect.EffectType.BULWARK, durationRounds, characterSheet);
+        new StatusEffect(StatusEffect.EffectType.BULWARK, durationRounds, characterSheet, armorBonus);
     }
 
     override public string Description()

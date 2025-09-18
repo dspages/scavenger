@@ -11,6 +11,8 @@ public static class AttackPreviewHelper
         // Resolve launch tile: prefer attack parent, fallback to current tile
         Tile launchTile = targetTile.searchAttackParent != null ? targetTile.searchAttackParent : currentTile;
 
+        
+
         // Draw movement path from origin to launch tile (do not include the segment to the target)
         Tile t = launchTile;
         while (t != null && t.searchParent)
@@ -73,34 +75,7 @@ public static class AttackPreviewHelper
         return result;
     }
 
-    // Visitor pattern variant (provides depth if needed later)
-    public static void VisitAoETiles(Tile center, int radius, Action<Tile,int> visitor)
-    {
-        if (center == null || radius < 0 || visitor == null) return;
-
-        Queue<Tile> queue = new Queue<Tile>();
-        HashSet<Tile> visited = new HashSet<Tile>();
-        Dictionary<Tile, int> depth = new Dictionary<Tile, int>();
-
-        queue.Enqueue(center);
-        visited.Add(center);
-        depth[center] = 0;
-
-        while (queue.Count > 0)
-        {
-            Tile t = queue.Dequeue();
-            int d = depth[t];
-            visitor(t, d);
-            if (d >= radius) continue;
-            foreach (Tile n in t.Neighbors())
-            {
-                if (n == null || visited.Contains(n)) continue;
-                visited.Add(n);
-                depth[n] = d + 1;
-                queue.Enqueue(n);
-            }
-        }
-    }
+    // Note: VisitAoETiles was removed as unused. Use EnumerateAoETiles or extend as needed.
 }
 
 

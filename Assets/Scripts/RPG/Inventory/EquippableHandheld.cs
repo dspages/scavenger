@@ -134,7 +134,10 @@ public class EquippableHandheld : EquippableItem
 
         // Check if the action class matches this item's associated action
         string expectedActionClass = string.IsNullOrEmpty(associatedActionClass) ? nameof(ActionMeleeAttack) : associatedActionClass;
-        if (expectedActionClass != action.GetType().Name) return false;
+        if (expectedActionClass != action.GetType().Name)
+        {
+            return false;
+        }
 
         // Configure the action with this item's properties
         if (action is ActionAttack attackAction)
