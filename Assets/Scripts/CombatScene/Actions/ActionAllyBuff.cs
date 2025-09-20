@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using UnityEngine;
 
 // This is a base class designed to be inherited from by ally buff type actions.
-public class ActionAllyBuff : ActionMove
+public class ActionAllyBuff : ActionRangedAttack
 {
     override public TargetType TARGET_TYPE { get { return TargetType.SELF_OR_ALLY; } }
+
+    // For ally buffs that can also target self, minRange should be 0. MinRange > 0 means it can only target allies and not self.
 
     virtual protected void ApplyTargetStatusEffect(Tile targetTile) { }
 

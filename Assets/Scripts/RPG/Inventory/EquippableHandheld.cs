@@ -39,6 +39,7 @@ public class EquippableHandheld : EquippableItem
     public int actionPointCost = 1;
     public DamageType damageType = DamageType.Slashing;
     
+    // ActionDefinition removed; keep legacy fields only
     // Name of the Action component this item maps to when used (defaults to melee attack)
     // Examples: "ActionMeleeAttack", "ActionGroundAttack", "ActionStealth" (for scrolls)
     public string associatedActionClass = "ActionMeleeAttack";
@@ -127,17 +128,14 @@ public class EquippableHandheld : EquippableItem
         return $"{base.GetDisplayName()} ({typeLabel}/{rangeLabel} {rangeInfo})";
     }
 
-    // Configure an ActionAttack with this item's properties
+    // Configure an ActionAttack with this item's properties or ActionDefinition
     public bool ConfigureAction(Action action)
     {
         if (action == null) return false;
 
-        // Check if the action class matches this item's associated action
+        // Use legacy per-field configuration
         string expectedActionClass = string.IsNullOrEmpty(associatedActionClass) ? nameof(ActionMeleeAttack) : associatedActionClass;
-        if (expectedActionClass != action.GetType().Name)
-        {
-            return false;
-        }
+        if (expectedActionClass != action.GetType().Name) return false;
 
         // Configure the action with this item's properties
         if (action is ActionAttack attackAction)

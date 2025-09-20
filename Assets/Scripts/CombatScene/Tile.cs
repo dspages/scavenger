@@ -262,6 +262,16 @@ public class Tile : MonoBehaviour
 
         bool show = searchCanBeChosen;
 
+        // Show selection borders only on the player's turn
+        if (show)
+        {
+            TurnManager tm = GameObject.FindObjectOfType<TurnManager>();
+            if (tm != null && tm.IsEnemyTurn())
+            {
+                show = false;
+            }
+        }
+
         // Early hide if not selectable
         if (!show)
         {

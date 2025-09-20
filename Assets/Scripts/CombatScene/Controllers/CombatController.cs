@@ -190,7 +190,7 @@ public partial class CombatController : MonoBehaviour
         }
         isTurn = true;
         hasMoved = false;
-        FindSelectableBasicTiles();
+        FindSelectableTiles();
         return true;
     }
 
@@ -215,7 +215,7 @@ public partial class CombatController : MonoBehaviour
     {
         isActing = false;
         manager.ResetTileSearch();
-        FindSelectableBasicTiles();
+        FindSelectableTiles();
         
         // Vision system updates are now handled by specific actions when needed
         // (e.g., ActionMove updates vision when tiles change, not after action completes)
@@ -252,27 +252,27 @@ public partial class CombatController : MonoBehaviour
         FindSelectableTiles();
     }
 
-    protected  void FindSelectableChargeTiles(int actionCost) {
+    protected  void FindSelectableChargeTiles() {
         FindSelectableTiles();
     }
 
-    protected void FindSelectableMeleeAttackTiles(int actionCost) {
+    protected void FindSelectableMeleeAttackTiles() {
         FindSelectableTiles();
     }
 
-    protected void FindSelectableAllyBuffTiles(int actionCost, int minRange, int maxRange, bool requiresLineOfSight) {
+    protected void FindSelectableAllyBuffTiles() {
         FindSelectableTiles();
     }
 
-    protected void FindSelectableMeleeReachAttackTiles(int actionCost, bool requiresLineOfSight = true) {
+    protected void FindSelectableMeleeReachAttackTiles() {
         FindSelectableTiles();
     }
 
-    protected void FindSelectableRangedAttackTiles(int actionCost, int minRange, int maxRange, bool requiresLineOfSight) {
+    protected void FindSelectableRangedAttackTiles() {
         FindSelectableTiles();
     }
 
-    protected void FindSelectableGroundAttackTiles(int actionCost, int minRange, int maxRange, int radius, bool requiresLineOfSight) {
+    protected void FindSelectableGroundAttackTiles() {
         FindSelectableTiles();
     }
 
@@ -325,73 +325,59 @@ public partial class CombatController : MonoBehaviour
     {
         if (selectedAction == null) return;
 
-        // Get range parameters based on action type
-        int minRange, maxRange, actionCost;
-        bool requiresLineOfSight;
-        bool targetEnemiesOnly;
-        GetActionRangeParameters(out minRange, out maxRange, out actionCost, out requiresLineOfSight, out targetEnemiesOnly);
-
         // Check if we have enough action points for this attack from this position
         int movementCost = fromTile.searchDistance;
-        if (movementCost + actionCost > characterSheet.currentActionPoints)
+        if (movementCost + selectedAction.BASE_ACTION_COST > characterSheet.currentActionPoints)
         {
             return; // Not enough AP to move here and attack
         }
 
-        // If this action targets empty tiles (e.g., ground attacks), enumerate all tiles in range
-        if (selectedAction is ActionAttack aa && aa.CanTargetEmptyTiles)
+        // If this action targets empty tiles (e.g., ground attacks), enumerate tiles in range
+        if (selectedAction is ActionAttack atk)
         {
-            HashSet<Tile> tilesInRange = FindTilesInRange(fromTile, minRange, maxRange, requiresLineOfSight);
+            TurnManager tm = FindObjectOfType<TurnManager>();
+            List<CombatController> potentialTargets = new List<CombatController>();
+            HashSet<Tile> tilesInRange = new HashSet<Tile>();
+            switch (selectedAction.TARGET_TYPE)
+            {
+                case Action.TargetType.GROUND_TILE:
+                    tilesInRange = FindTilesInRange(fromTile, atk.minRange, atk.maxRange, atk.RequiresLineOfSight);
+                    break;
+                case Action.TargetType.MELEE:
+                    potentialTargets = IsPC() ? tm.AllLivingEnemies() : tm.AllLivingPCs();
+                    tilesInRange = FilterTilesInRange(fromTile, 1, 1, atk.RequiresLineOfSight, potentialTargets);
+                    break;
+                case Action.TargetType.MELEE_REACH:
+                    potentialTargets = IsPC() ? tm.AllLivingEnemies() : tm.AllLivingPCs();
+                    tilesInRange = FilterTilesInRange(fromTile, 2, 2, atk.RequiresLineOfSight, potentialTargets);
+                    break;
+                case Action.TargetType.RANGED:
+                    potentialTargets = IsPC() ? tm.AllLivingEnemies() : tm.AllLivingPCs();
+                    tilesInRange = FilterTilesInRange(fromTile, atk.minRange, atk.maxRange, atk.RequiresLineOfSight, potentialTargets);
+                    break;
+                case Action.TargetType.SELF_OR_ALLY:
+                    potentialTargets = IsPC() ? tm.AllLivingPCs() : tm.AllLivingEnemies();
+                    tilesInRange = FilterTilesInRange(fromTile, atk.minRange, atk.maxRange, atk.RequiresLineOfSight, potentialTargets);
+                    break;
+                case Action.TargetType.CHARGE:
+                    potentialTargets = IsPC() ? tm.AllLivingEnemies() : tm.AllLivingPCs();
+                    tilesInRange = FilterTilesInRange(fromTile, atk.minRange, atk.maxRange, atk.RequiresLineOfSight, potentialTargets);
+                    break;
+            }
             foreach (Tile targetTile in tilesInRange)
             {
+                // If the target tile was already added as a possible target, no need to add it again.
                 if (targetTile.searchCanBeChosen) continue;
                 // Attach as an attack target without marking visited (so movement BFS is unaffected)
                 // Record launch tile separately to avoid cycles with movement parent
                 targetTile.searchAttackParent = fromTile;
                 selectableTiles.Add(targetTile);
                 targetTile.searchCanBeChosen = true;
-                targetTile.searchDistance = movementCost + actionCost;
+                targetTile.searchDistance = movementCost + atk.BASE_ACTION_COST;
             }
             return;
         }
-
-        // Otherwise, we only care about occupied enemy tiles (and visibility rules)
-        // Iterate enemy-occupied tiles only
-        for (int x = 0; x < Globals.COMBAT_WIDTH; x++)
-        {
-            for (int y = 0; y < Globals.COMBAT_HEIGHT; y++)
-            {
-                Tile targetTile = manager.getTile(x, y);
-                if (targetTile == null) continue;
-                if (targetTile.searchCanBeChosen) continue;
-                if (!ContainsEnemy(targetTile)) continue;
-
-                // Enforce visibility: melee and ranged should only target visible enemies
-                if (!IsTileVisibleByCurrentActor(targetTile)) continue;
-
-                // Range check using Manhattan distance on 4-connected grid
-                int dist = Mathf.Abs(targetTile.x - fromTile.x) + Mathf.Abs(targetTile.y - fromTile.y);
-                if (dist < minRange || dist > maxRange) continue;
-
-                // If required, check line of sight with caching
-                if (requiresLineOfSight)
-                {
-                    bool hasLOS;
-                    if (!losCache.TryGetValue((fromTile, targetTile), out hasLOS))
-                    {
-                        hasLOS = LineOfSightUtils.HasLineOfSight(fromTile, targetTile, manager);
-                        losCache[(fromTile, targetTile)] = hasLOS;
-                    }
-                    if (!hasLOS) continue;
-                }
-
-                // Attach as an attack target without marking visited
-                targetTile.searchAttackParent = fromTile;
-                selectableTiles.Add(targetTile);
-                targetTile.searchCanBeChosen = true;
-                targetTile.searchDistance = movementCost + actionCost;
-            }
-        }
+        return;
     }
 
     // Visibility helper for filtering targets appropriately per controller type
@@ -441,52 +427,47 @@ public partial class CombatController : MonoBehaviour
             : (tile.GetMoveCost() + parent.searchDistance);
     }
 
-    // Get range and cost parameters for the currently selected action
-    private void GetActionRangeParameters(out int minRange, out int maxRange, out int actionCost, out bool requiresLineOfSight, out bool targetEnemiesOnly)
-    {
-        minRange = 1;
-        maxRange = 1;
-        actionCost = 0;
-        requiresLineOfSight = false;
-        targetEnemiesOnly = true;
+    private bool IsTileInRange(Tile fromTile, int minRange, int maxRange, bool requiresLineOfSight, int x, int y) {
+        if (x < 0 || x >= Globals.COMBAT_WIDTH || y < 0 || y >= Globals.COMBAT_HEIGHT) return false;
 
-        if (selectedAction == null) return;
+        int dist = Mathf.Abs(fromTile.x - x) + Mathf.Abs(fromTile.y - y);
+        if (dist < minRange || dist > maxRange) return false;
 
-        actionCost = selectedAction.BASE_ACTION_COST;
-
-        if (selectedAction is ActionAttack attackAction)
-        {
-            minRange = attackAction.minRange;
-            maxRange = attackAction.maxRange;
-            requiresLineOfSight = attackAction.RequiresLineOfSight;
-            targetEnemiesOnly = attackAction.TargetsEnemiesOnly;
-        }
+        Tile tile = manager.getTile(x, y);
+        if (tile == null || tile == fromTile) return false;
+        if (!requiresLineOfSight || LineOfSightUtils.HasLineOfSight(fromTile, tile, manager)) return true;
+        return false;
     }
 
-    // Find all tiles within range from a given position
+    // For potential targets, check which are visible and in range.
+    private HashSet<Tile> FilterTilesInRange(Tile fromTile, int minRange, int maxRange, bool requiresLineOfSight, List<CombatController> potentialTargets) {
+        HashSet<Tile> filteredTiles = new HashSet<Tile>();
+        foreach (CombatController cc in potentialTargets) {
+            Tile tile = cc.GetCurrentTile();
+            if (IsTileInRange(fromTile, minRange, maxRange, requiresLineOfSight, tile.x, tile.y) && IsTileVisibleByCurrentActor(tile)) {
+                filteredTiles.Add(tile);
+            }
+        }
+        return filteredTiles;
+    }
+
+    // Find all tiles within manhattan range from a given position (used by ground attacks)
     private HashSet<Tile> FindTilesInRange(Tile fromTile, int minRange, int maxRange, bool requiresLineOfSight)
     {
         HashSet<Tile> tilesInRange = new HashSet<Tile>();
-        
-        // For grid-based movement, use Manhattan distance directly
-        for (int x = 0; x < Globals.COMBAT_WIDTH; x++)
+
+        // Iterate only within Manhattan bounding diamond around fromTile
+        for (int dx = -maxRange; dx <= maxRange; dx++)
         {
-            for (int y = 0; y < Globals.COMBAT_HEIGHT; y++)
+            int remaining = maxRange - Mathf.Abs(dx);
+            for (int dy = -remaining; dy <= remaining; dy++)
             {
-                Tile tile = manager.getTile(x, y);
-                if (tile == null || tile == fromTile) continue;
-                
-                int dist = Mathf.Abs(tile.x - fromTile.x) + Mathf.Abs(tile.y - fromTile.y);
-                
-                if (dist >= minRange && dist <= maxRange)
-                {
-                    if (!requiresLineOfSight || LineOfSightUtils.HasLineOfSight(fromTile, tile, manager))
-                    {
-                        tilesInRange.Add(tile);
-                    }
+                if (IsTileInRange(fromTile, minRange, maxRange, requiresLineOfSight, fromTile.x + dx, fromTile.y + dy)) {
+                    tilesInRange.Add(manager.getTile(fromTile.x + dx, fromTile.y + dy));
                 }
             }
         }
+
         return tilesInRange;
     }
 

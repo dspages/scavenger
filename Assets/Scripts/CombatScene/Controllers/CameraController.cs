@@ -18,9 +18,9 @@ public class CameraController : MonoBehaviour
     const float MAX_SCROLL_BUFFER = 0.5f;
 
 	// Zoom settings for orthographic camera
-	[SerializeField] private float zoomSpeed = 2f; // Units of orthographic size per wheel tick
-	[SerializeField] private float minOrthographicSize = 3f;
-	[SerializeField] private float maxOrthographicSize = 25f;
+	[SerializeField] private float zoomSpeed = 1f; // Units of orthographic size per wheel tick
+	[SerializeField] private float minOrthographicSize = 2f;
+	[SerializeField] private float maxOrthographicSize = 15f;
 
     public void RotateLeft()
     {

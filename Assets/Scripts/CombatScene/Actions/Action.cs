@@ -57,6 +57,9 @@ public class Action : MonoBehaviour
         return "";
     }
 
+    virtual public bool IsCoolingDown() {
+        return false;
+    }
 
     // Start is called before the first frame update
     virtual protected void Start()

@@ -1,4 +1,4 @@
-﻿using System.Collections;
+﻿﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -15,66 +15,54 @@ public partial class CombatController
 
     private bool TargetChargeSpecialMove(Action action, bool displayReason)
     {
-        if (FindSelectableChargeTiles(action.BASE_ACTION_COST, action.minRange, action.maxRange))
-        {
-            selectedAction = action;
-            return true;
-        }
+        selectedAction = action;
+        FindSelectableChargeTiles();
+        if (selectableTiles != null && selectableTiles.Count > 0) return true;
         if (displayReason) characterSheet.DisplayPopup("Nothing in range");
         return false;
     }
 
     private bool TargetMeleeSpecialMove(Action action, bool displayReason)
     {
-        if (FindSelectableMeleeAttackTiles(action.BASE_ACTION_COST))
-        {
-            selectedAction = action;
-            return true;
-        }
+        selectedAction = action;
+        FindSelectableMeleeAttackTiles();
+        if (selectableTiles != null && selectableTiles.Count > 0) return true;
         if (displayReason) characterSheet.DisplayPopup("Nothing in range");
         return false;
     }
 
-    private bool TargetRangedSpecialMove(Action action, bool displayReason, int minRange, int maxRange)
+    private bool TargetRangedSpecialMove(Action action, bool displayReason)
     {
-        if (FindSelectableRangedAttackTiles(action.BASE_ACTION_COST))
-        {
-            selectedAction = action;
-            return true;
-        }
+        selectedAction = action;
+        FindSelectableRangedAttackTiles();
+        if (selectableTiles != null && selectableTiles.Count > 0) return true;
         if (displayReason) characterSheet.DisplayPopup("Nothing in range");
         return false;
     }
 
-    private bool TargetAllyBuffSpecialMove(Action action, bool displayReason, int minRange, int maxRange)
+    private bool TargetAllyBuffSpecialMove(Action action, bool displayReason)
     {
-        if (FindSelectableAllyBuffTiles(action.BASE_ACTION_COST, action.minRange, action.maxRange))
-        {
-            selectedAction = action;
-            return true;
-        }
+        selectedAction = action;
+        FindSelectableAllyBuffTiles();
+        if (selectableTiles != null && selectableTiles.Count > 0) return true;
         if (displayReason) characterSheet.DisplayPopup("Nothing in range");
         return false;
     }
 
-    private bool TargetMeleeReachSpecialMove(ActionMeleeAttack action, bool displayReason)
+    private bool TargetMeleeReachSpecialMove(Action action, bool displayReason)
     {
-        if (FindSelectableMeleeReachAttackTiles(action.BASE_ACTION_COST))
-        {
-            selectedAction = action;
-            return true;
-        }
+        selectedAction = action;
+        FindSelectableMeleeReachAttackTiles();
+        if (selectableTiles != null && selectableTiles.Count > 0) return true;
         if (displayReason) characterSheet.DisplayPopup("Nothing in range");
         return false;
     }
 
-    private bool TargetGroundAttackSpecialMove(ActionGroundAttack action, bool displayReason, int minRange, int maxRange)
+    private bool TargetGroundAttackSpecialMove(Action action, bool displayReason)
     {
-        if (FindSelectableGroundAttackTiles(action.BASE_ACTION_COST, action.minRange, action.maxRange))
-        {
-            selectedAction = action;
-            return true;
-        }
+        selectedAction = action;
+        FindSelectableGroundAttackTiles();
+        if (selectableTiles != null && selectableTiles.Count > 0) return true;
         if (displayReason) characterSheet.DisplayPopup("No valid tiles");
         return false;
     }
@@ -88,12 +76,12 @@ public partial class CombatController
             if (displayReason) characterSheet.DisplayPopup("Cooling down");
             return false;
         }
-        if (actionPoints < action.BASE_ACTION_COST)
+        if (characterSheet.currentActionPoints < action.BASE_ACTION_COST)
         {
             if (displayReason) characterSheet.DisplayPopup("Not enough AP");
             return false;
         }
-        if (characterSheet.CurrentMana < action.MANA_COST)
+        if (characterSheet.currentMana < action.MANA_COST)
         {
             if (displayReason) characterSheet.DisplayPopup("Not enough mana");
             return false;
@@ -117,7 +105,9 @@ public partial class CombatController
             case Action.TargetType.SELF_OR_ALLY:
                 return TargetAllyBuffSpecialMove(action, displayReason);
             case Action.TargetType.MELEE_REACH:
-                return TargetReachSpecialMove(action, displayReason);
+                return TargetMeleeReachSpecialMove(action, displayReason);
+            case Action.TargetType.GROUND_TILE:
+                return TargetGroundAttackSpecialMove(action, displayReason);
         }
         return false;
     }
