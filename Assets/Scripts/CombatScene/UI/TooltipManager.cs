@@ -32,11 +32,19 @@ public class TooltipManager : MonoBehaviour
         {
             tooltipElement = new VisualElement();
             tooltipElement.AddToClassList("ui-tooltip");
+            
+            // CSS-based positioning and sizing
+            tooltipElement.style.position = Position.Absolute;
             tooltipElement.style.maxWidth = maxTooltipWidth;
+            tooltipElement.style.width = StyleKeyword.Auto;
+            tooltipElement.style.height = StyleKeyword.Auto;
+            tooltipElement.style.whiteSpace = WhiteSpace.Normal;
+            tooltipElement.style.overflow = Overflow.Visible;
             tooltipElement.style.display = DisplayStyle.None;
 
             tooltipLabel = new Label();
             tooltipLabel.AddToClassList("ui-tooltip__label");
+            tooltipLabel.style.whiteSpace = WhiteSpace.Normal;
             tooltipElement.Add(tooltipLabel);
         }
         else
@@ -130,20 +138,7 @@ public class TooltipManager : MonoBehaviour
         tooltipElement.style.display = DisplayStyle.Flex;
         isTooltipVisible = true;
         
-        // Position tooltip near mouse
-        Vector2 mousePos = Input.mousePosition;
-        Vector2 screenPos = new Vector2(mousePos.x + tooltipOffset.x, mousePos.y + tooltipOffset.y);
-        
-        // Convert screen position to UI position
-        VisualElement root = GetComponent<UIDocument>().rootVisualElement;
-        if (root != null)
-        {
-            Vector2 uiPos = RuntimePanelUtils.ScreenToPanel(root.panel, screenPos);
-            // Fix Y-axis inversion by subtracting from screen height
-            uiPos.y = Screen.height - uiPos.y;
-            tooltipElement.style.left = uiPos.x;
-            tooltipElement.style.top = uiPos.y;
-        }
+        PositionTooltip();
     }
     
     private string GetTooltipTextFromObject(GameObject obj)
@@ -176,18 +171,31 @@ public class TooltipManager : MonoBehaviour
         // Update tooltip position if visible
         if (isTooltipVisible && tooltipElement != null)
         {
-            Vector2 mousePos = Input.mousePosition;
-            Vector2 screenPos = new Vector2(mousePos.x + tooltipOffset.x, mousePos.y + tooltipOffset.y);
-            
-            VisualElement root = GetComponent<UIDocument>().rootVisualElement;
-            if (root != null)
-            {
-                Vector2 uiPos = RuntimePanelUtils.ScreenToPanel(root.panel, screenPos);
-                // Fix Y-axis inversion by subtracting from screen height
-                uiPos.y = Screen.height - uiPos.y;
-                tooltipElement.style.left = uiPos.x;
-                tooltipElement.style.top = uiPos.y;
-            }
+            PositionTooltip();
         }
     }
+
+    private void PositionTooltip() {
+        Vector2 mousePos = Input.mousePosition;
+        Vector2 screenPos = new Vector2(mousePos.x + tooltipOffset.x, mousePos.y + tooltipOffset.y);
+        
+        VisualElement root = GetComponent<UIDocument>().rootVisualElement;
+        if (root != null)
+        {
+            Vector2 uiPos = RuntimePanelUtils.ScreenToPanel(root.panel, screenPos);
+            // Fix Y-axis inversion by subtracting from screen height
+            uiPos.y = Screen.height - uiPos.y;
+            
+            // Simple clamping to keep tooltip on screen
+            float tooltipWidth = maxTooltipWidth; // Assume max 80% screen width
+            float tooltipHeight = 200f; // Reasonable estimate for multi-line tooltip
+            
+            float clampedX = Mathf.Clamp(uiPos.x, 0f, Screen.width - tooltipWidth);
+            float clampedY = Mathf.Clamp(uiPos.y, 0f, Screen.height - tooltipHeight);
+            
+            tooltipElement.style.left = clampedX;
+            tooltipElement.style.top = clampedY;
+        }
+    }
+
 } 

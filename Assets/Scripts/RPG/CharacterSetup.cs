@@ -72,6 +72,7 @@ public static class CharacterSetup
             dodgeBonus = 1,
             rangeType = EquippableHandheld.RangeType.Melee
         };
+        inventory.TryAddItem(steelShield);
 
         var pike = new EquippableHandheld(
             name: "Reach Pike",
@@ -100,7 +101,8 @@ public static class CharacterSetup
             rangeType = EquippableHandheld.RangeType.Ranged,
             requiresAmmo = true,
             ammoType = "Musket Ball",
-            associatedActionClass = nameof(ActionRangedAttack)
+            associatedActionClass = nameof(ActionRangedAttack),
+            attackLungeDistance = -0.2f // recoil away from target
         };
         inventory.TryAddItem(musket);
 
@@ -130,7 +132,8 @@ public static class CharacterSetup
             description = "A grenade that explodes on impact - keep your distance!",
             splashRadius = 2,
             rangeType = EquippableHandheld.RangeType.Ranged,
-            isConsumable = true
+            isConsumable = true,
+            attackLungeDistance = 0.1f // less forward motion for throws
         };
         // Map grenade to a ground attack action by default
         grenade.associatedActionClass = nameof(ActionGroundAttack);
@@ -144,7 +147,6 @@ public static class CharacterSetup
 
         // Equip starting gear (these items go directly to equipment, not inventory)
         sheet.TryEquipItem(cutlass);
-        sheet.TryEquipItem(steelShield);
 
         // Add a basic torch as equippable handheld: 1H, does small fire damage, provides light
         var torch = new EquippableHandheld(
@@ -161,7 +163,7 @@ public static class CharacterSetup
             providesIllumination = true,
             illuminationRange = 12
         };
-        sheet.TryEquipItem(torch);
+        inventory.TryAddItem(torch);
         // If this character already has an avatar and a combat controller, ensure vision updates
         if (sheet.avatar != null)
         {

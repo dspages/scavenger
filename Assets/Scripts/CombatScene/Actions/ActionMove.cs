@@ -4,12 +4,9 @@ using UnityEngine;
 
 public class ActionMove : Action
 {
-    [SerializeField] private float moveSpeed = 6;
+    private float moveSpeed = 4;
     protected Stack<Tile> path = new Stack<Tile>();
     protected int reserveTiles = 0;
-
-
-
 
     override protected void Start()
     {
@@ -41,7 +38,7 @@ public class ActionMove : Action
             Vector3 targetPos = tile.transform.position;
 
             // Inbetween tiles, move toward the next tile in the chain.
-            if (Vector3.Distance(transform.position, targetPos) >= 0.01f)
+            if (Vector3.Distance(transform.position, targetPos) >= Time.deltaTime * moveSpeed)
             {
                 Vector3 direction = CalculateDirection(targetPos);
                 transform.up = new Vector3(direction.x, direction.y, 0f);

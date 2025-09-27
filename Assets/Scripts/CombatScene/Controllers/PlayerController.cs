@@ -67,8 +67,6 @@ public class PlayerController : CombatController
         EndTurn();
     }
 
-
-
     private Tile GetMouseTile()
     {
         Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
@@ -91,9 +89,6 @@ public class PlayerController : CombatController
             pathRenderer.DrawSegment(start, end, lineType);
         }
     }
-
-
-// PathDashAnimator moved to PathRenderer.cs
 
     void ClearMouseHover()
     {
@@ -142,7 +137,8 @@ public class PlayerController : CombatController
             {
                 bool isGround = selectedAction.TARGET_TYPE == Action.TargetType.GROUND_TILE || (selectedAction is ActionAttack atk && atk.AOE_RADIUS > 0);
                 bool isRanged = selectedAction is ActionRangedAttack || selectedAction.TARGET_TYPE == Action.TargetType.RANGED;
-                if (isGround || (isRanged && hoverTile.occupant != null && ContainsEnemy(hoverTile)))
+                bool isReachMelee = selectedAction.TARGET_TYPE == Action.TargetType.MELEE_REACH;
+                if (isGround || (isRanged && hoverTile.occupant != null && ContainsEnemy(hoverTile)) || (isReachMelee && hoverTile.occupant != null && ContainsEnemy(hoverTile)))
                 {
                     int aoeRadius = 0;
                     if (selectedAction is ActionAttack aa)

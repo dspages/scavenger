@@ -39,6 +39,9 @@ public class EquippableHandheld : EquippableItem
     public int actionPointCost = 1;
     public DamageType damageType = DamageType.Slashing;
     
+    // Cosmetic lunge distance override for this weapon (tiles). Positive moves toward target, negative is recoil
+    public float attackLungeDistance = 0.3f;
+    
     // ActionDefinition removed; keep legacy fields only
     // Name of the Action component this item maps to when used (defaults to melee attack)
     // Examples: "ActionMeleeAttack", "ActionGroundAttack", "ActionStealth" (for scrolls)
@@ -145,6 +148,7 @@ public class EquippableHandheld : EquippableItem
             attackAction.actionDisplayName = this.itemName;
             attackAction.baseDamage = this.damage;
             attackAction.BASE_ACTION_COST = this.actionPointCost; // Base action cost (excludes movement)
+            attackAction.visualLungeDistance = this.attackLungeDistance;
             return true;
         }
 

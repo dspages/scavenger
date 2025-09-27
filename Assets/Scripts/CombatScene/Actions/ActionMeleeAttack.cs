@@ -13,7 +13,9 @@ public class ActionMeleeAttack : ActionAttack
         baseDamage = 5;
     }
 
-    override public TargetType TARGET_TYPE { get { return TargetType.MELEE; } }
+    // If configured with minRange >= 2 (e.g., pikes), treat as MELEE_REACH so
+    // systems can compute a launch tile two tiles away from the target.
+    override public TargetType TARGET_TYPE { get { return (minRange >= 2 || maxRange >= 2) ? TargetType.MELEE_REACH : TargetType.MELEE; } }
     public override bool RequiresLineOfSight { get { return false; } }
     public override bool TargetsEnemiesOnly { get { return true; } }
     public override bool CanTargetEmptyTiles { get { return false; } }

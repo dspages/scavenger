@@ -18,7 +18,11 @@ public class ActionGroundAttack : ActionAttack
 
 	protected override void PerformAttack(Tile targetTile)
 	{
+		// Damage should be applied on projectile arrival. The base AttackSequence
+		// already waits for SpawnProjectileAndWait before calling PerformAttack,
+		// so just apply damage and spawn the AoE effect here.
 		ApplyAreaDamage(targetTile);
+		StartCoroutine(PlayAoEVisual(targetTile));
 	}
 
 	private void ApplyAreaDamage(Tile center)
@@ -38,9 +42,40 @@ public class ActionGroundAttack : ActionAttack
 		}
 	}
 
+	protected override void OnTargetsAttacked(Tile targetTile)
+	{
+		if (targetTile == null) return;
+		var affected = AttackPreviewHelper.EnumerateAoETiles(targetTile, radius);
+		foreach (Tile t in affected)
+		{
+			if (t.occupant != null)
+			{
+				MakeUnitFaceThisActor(t.occupant);
+			}
+		}
+	}
+
+	private IEnumerator PlayAoEVisual(Tile center)
+	{
+		if (center == null) yield break;
+		yield return VfxHelpers.AoEExpandingRing(center.transform.position, radius, 0.35f);
+	}
+
+
 	protected override float GetAttackDuration()
 	{
-		return 0.35f;
+		return 0.45f;
+	}
+
+	protected override bool UsesProjectile()
+	{
+		return true;
+	}
+
+	protected override IEnumerator SpawnProjectileAndWait(Vector3 from, Vector3 to)
+	{
+		// Reuse the bright whooshing ball for ground attacks as well (thrown grenade feel)
+		yield return SpawnMusketProjectileAndWait(from, to);
 	}
 
 	public override string Description()

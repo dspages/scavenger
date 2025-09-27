@@ -345,11 +345,11 @@ public partial class CombatController : MonoBehaviour
                     break;
                 case Action.TargetType.MELEE:
                     potentialTargets = IsPC() ? tm.AllLivingEnemies() : tm.AllLivingPCs();
-                    tilesInRange = FilterTilesInRange(fromTile, 1, 1, atk.RequiresLineOfSight, potentialTargets);
+                    tilesInRange = FilterTilesInRange(fromTile, atk.minRange, atk.maxRange, atk.RequiresLineOfSight, potentialTargets);
                     break;
                 case Action.TargetType.MELEE_REACH:
                     potentialTargets = IsPC() ? tm.AllLivingEnemies() : tm.AllLivingPCs();
-                    tilesInRange = FilterTilesInRange(fromTile, 2, 2, atk.RequiresLineOfSight, potentialTargets);
+                    tilesInRange = FilterTilesInRange(fromTile, atk.minRange, atk.maxRange, atk.RequiresLineOfSight, potentialTargets);
                     break;
                 case Action.TargetType.RANGED:
                     potentialTargets = IsPC() ? tm.AllLivingEnemies() : tm.AllLivingPCs();

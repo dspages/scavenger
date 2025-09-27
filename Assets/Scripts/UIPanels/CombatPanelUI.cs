@@ -57,8 +57,8 @@ public class CombatPanelUI : MonoBehaviour
             visualTree.styleSheets.Add(CombatMenuStyles);
         }
 
-        // Keep a reference to the UI root for overlays
-        uiRoot = visualTree;
+		// Keep a reference to the UI root for overlays
+		uiRoot = visualTree;
 
         // Get references to the UI elements
         endTurnButton = visualTree.Q<Button>("EndTurnButton");
@@ -136,7 +136,22 @@ public class CombatPanelUI : MonoBehaviour
             globalDragBound = true;
         }
 
-        // Add the UI elements to the root visual element
+		// Create a tiny non-blocking enemy movement label
+		enemyMoveLabel = new Label("Enemy is moving...");
+		enemyMoveLabel.style.position = Position.Absolute;
+		enemyMoveLabel.style.left = 0;
+		enemyMoveLabel.style.right = 0;
+		enemyMoveLabel.style.top = 8;
+		enemyMoveLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+		enemyMoveLabel.style.fontSize = 18;
+		enemyMoveLabel.style.color = new Color(1f, 0.85f, 0.3f, 1f);
+		enemyMoveLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+		enemyMoveLabel.style.backgroundColor = new Color(0f, 0f, 0f, 0.35f);
+		enemyMoveLabel.style.display = DisplayStyle.None;
+		enemyMoveLabel.pickingMode = PickingMode.Ignore;
+		uiRoot.Add(enemyMoveLabel);
+
+		// Add the UI elements to the root visual element
         var uiDoc = GetComponent<UIDocument>();
         if (uiDoc == null)
         {
@@ -182,8 +197,22 @@ public class CombatPanelUI : MonoBehaviour
             inventoryUI.SetInventoryPanelVisible(false);
         }
 
-        // Update current character and refresh inventory if needed
-        UpdateCurrentCharacter();
+		// Update current character and refresh inventory if needed
+		UpdateCurrentCharacter();
+
+		// Toggle enemy move label
+		if (enemyMoveLabel != null)
+		{
+			bool show = (turnManager != null) && turnManager.IsEnemyTurn();
+			if (show)
+			{
+				EnemyController active = null;
+				var enemies = FindObjectsOfType<EnemyController>();
+				for (int i = 0; i < enemies.Length; i++) { if (enemies[i] != null && enemies[i].isTurn) { active = enemies[i]; break; } }
+				show = (active != null) && active.isActing;
+			}
+			enemyMoveLabel.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
+		}
     }
 
     private void UpdateCurrentCharacter()
@@ -651,8 +680,19 @@ public class CombatPanelUI : MonoBehaviour
         // Offset tooltip a bit from the cursor
         float offsetX = 12f;
         float offsetY = 12f;
-        hoverTooltip.style.left = panelPosition.x + offsetX;
-        hoverTooltip.style.top = panelPosition.y + offsetY;
+        
+        // Clamp tooltip to stay within screen bounds
+        float tooltipWidth = 200f; // Reasonable estimate for UI tooltips
+        float tooltipHeight = 100f; // Reasonable estimate for multi-line tooltips
+        
+        float desiredX = panelPosition.x + offsetX;
+        float desiredY = panelPosition.y + offsetY;
+        
+        float clampedX = Mathf.Clamp(desiredX, 0f, Screen.width - tooltipWidth);
+        float clampedY = Mathf.Clamp(desiredY, 0f, Screen.height - tooltipHeight);
+        
+        hoverTooltip.style.left = clampedX;
+        hoverTooltip.style.top = clampedY;
     }
 
     private void OnEndTurnButtonClicked()
@@ -840,9 +880,12 @@ public class CombatPanelUI : MonoBehaviour
         return null;
     }
 
-    private void OnToggleInventoryClicked()
+	private void OnToggleInventoryClicked()
     {
         bool isOpen = inventoryUI.IsInventoryPanelOpen();
         inventoryUI.SetInventoryPanelVisible(!isOpen);
     }
+
+	// Minimal field for enemy move UI
+	private Label enemyMoveLabel;
 }

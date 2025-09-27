@@ -29,6 +29,9 @@ public abstract class ActionAttack : ActionMove
     // The tile we intend to attack after movement completes
     protected Tile pendingAttackTarget;
 
+    // Cosmetic lunge/recoil distance in tile units (+toward target, -away from target)
+    [SerializeField] public float visualLungeDistance = 0.3f;
+
     // It's the responsibility of the controller to validate the target, so no need to do it here.
     public override void BeginAction(Tile targetTile)
     {
@@ -75,28 +78,66 @@ public abstract class ActionAttack : ActionMove
     {
         Tile targetTile = pendingAttackTarget;
         
-        // Face the target
-        Vector3 direction = CalculateDirection(targetTile.transform.position);
-        if (direction != Vector3.zero)
-            transform.up = new Vector3(direction.x, direction.y, 0f);
-        
-        // Perform the attack
+        // Begin attack sequence (handles facing, lunge/recoil, projectile, damage, and return)
         currentPhase = Phase.RESOLVING_ATTACK;
-        PerformAttack(targetTile);
-        // Accrue base action cost (movement already accrued in PreparePath)
-        actionPointCost += BASE_ACTION_COST;
-        StartCoroutine(EndActionAfterDelayWithGridSnap(GetAttackDuration()));
+        StartCoroutine(AttackSequence(targetTile));
     }
 
-    // Custom coroutine that snaps to grid direction after attack delay
-    protected IEnumerator EndActionAfterDelayWithGridSnap(float fDuration)
+    // Main attack coroutine orchestrating lunge/recoil motion, projectile (if any), damage, and return
+    protected IEnumerator AttackSequence(Tile targetTile)
     {
-        currentPhase = Phase.NONE;
-        yield return new WaitForSeconds(fDuration);
-        
+        if (targetTile == null)
+        {
+            EndAction();
+            yield break;
+        }
+
+        Vector3 originalPos = transform.position;
+        Vector3 targetPos = targetTile.transform.position;
+        Vector3 direction = CalculateDirection(targetPos);
+        if (direction != Vector3.zero)
+        {
+            transform.up = new Vector3(direction.x, direction.y, 0f);
+        }
+
+        // Compute lunge target (negative distance becomes recoil)
+        float lungeDist = visualLungeDistance;
+        Vector3 lungePos = originalPos + (direction * lungeDist);
+
+        // Durations scale mildly with distance to keep feel consistent
+        float forwardTime = Mathf.Lerp(0.08f, 0.16f, Mathf.Clamp01(Mathf.Abs(lungeDist) / 0.4f));
+        float backTime = Mathf.Lerp(0.10f, 0.20f, Mathf.Clamp01(Mathf.Abs(lungeDist) / 0.4f));
+
+        // Forward lunge with slight acceleration (ease-in)
+        yield return VfxHelpers.MoveWithEase(transform, originalPos, lungePos, forwardTime, VfxHelpers.EaseInQuad, true, direction);
+
+        // If this attack uses a projectile, spawn it now and wait for impact
+        if (UsesProjectile())
+        {
+            yield return SpawnProjectileAndWait(originalPos + direction * 0.15f, targetPos);
+        }
+
+        // Apply damage/effect at lunge apex (or after projectile arrival)
+        PerformAttack(targetTile);
+
+        // Small impact hold to sell the hit (does not block too long)
+        yield return new WaitForSeconds(0.06f);
+
+        // After the attack resolves, make the target(s) face the attacker, snapped to 90°
+        OnTargetsAttacked(targetTile);
+
+        // Return to original position with slight deceleration (ease-out)
+        yield return VfxHelpers.MoveWithEase(transform, lungePos, originalPos, backTime, VfxHelpers.EaseOutQuad, true, direction);
+
+        // Accrue base action cost (movement already accrued in PreparePath)
+        actionPointCost += BASE_ACTION_COST;
+
+        // End after a short cosmetic delay and snap facing to grid
+        yield return new WaitForSeconds(Mathf.Max(0.0f, GetAttackDuration() - forwardTime - backTime - 0.06f));
+
         // Snap rotation to nearest cardinal direction
         SnapToCardinalDirection();
-        
+
         EndAction();
         yield break;
     }
@@ -123,6 +164,77 @@ public abstract class ActionAttack : ActionMove
         }
         
         transform.up = snapDirection;
+    }
+
+    // Whether this attack spawns a visible projectile (ranged/ground spells will override)
+    protected virtual bool UsesProjectile()
+    {
+        return false;
+    }
+
+    // Default projectile implementation: quick glowing streak toward target
+    protected virtual IEnumerator SpawnProjectileAndWait(Vector3 from, Vector3 to)
+    {
+        // Use generic streak projectile by default
+        yield return VfxHelpers.ProjectileStreak(from, to, 12f);
+        yield break;
+    }
+
+    // Simple easing helpers
+    protected float EaseInQuad(float x) { return x * x; }
+    protected float EaseOutQuad(float x) { return 1f - (1f - x) * (1f - x); }
+
+    // Called after attack resolution to let targets face this attacker
+    protected virtual void OnTargetsAttacked(Tile targetTile)
+    {
+        if (targetTile == null || targetTile.occupant == null) return;
+        MakeUnitFaceThisActor(targetTile.occupant);
+    }
+
+    protected void MakeUnitFaceThisActor(CombatController unit)
+    {
+        if (unit == null || unit.Dead()) return;
+        Transform t = unit.transform;
+        Vector3 toAttacker = transform.position - t.position;
+        if (toAttacker.sqrMagnitude <= 0.0001f) return;
+        t.up = new Vector3(toAttacker.x, toAttacker.y, 0f).normalized;
+        // Snap to nearest cardinal
+        Vector3 snapped = GetNearestCardinal(t.up);
+        t.up = snapped;
+    }
+
+    private Vector3 GetNearestCardinal(Vector3 dir)
+    {
+        float absX = Mathf.Abs(dir.x);
+        float absY = Mathf.Abs(dir.y);
+        if (absX > absY)
+        {
+            return dir.x >= 0 ? Vector3.right : Vector3.left;
+        }
+        else
+        {
+            return dir.y >= 0 ? Vector3.up : Vector3.down;
+        }
+    }
+
+    // Detect which weapon (if any) is driving this attack
+    protected EquippableHandheld GetEquippedWeaponForThisAttack()
+    {
+        if (combatController == null || characterSheet == null) return null;
+        string key = combatController.GetSelectedActionKey();
+        // Only treat as weapon-driven if the selection explicitly references a hand
+        if (string.IsNullOrEmpty(key)) return null;
+        EquippableItem.EquipmentSlot slot;
+        if (key.EndsWith(":LeftHand")) slot = EquippableItem.EquipmentSlot.LeftHand;
+        else if (key.EndsWith(":RightHand")) slot = EquippableItem.EquipmentSlot.RightHand;
+        else return null; // Spells or non-hand actions should not inherit weapon visuals
+        return characterSheet.GetEquippedItem(slot) as EquippableHandheld;
+    }
+
+    // Musket-specific projectile: visible ball with rotating whoosh ring and bright trail
+    protected IEnumerator SpawnMusketProjectileAndWait(Vector3 from, Vector3 to)
+    {
+        yield return VfxHelpers.ProjectileWhooshingBall(from, to, 20f);
     }
 
     // Abstract method for subclasses to implement their specific attack logic

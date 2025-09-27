@@ -92,7 +92,6 @@ public class VisionSystem : MonoBehaviour
             Debug.Log($"VisionSystem: Added tile ({tile.x}, {tile.y}) to system");
         }
     }
-    
 
     
     public void UpdateVision()
@@ -156,6 +155,9 @@ public class VisionSystem : MonoBehaviour
         
         // Update illumination effects
         UpdateIlluminationEffects();
+
+        // Hide/show enemy avatars based on fog visibility
+        UpdateEnemyAvatarVisibility();
         
         // Debug: Count how many tiles are visible
         int visibleTileCount = 0;
@@ -195,7 +197,7 @@ public class VisionSystem : MonoBehaviour
                 // Check if tile is in the forward-facing cone (120 degree arc)
                 Vector2 tileDirection = new Vector2(x, y).normalized;
                 float angle = Vector2.Angle(facingDirection, tileDirection);
-                if (angle > 60f || (angle <= 90f && distance == 1.0f)) continue; // 120 degree cone, or 180 degree cone if adjacent
+                if (angle >= 60f && distance > 1.0f) continue; // Skip tiles that are not in a forward cone, except adjacent.
                 
                 int targetX = currentTile.x + x;
                 int targetY = currentTile.y + y;
@@ -294,6 +296,48 @@ public class VisionSystem : MonoBehaviour
         }
         
         // Tile illumination states are updated by UpdateTileVisualStates()
+    }
+
+    // Ensure enemies inside fogged tiles are hidden from the player, and reappear when unfogged
+    private void UpdateEnemyAvatarVisibility()
+    {
+        CombatController[] allCombatants = FindObjectsOfType<CombatController>();
+        foreach (CombatController combatant in allCombatants)
+        {
+            if (combatant == null || combatant.Dead()) continue;
+            Tile tile = combatant.GetCurrentTile();
+            if (tile == null) continue;
+
+            bool isTileVisible = tileVisibility.ContainsKey(tile) && tileVisibility[tile];
+
+            // Only hide enemies from the player's view; player units remain visible
+            if (combatant.IsEnemy())
+            {
+                SetCombatantVisible(combatant, isTileVisible);
+            }
+            else
+            {
+                // PCs should remain visible
+                SetCombatantVisible(combatant, true);
+            }
+        }
+    }
+
+    private void SetCombatantVisible(CombatController combatant, bool visible)
+    {
+        if (combatant == null) return;
+        // Toggle sprite renderers
+        SpriteRenderer[] sprites = combatant.GetComponentsInChildren<SpriteRenderer>(true);
+        foreach (var sr in sprites)
+        {
+            if (sr != null) sr.enabled = visible;
+        }
+        // Toggle world-space UI (e.g., health bars)
+        Canvas[] canvases = combatant.GetComponentsInChildren<Canvas>(true);
+        foreach (var cv in canvases)
+        {
+            if (cv != null) cv.enabled = visible;
+        }
     }
     
     // Call this method whenever you want to check for HIDDEN status changes

@@ -30,4 +30,15 @@ public class ActionRangedAttack : ActionAttack
     {
         return 0.5f;
     }
+
+    protected override bool UsesProjectile()
+    {
+        return true;
+    }
+
+    protected override System.Collections.IEnumerator SpawnProjectileAndWait(UnityEngine.Vector3 from, UnityEngine.Vector3 to)
+    {
+        // Use the more visible whooshing ball projectile for all ranged attacks for now
+        yield return VfxHelpers.ProjectileWhooshingBall(from, to, 20f);
+    }
 }

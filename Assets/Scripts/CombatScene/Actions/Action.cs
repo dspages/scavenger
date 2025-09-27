@@ -36,7 +36,7 @@ public class Action : MonoBehaviour
     public int minRange = 1;
     public int maxRange = 1;
 
-    virtual public int BASE_ACTION_COST { get { return baseActionCost; } set { baseActionCost = value; } }
+    virtual public int BASE_ACTION_COST {  get { return baseActionCost; } set { baseActionCost = value; } }
     virtual public int MANA_COST { get { return 0; } }
 
     // Target type for special moves, lets UI/AI know when it can use special moves.

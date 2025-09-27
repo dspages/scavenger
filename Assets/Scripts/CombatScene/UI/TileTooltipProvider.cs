@@ -20,13 +20,11 @@ public class TileTooltipProvider : TooltipProvider
         text += $"Move Cost: {tile.GetMoveCost()}\n";
         text += $"Walkable: {(tile.isWalkable ? "Yes" : "No")}";
         
-        // Add fog of war debug information
+        // Add fog of war information (without internal initialization status)
         if (visionSystem != null)
         {
-            bool isInitialized = visionSystem.IsInitialized();
             bool isVisible = visionSystem.IsTileVisible(tile);
             bool isIlluminated = visionSystem.IsTileIlluminated(tile);
-            text += $"\nVisionSystem: {(isInitialized ? "Ready" : "Initializing...")}";
             text += $"\nFog Status: {(isVisible ? "Visible" : "Fogged")}";
             text += $"\nIlluminated: {(isIlluminated ? "Yes" : "No")}";
         }
