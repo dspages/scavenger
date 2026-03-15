@@ -95,19 +95,16 @@ public class Equipment
         {
             if (item is EquippableHandheld)
             {
-                // Check if this weapon can be equipped alongside what's in the other hand
                 if (!IsHandSlotCompatible(slot, item))
                 {
                     return false;
                 }
                 
-                // Hand-held items can go in either hand slot
                 slotToItem.TryGetValue(slot, out previous);
-                
-                // Only remove the item from other slots AFTER we've confirmed it can be equipped
-                // This prevents item destruction on failed dual-wielding attempts
                 RemoveItemFromAllSlots(item);
-                
+
+                // Reassign the item's slot to the target hand
+                item.slot = slot;
                 slotToItem[slot] = item;
                 OnEquipmentChanged?.Invoke();
                 return true;
@@ -118,7 +115,6 @@ public class Equipment
         if (item.slot != slot) return false;
         slotToItem.TryGetValue(slot, out previous);
         
-        // Remove this item from any other slot it might be in to prevent duplication
         RemoveItemFromAllSlots(item);
         
         slotToItem[slot] = item;

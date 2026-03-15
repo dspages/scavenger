@@ -37,9 +37,6 @@ public class CharacterSheet
         CLASS_WARLOCK, // Caster focused on summoning demons, CC, and other 'evil' powers
     }
 
-    private IndicatorBar healthBar;
-    private IndicatorBar manaBar;
-    private GameObject combatPrefab;
     public GameObject avatar;
     public Inventory inventory;
 
@@ -60,8 +57,7 @@ public class CharacterSheet
 
     public bool dead = false;
 
-    public EquippableHandheld weaponEquipped;
-    private Equipment equipment;
+    public Equipment equipment { get; private set; }
 
     public int currentHealth;
     public int currentMana;
@@ -81,8 +77,9 @@ public class CharacterSheet
 
     // Special actions known by this character (types); instances attach to avatar components
     private readonly List<System.Type> knownSpecialActionTypes = new List<System.Type>();
+    private readonly List<AbilityData> knownAbilities = new List<AbilityData>();
 
-    public CharacterSheet(string name, CharacterClass characterClass)
+    public CharacterSheet(string name, CharacterClass characterClass, bool assignDefaults = true)
     {
         firstName = name;
         this.characterClass = characterClass;
@@ -91,11 +88,14 @@ public class CharacterSheet
         inventory = new Inventory();
         equipment = new Equipment();
         
-        // Subscribe to inventory/equipment changes
         inventory.OnInventoryChanged += () => OnInventoryChanged?.Invoke();
         equipment.OnEquipmentChanged += () => OnEquipmentChanged?.Invoke();
-        CharacterSetup.AssignStartingGear(this);
-        CharacterSetup.AssignStartingAbilities(this);
+
+        if (assignDefaults)
+        {
+            CharacterSetup.AssignStartingGear(this);
+            CharacterSetup.AssignStartingAbilities(this);
+        }
     }
 
     private int MoveSpeed()
@@ -113,37 +113,6 @@ public class CharacterSheet
         return (10 * level) + (5 * willpower);
     }
 
-    public PlayerController CreateCombatAvatarAsPC(Vector3 location, Quaternion rotation, Tile tile)
-    {
-        GameObject combatant = CreateCombatAvatar(location, rotation);
-        PlayerController c = combatant.AddComponent<PlayerController>();
-        c.SetCurrentTile(tile);
-        c.SetCharacterSheet(this);
-        AttachKnownActionsToAvatar(combatant);
-        return c;
-    }
-
-    public EnemyController CreateCombatAvatarAsNPC(Vector3 location, Quaternion rotation, Tile tile)
-    {
-        GameObject combatant = CreateCombatAvatar(location, rotation);
-        EnemyController c = combatant.AddComponent<EnemyController>();
-        c.SetCurrentTile(tile);
-        c.SetCharacterSheet(this);
-        AttachKnownActionsToAvatar(combatant);
-        return c;
-    }
-
-    private GameObject CreateCombatAvatar(Vector3 location, Quaternion rotation)
-    {
-        combatPrefab = (GameObject)Resources.Load("Prefabs/combatant", typeof(GameObject));
-        GameObject avatar = GameObject.Instantiate(combatPrefab, location, rotation) as GameObject;
-        // Track the instantiated avatar on this character sheet
-        this.avatar = avatar;
-        healthBar = avatar.transform.Find("Canvas").transform.Find("HealthBar").GetComponent<IndicatorBar>();
-        healthBar.SetSliderMax(MaxHealth());
-        healthBar.SetSlider(currentHealth);
-        return avatar;
-    }
 
     public bool CanDeploy()
     {
@@ -196,10 +165,6 @@ public class CharacterSheet
         {
             currentHealth = MaxHealth();
         }
-        if (healthBar != null)
-        {
-            healthBar.SetSlider(currentHealth);
-        }
         OnHealthChanged?.Invoke();
     }
 
@@ -243,16 +208,6 @@ public class CharacterSheet
         return StatusEffect.HasEffectType(ref statusEffects, effectType);
     }
 
-    public int MinDamage()
-    {
-        return 2;
-    }
-
-    public int MaxDamage()
-    {
-        return 4;
-    }
-
     public void ReceiveDamage(int amount)
     {
         currentHealth -= amount;
@@ -260,119 +215,31 @@ public class CharacterSheet
         {
             currentHealth = 0;
             dead = true;
-            GameObject.Destroy(avatar);
-        }
-        if (healthBar != null)
-        {
-            healthBar.SetSlider(currentHealth);
         }
         OnHealthChanged?.Invoke();
     }
 
-    // Equipment management
-    public EquippableItem GetEquippedItem(EquippableItem.EquipmentSlot slot)
-    {
-        return equipment.Get(slot);
-    }
-
     public void DisplayPopup(string text)
     {
-        if (text == "") return;
-        PopupTextController.CreatePopupText(text, avatar.transform);
+        if (string.IsNullOrEmpty(text) || avatar == null) return;
+        var ac = avatar.GetComponent<AvatarController>();
+        if (ac != null) ac.DisplayPopup(text);
     }
 
-    // Delayed popup is handled by PopupTextController
     public void DisplayPopupAfterDelay(float time, string text)
     {
-        if (avatar == null)
-        {
-            DisplayPopup(text);
-            return;
-        }
-        PopupTextController.CreatePopupTextAfterDelay(text, avatar.transform, time);
+        if (string.IsNullOrEmpty(text) || avatar == null) return;
+        var ac = avatar.GetComponent<AvatarController>();
+        if (ac != null) ac.DisplayPopupAfterDelay(time, text);
     }
 
-    public bool TryEquipItem(EquippableItem item)
-    {
-        if (item == null) return false;
-        
-        // Replace any existing item in that slot via Equipment
-        equipment.TryEquip(item);
-        
-        // Update legacy weapon reference for backwards compatibility
-        if (item is EquippableHandheld weapon && (item.slot == EquippableItem.EquipmentSlot.RightHand || item.slot == EquippableItem.EquipmentSlot.LeftHand))
-        {
-            weaponEquipped = weapon;
-        }
-        return true;
-    }
-
-    public bool TryEquipItemToSlot(EquippableItem item, EquippableItem.EquipmentSlot slot)
-    {
-        if (item == null) return false;
-        
-        // For hand slots, allow hand-held items regardless of their default slot
-        if (slot == EquippableItem.EquipmentSlot.LeftHand || slot == EquippableItem.EquipmentSlot.RightHand)
-        {
-            if (item is EquippableHandheld)
-            {
-                // Temporarily change the item's slot to the target slot for equipping
-                var originalSlot = item.slot;
-                item.slot = slot;
-                
-                var success = equipment.TryEquipToSlot(item, slot, out var previous);
-                
-                if (success)
-                {
-                    // Update legacy weapon reference for backwards compatibility
-                    if (slot == EquippableItem.EquipmentSlot.RightHand || slot == EquippableItem.EquipmentSlot.LeftHand)
-                    {
-                        weaponEquipped = item as EquippableHandheld;
-                    }
-                    return true;
-                }
-                else
-                {
-                    // Restore original slot if equipping failed
-                    item.slot = originalSlot;
-                    return false;
-                }
-            }
-        }
-        
-        // For non-hand slots or non-hand-held items, use the default equipping logic
-        if (item.slot != slot) return false;
-        return TryEquipItem(item);
-    }
-
-    public EquippableItem UnequipItem(EquippableItem.EquipmentSlot slot)
-    {
-        var item = equipment.Unequip(slot);
-        if (item == null) return null;
-        
-        // Clear legacy weapon reference if needed
-        if (item is EquippableHandheld && (slot == EquippableItem.EquipmentSlot.RightHand || slot == EquippableItem.EquipmentSlot.LeftHand))
-        {
-            weaponEquipped = null;
-        }
-        return item;
-    }
-
-    public IReadOnlyDictionary<EquippableItem.EquipmentSlot, EquippableItem> GetEquippedItems()
-    {
-        return equipment.GetAll();
-    }
-
-    public bool IsSlotCompatible(EquippableItem.EquipmentSlot slot, InventoryItem item)
-    {
-        return equipment.IsSlotCompatible(slot, item);
-    }
-
-    public void PerformBasicAttack(CharacterSheet target)
-    {
-        int dam = MinDamage() + UnityEngine.Random.Range(0, 1 + MaxDamage() - MinDamage());
-        target.ReceiveDamage(dam);
-    }
+    // Equipment pass-throughs (Equipment is the authority on rules)
+    public EquippableItem GetEquippedItem(EquippableItem.EquipmentSlot slot) => equipment.Get(slot);
+    public IReadOnlyDictionary<EquippableItem.EquipmentSlot, EquippableItem> GetEquippedItems() => equipment.GetAll();
+    public bool IsSlotCompatible(EquippableItem.EquipmentSlot slot, InventoryItem item) => equipment.IsSlotCompatible(slot, item);
+    public bool TryEquipItem(EquippableItem item) => item != null && equipment.TryEquip(item);
+    public bool TryEquipItemToSlot(EquippableItem item, EquippableItem.EquipmentSlot slot) => item != null && equipment.TryEquipToSlot(item, slot, out _);
+    public EquippableItem UnequipItem(EquippableItem.EquipmentSlot slot) => equipment.Unequip(slot);
 
     // Special actions knowledge and attachment
     public void LearnSpecialAction<T>() where T : Action
@@ -389,16 +256,24 @@ public class CharacterSheet
         return knownSpecialActionTypes;
     }
 
-    private void AttachKnownActionsToAvatar(GameObject go)
+    public void LearnAbility(AbilityData ability)
     {
-        if (go == null) return;
-        foreach (var t in knownSpecialActionTypes)
+        if (ability == null) return;
+        foreach (var a in knownAbilities)
         {
-            if (t == null) continue;
-            if (go.GetComponent(t) == null)
-            {
-                go.AddComponent(t);
-            }
+            if (a.id == ability.id) return;
         }
+        knownAbilities.Add(ability);
+    }
+
+    public void LearnAbility(string abilityId)
+    {
+        var data = ContentRegistry.GetAbilityData(abilityId);
+        if (data != null) LearnAbility(data);
+    }
+
+    public IReadOnlyList<AbilityData> GetKnownAbilities()
+    {
+        return knownAbilities;
     }
 }

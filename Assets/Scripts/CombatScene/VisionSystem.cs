@@ -10,6 +10,10 @@ public class VisionSystem : MonoBehaviour
     
     // Vision cones for each unit
     private Dictionary<CombatController, List<Tile>> unitVisionCones = new Dictionary<CombatController, List<Tile>>();
+    
+    // Shared visibility for enemies
+    private HashSet<CombatController> knownPCsToEnemies = new HashSet<CombatController>();
+    
     private bool isUpdatingVision = false;
     
     void Start()
@@ -158,6 +162,9 @@ public class VisionSystem : MonoBehaviour
 
         // Hide/show enemy avatars based on fog visibility
         UpdateEnemyAvatarVisibility();
+        
+        // Rebuild shared enemy knowledge
+        RebuildKnownPCsToEnemies();
         
         // Debug: Count how many tiles are visible
         int visibleTileCount = 0;
@@ -393,6 +400,38 @@ public class VisionSystem : MonoBehaviour
         }
         
         return false;
+    }
+
+    private void RebuildKnownPCsToEnemies()
+    {
+        knownPCsToEnemies.Clear();
+        TurnManager tm = FindObjectOfType<TurnManager>();
+        if (tm == null) return;
+
+        List<CombatController> enemies = tm.AllLivingEnemies();
+        List<CombatController> pcs = tm.AllLivingPCs();
+
+        foreach (CombatController pc in pcs)
+        {
+            foreach (CombatController enemy in enemies)
+            {
+                if (CanSeeUnit(enemy, pc))
+                {
+                    knownPCsToEnemies.Add(pc);
+                    break;
+                }
+            }
+        }
+    }
+
+    public bool IsKnownToEnemies(CombatController pc)
+    {
+        return knownPCsToEnemies.Contains(pc);
+    }
+
+    public IEnumerable<CombatController> GetKnownPCsToEnemies()
+    {
+        return knownPCsToEnemies;
     }
     
 

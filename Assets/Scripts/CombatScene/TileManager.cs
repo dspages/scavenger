@@ -29,8 +29,8 @@ public class TileManager : MonoBehaviour
             }
         }
         EnemyParty.GenerateNewEnemies();
-        EnemyParty.SpawnPartyMembers(manager);
         PlayerParty.SpawnPartyMembers(manager);
+        EnemyParty.SpawnPartyMembers(manager);
 
         //manager.combatants.Sort(new SortCombatants());
         manager.InitiateCombat();

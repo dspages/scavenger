@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -30,6 +30,7 @@ public class StatusEffect
     int roundsRemaining = 0;
     CharacterSheet target;
     int powerLevel;
+    public int PowerLevel => powerLevel;
     public bool expired = false;
 
     static public bool HasEffectType(ref List<StatusEffect> check, EffectType effectType)
@@ -86,43 +87,12 @@ public class StatusEffect
         }
     }
 
-    // The CharacterSheet is responsible for calling this every round before its action.
-    // It can change the creature's action points.
     public int PerRoundEffect(int movementPoints)
     {
-        switch (type)
-        {
-            case EffectType.REGENERATION:
-                target.ReceiveHealing(5);
-                break;
-            case EffectType.KNOCKDOWN:
-                movementPoints = 0;
-                target.DisplayPopupDuringCombat("Knockdown");
-                break;
-            case EffectType.PETRIFIED:
-                movementPoints = 0;
-                target.DisplayPopupDuringCombat("Petrified");
-                break;
-            case EffectType.POISONED:
-                target.ReceivePureDamage(5);
-                break;
-            case EffectType.SLOWED:
-                // -4 AP, but never takes a unit below 2 AP.
-                target.DisplayPopupDuringCombat("Slowed");
-                if (movementPoints > 6) movementPoints -= 4;
-                else if (movementPoints > 0) movementPoints = 2;
-                break;
-            case EffectType.FROZEN:
-                target.DisplayPopupDuringCombat("Frozen");
-                movementPoints = 0;
-                break;
-            case EffectType.MOBILITY:
-                if (movementPoints > 0) movementPoints += 2; // +2 AP, as long as the unit isn't disabled.
-                break;
-            case EffectType.BURNING:
-                target.ReceiveDamage(10);
-                break;
-        }
+        var data = ContentRegistry.GetEffectData(type);
+        if (data != null)
+            movementPoints = ApplyEffectData(data, movementPoints);
+
         roundsRemaining--;
         if (roundsRemaining == 0)
         {
@@ -130,5 +100,44 @@ public class StatusEffect
             expired = true;
         }
         return movementPoints;
+    }
+
+    public static int ApplyEffectData(StatusEffectData data, int ap, CharacterSheet target)
+    {
+        if (data.healPerRound > 0)
+            target.ReceiveHealing(data.healPerRound);
+
+        if (data.damagePerRound > 0)
+        {
+            if (data.isPureDamage)
+                target.ReceivePureDamage(data.damagePerRound);
+            else
+                target.ReceiveDamage(data.damagePerRound);
+        }
+
+        if (!string.IsNullOrEmpty(data.popupText))
+            target.DisplayPopupDuringCombat(data.popupText);
+
+        switch (data.apEffect)
+        {
+            case StatusEffectData.APEffect.Zero:
+                ap = 0;
+                break;
+            case StatusEffectData.APEffect.Modify:
+                if (ap > 0)
+                {
+                    ap += data.apModifier;
+                    if (ap < data.apFloor)
+                        ap = data.apFloor;
+                }
+                break;
+        }
+
+        return ap;
+    }
+
+    private int ApplyEffectData(StatusEffectData data, int ap)
+    {
+        return ApplyEffectData(data, ap, target);
     }
 }

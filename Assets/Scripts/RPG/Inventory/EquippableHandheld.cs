@@ -140,14 +140,12 @@ public class EquippableHandheld : EquippableItem
         string expectedActionClass = string.IsNullOrEmpty(associatedActionClass) ? nameof(ActionMeleeAttack) : associatedActionClass;
         if (expectedActionClass != action.GetType().Name) return false;
 
-        // Configure the action with this item's properties
         if (action is ActionAttack attackAction)
         {
             attackAction.minRange = this.minRange;
             attackAction.maxRange = this.maxRange;
             attackAction.actionDisplayName = this.itemName;
-            attackAction.baseDamage = this.damage;
-            attackAction.BASE_ACTION_COST = this.actionPointCost; // Base action cost (excludes movement)
+            attackAction.BASE_ACTION_COST = this.actionPointCost;
             attackAction.visualLungeDistance = this.attackLungeDistance;
             return true;
         }

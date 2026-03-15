@@ -6,8 +6,6 @@ using UnityEngine;
 // Handles movement, range validation, and common attack logic
 public abstract class ActionAttack : ActionMove
 {
-    // Configurable parameters (can be set dynamically when mapped to an item)
-    [SerializeField] public int baseDamage = 5;
     [SerializeField] public string actionDisplayName = "Attack";
     
     // Expose base action cost for configuration via items/spells
@@ -105,8 +103,8 @@ public abstract class ActionAttack : ActionMove
         Vector3 lungePos = originalPos + (direction * lungeDist);
 
         // Durations scale mildly with distance to keep feel consistent
-        float forwardTime = Mathf.Lerp(0.08f, 0.16f, Mathf.Clamp01(Mathf.Abs(lungeDist) / 0.4f));
-        float backTime = Mathf.Lerp(0.10f, 0.20f, Mathf.Clamp01(Mathf.Abs(lungeDist) / 0.4f));
+        float forwardTime = Mathf.Lerp(0.3f, 0.5f, Mathf.Clamp01(Mathf.Abs(lungeDist) / 0.4f));
+        float backTime = Mathf.Lerp(0.25f, 0.45f, Mathf.Clamp01(Mathf.Abs(lungeDist) / 0.4f));
 
         // Forward lunge with slight acceleration (ease-in)
         yield return VfxHelpers.MoveWithEase(transform, originalPos, lungePos, forwardTime, VfxHelpers.EaseInQuad, true, direction);
@@ -143,7 +141,7 @@ public abstract class ActionAttack : ActionMove
     }
 
     // Snap the character's rotation to the nearest cardinal direction (N, S, E, W)
-    private void SnapToCardinalDirection()
+    protected void SnapToCardinalDirection()
     {
         Vector3 currentUp = transform.up;
         Vector3 snapDirection;
@@ -256,7 +254,9 @@ public abstract class ActionAttack : ActionMove
     public override string Description()
     {
         string desc = base.Description();
-        desc += $"{actionDisplayName} deals {baseDamage} damage. Range: {minRange}-{maxRange}.";
+        var weapon = GetEquippedWeaponForThisAttack();
+        int dmg = weapon != null ? weapon.damage : AttackResolver.UNARMED_DAMAGE;
+        desc += $"{actionDisplayName} deals {dmg} damage. Range: {minRange}-{maxRange}.";
         return desc;
     }
 }

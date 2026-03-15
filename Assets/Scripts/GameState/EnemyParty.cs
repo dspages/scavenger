@@ -24,7 +24,7 @@ public static class EnemyParty
         {
             if (c.CanDeploy())
             {
-                EnemyController avatar = c.CreateCombatAvatarAsNPC(new Vector3(xPos, yPos, 0f), facing, tileManager.getTile(xPos, yPos));
+                EnemyController avatar = AvatarController.CreateNPC(c, new Vector3(xPos, yPos, 0f), facing, tileManager.getTile(xPos, yPos));
                 avatar.transform.SetParent(turnManager.transform);
                 xPos -= 1;
             }

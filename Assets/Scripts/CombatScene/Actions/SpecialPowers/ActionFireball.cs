@@ -1,18 +1,12 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
 public class ActionFireball : ActionGroundAttack
 {
 	public override void ConfigureAction()
 	{
-		// Configure fireball-specific properties
 		actionDisplayName = "Fireball";
 		minRange = 3;
 		maxRange = 6;
 		radius = 2;
-		baseDamage = 12;
-		BASE_ACTION_COST = 20; // Base action cost (excludes movement)
+		BASE_ACTION_COST = 20;
 	}
 
 	public override string DisplayName()
@@ -22,8 +16,6 @@ public class ActionFireball : ActionGroundAttack
 
 	override public string Description()
 	{
-		string desc = base.Description();
-		desc += $"Fireball deals {baseDamage} damage to all enemies in a {radius}-tile radius. Max range: {maxRange}.";
-		return desc;
+		return $"Fireball deals fire damage to all enemies in a {radius}-tile radius. Max range: {maxRange}.";
 	}
 }

@@ -17,7 +17,6 @@ public class TileTooltipProvider : TooltipProvider
         if (tile == null) return base.GenerateDynamicText();
         
         string text = $"Tile ({tile.x}, {tile.y})\n";
-        text += $"Move Cost: {tile.GetMoveCost()}\n";
         text += $"Walkable: {(tile.isWalkable ? "Yes" : "No")}";
         
         // Add fog of war information (without internal initialization status)
@@ -43,6 +42,7 @@ public class TileTooltipProvider : TooltipProvider
             else
             {
                 text += " (Enemy)";
+                text += GetHitChanceText(tile.occupant);
             }
         }
         
@@ -51,10 +51,47 @@ public class TileTooltipProvider : TooltipProvider
             text += "\nSelectable";
             if (tile.searchDistance > 0)
             {
-                text += $" (Distance: {tile.searchDistance})";
+                text += $" (AP Cost: {tile.searchDistance})";
             }
         }
         
         return text;
+    }
+
+    private string GetHitChanceText(CombatController enemy)
+    {
+        var activePlayer = FindActivePlayer();
+        if (activePlayer == null) return "";
+
+        var action = activePlayer.GetSelectedAction();
+        if (action == null || action.TARGET_TYPE != Action.TargetType.RANGED) return "";
+
+        var playerSheet = activePlayer.characterSheet;
+        if (playerSheet == null || enemy?.characterSheet == null) return "";
+
+        var playerTile = activePlayer.GetCurrentTile();
+        var enemyTile = enemy.GetCurrentTile();
+        if (playerTile == null || enemyTile == null) return "";
+
+        int dist = Mathf.Abs(playerTile.x - enemyTile.x) + Mathf.Abs(playerTile.y - enemyTile.y);
+        var playerWeapon = playerSheet.GetEquippedItem(EquippableItem.EquipmentSlot.RightHand) as EquippableHandheld;
+        var context = AttackContext.Ranged(playerWeapon, dist);
+
+        float hitChance = HitCalculator.CalculateHitChance(playerSheet, enemy.characterSheet, context);
+        int pct = Mathf.RoundToInt(hitChance * 100f);
+        return $"\nHit Chance: {pct}%";
+    }
+
+    private CombatController FindActivePlayer()
+    {
+        var turnManager = FindObjectOfType<TurnManager>();
+        if (turnManager == null) return null;
+
+        var pcs = turnManager.AllLivingPCs();
+        foreach (var pc in pcs)
+        {
+            if (pc.isTurn) return pc;
+        }
+        return null;
     }
 }

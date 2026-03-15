@@ -266,6 +266,7 @@ GameObject:
   - component: {fileID: 1222485312}
   - component: {fileID: 1222485311}
   - component: {fileID: 1222485310}
+  - component: {fileID: 1222485314}
   m_Layer: 5
   m_Name: UICanvas
   m_TagString: Untagged
@@ -355,6 +356,19 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &1222485314
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1222485309}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 72af467636e9f904493ddd3fef928205, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  popupTextPrefab: {fileID: 0}
 --- !u!1 &1976208586
 GameObject:
   m_ObjectHideFlags: 0

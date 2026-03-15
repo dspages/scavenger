@@ -13,9 +13,11 @@ public static class AttackPreviewHelper
 
         
 
-        // Draw movement path from origin to launch tile (do not include the segment to the target)
+        // Draw movement path from origin to launch tile (do not include the segment to the target).
+        // Cycle detection: pathfinding uses a closed set so searchParent is acyclic; this guards against bugs.
+        HashSet<Tile> seen = new HashSet<Tile>();
         Tile t = launchTile;
-        while (t != null && t.searchParent)
+        while (t != null && t.searchParent && seen.Add(t))
         {
             pathRenderer.DrawSegment(t.transform.position, t.searchParent.transform.position, PathRenderer.LineType.MovementPath);
             t = t.searchParent;

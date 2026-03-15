@@ -90,6 +90,16 @@ public class CombatPanelUI : MonoBehaviour
             UIClickBlocker.MakeElementAndChildrenBlockClicks(inventoryPanel);
         }
 
+        // Initialize combat log UI
+        var combatLogPanel = visualTree.Q<VisualElement>("CombatLogPanel");
+        if (combatLogPanel != null)
+        {
+            UIClickBlocker.MakeElementAndChildrenBlockClicks(combatLogPanel);
+        }
+        var combatLogUI = gameObject.AddComponent<CombatLogUI>();
+        combatLogUI.Initialize(visualTree);
+        CombatLog.Clear();
+
         // Create lightweight tooltip element once and add to root
         CreateHoverTooltip(visualTree);
 
@@ -173,6 +183,46 @@ public class CombatPanelUI : MonoBehaviour
         {
             Debug.LogError("CombatPanelUI: Root visual element is null on found UIDocument.");
         }
+    }
+
+    /// <summary>
+    /// Show a full-screen VICTORY or DEFEAT banner for several seconds.
+    /// Called by TurnManager when combat ends.
+    /// </summary>
+    public void ShowGameOver(bool victory)
+    {
+        if (uiRoot == null) return;
+        StartCoroutine(ShowGameOverCoroutine(victory));
+    }
+
+    private const float GameOverDisplayDuration = 4f;
+
+    private IEnumerator ShowGameOverCoroutine(bool victory)
+    {
+        var overlay = new VisualElement();
+        overlay.style.position = Position.Absolute;
+        overlay.style.left = 0;
+        overlay.style.right = 0;
+        overlay.style.top = 0;
+        overlay.style.bottom = 0;
+        overlay.style.backgroundColor = new Color(0, 0, 0, 0.5f);
+        overlay.style.justifyContent = Justify.Center;
+        overlay.style.alignItems = Align.Center;
+        overlay.pickingMode = PickingMode.Ignore;
+
+        var label = new Label(victory ? "VICTORY" : "DEFEAT");
+        label.style.fontSize = 72;
+        label.style.color = victory ? new Color(0.9f, 0.85f, 0.2f) : new Color(0.95f, 0.2f, 0.2f);
+        label.style.unityFontStyleAndWeight = FontStyle.Bold;
+        label.style.unityTextAlign = TextAnchor.MiddleCenter;
+
+        overlay.Add(label);
+        uiRoot.Add(overlay);
+
+        yield return new WaitForSeconds(GameOverDisplayDuration);
+
+        if (overlay.parent != null)
+            overlay.RemoveFromHierarchy();
     }
 
     private TurnManager turnManager;
@@ -721,30 +771,33 @@ public class CombatPanelUI : MonoBehaviour
         var right = currentCharacter?.GetEquippedItem(EquippableItem.EquipmentSlot.RightHand) as EquippableHandheld;
         var left = currentCharacter?.GetEquippedItem(EquippableItem.EquipmentSlot.LeftHand) as EquippableHandheld;
 
-        // Default punch if no handheld at all
-        if (right == null && left == null)
+        // Always add Kick option (allows movement when other items block it)
+        actions.Add((nameof(ActionKick), nameof(ActionKick), "Kick"));
+
+        if (right != null)
         {
-            actions.Add((nameof(ActionMeleeAttack), nameof(ActionMeleeAttack), "Punch"));
+            string rn = string.IsNullOrEmpty(right.associatedActionClass) ? nameof(ActionMeleeAttack) : right.associatedActionClass;
+            actions.Add(($"{rn}:RightHand", rn, right.itemName));
         }
-        else
+        if (left != null)
         {
-            if (right != null)
-            {
-                string rn = string.IsNullOrEmpty(right.associatedActionClass) ? nameof(ActionMeleeAttack) : right.associatedActionClass;
-                actions.Add(($"{rn}:RightHand", rn, right.itemName));
-            }
-            if (left != null)
-            {
-                string ln = string.IsNullOrEmpty(left.associatedActionClass) ? nameof(ActionMeleeAttack) : left.associatedActionClass;
-                actions.Add(($"{ln}:LeftHand", ln, left.itemName));
-            }
+            string ln = string.IsNullOrEmpty(left.associatedActionClass) ? nameof(ActionMeleeAttack) : left.associatedActionClass;
+            actions.Add(($"{ln}:LeftHand", ln, left.itemName));
         }
 
-        // Specials
+        // Legacy special actions (type-based)
         foreach (var t in currentCharacter.GetKnownSpecialActionTypes())
         {
             if (t == null) continue;
             actions.Add((t.Name, t.Name, t.Name));
+        }
+
+        // Data-driven abilities
+        foreach (var ability in currentCharacter.GetKnownAbilities())
+        {
+            if (ability == null) continue;
+            string cls = ability.ArchetypeClassName();
+            actions.Add(($"ability:{ability.id}", cls, ability.displayName));
         }
 
         string selectedName = controller.GetSelectedActionClassName();

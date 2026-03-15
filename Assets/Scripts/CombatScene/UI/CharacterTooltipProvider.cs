@@ -20,9 +20,10 @@ public class CharacterTooltipProvider : TooltipProvider
         text += $"Health: {character.currentHealth}/{character.MaxHealth()}\n";
         text += $"Move Points: {character.currentActionPoints}\n";
         
-        if (character.weaponEquipped != null)
+        var weapon = character.GetEquippedItem(EquippableItem.EquipmentSlot.RightHand) as EquippableHandheld;
+        if (weapon != null)
         {
-            text += $"\nWeapon: {character.weaponEquipped.itemName}";
+            text += $"\nWeapon: {weapon.itemName}";
         }
         
         if (combatController.IsPC())
@@ -32,8 +33,48 @@ public class CharacterTooltipProvider : TooltipProvider
         else
         {
             text += "\nType: Enemy";
+            text += GetHitChanceText();
         }
         
         return text;
+    }
+
+    private string GetHitChanceText()
+    {
+        var activePlayer = FindActivePlayer();
+        if (activePlayer == null) return "";
+
+        var action = activePlayer.GetSelectedAction();
+        if (action == null || action.TARGET_TYPE != Action.TargetType.RANGED) return "";
+
+        var playerSheet = activePlayer.characterSheet;
+        if (playerSheet == null || combatController.characterSheet == null) return "";
+
+        var playerTile = activePlayer.GetCurrentTile();
+        var myTile = combatController.GetCurrentTile();
+        if (playerTile == null || myTile == null) return "";
+
+        int dist = Mathf.Abs(playerTile.x - myTile.x) + Mathf.Abs(playerTile.y - myTile.y);
+        var playerWeapon = playerSheet.GetEquippedItem(EquippableItem.EquipmentSlot.RightHand) as EquippableHandheld;
+        var context = AttackContext.Ranged(playerWeapon, dist);
+
+        float hitChance = HitCalculator.CalculateHitChance(playerSheet, combatController.characterSheet, context);
+        int pct = Mathf.RoundToInt(hitChance * 100f);
+        return $"\nHit Chance: {pct}%";
+    }
+
+    private CombatController FindActivePlayer()
+    {
+        var turnManager = GetComponentInParent<TurnManager>();
+        if (turnManager == null)
+            turnManager = FindObjectOfType<TurnManager>();
+        if (turnManager == null) return null;
+
+        var pcs = turnManager.AllLivingPCs();
+        foreach (var pc in pcs)
+        {
+            if (pc.isTurn) return pc;
+        }
+        return null;
     }
 }

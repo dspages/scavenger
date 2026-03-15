@@ -1,5 +1,5 @@
-﻿﻿using UnityEditor;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class PopupTextController : MonoBehaviour
 {
@@ -8,8 +8,21 @@ public class PopupTextController : MonoBehaviour
     private static GameObject canvas;
     private static PopupTextController runner;
 
+    public static void Initialize()
+    {
+        canvas = GameObject.Find(canvasName) ?? GameObject.Find("UICanvas");
+        if (canvas == null) return;
+        var canvasPrefabs = canvas.GetComponent<CanvasPrefabs>();
+        if (canvasPrefabs != null)
+            popupTextPrefab = canvasPrefabs.popupTextPrefab;
+    }
+
     private static void EnsureInitialized()
     {
+        if (canvas == null || popupTextPrefab == null)
+        {
+            Initialize();
+        }
         if (runner == null)
         {
             var go = GameObject.Find("PopupTextControllerRunner");
@@ -30,14 +43,45 @@ public class PopupTextController : MonoBehaviour
         }
     }
 
-    public static void CreatePopupText(string text, Transform transform)
+    public static void CreatePopupText(string text, Transform targetTransform)
     {
-        PopupText instance = Instantiate(popupTextPrefab);
-        Vector2 screenPosition = Camera.main.WorldToScreenPoint(transform.position);
+        EnsureInitialized();
+        if (canvas == null) return;
 
-        instance.transform.SetParent(canvas.transform, false);
-        instance.transform.position = screenPosition;
-        instance.SetText(text);
+        Vector2 screenPosition = Camera.main != null
+            ? (Vector2)Camera.main.WorldToScreenPoint(targetTransform.position)
+            : new Vector2(Screen.width / 2f, Screen.height / 2f);
+
+        if (popupTextPrefab != null)
+        {
+            var instance = Instantiate(popupTextPrefab);
+            instance.transform.SetParent(canvas.transform, false);
+            instance.transform.position = screenPosition;
+            instance.SetText(text);
+        }
+        else
+        {
+            CreateFallbackPopup(text, screenPosition);
+        }
+    }
+
+    private static void CreateFallbackPopup(string text, Vector2 screenPosition)
+    {
+        var go = new GameObject("PopupText_Fallback");
+        go.transform.SetParent(canvas.transform, false);
+
+        var rect = go.AddComponent<RectTransform>();
+        rect.sizeDelta = new Vector2(150, 40);
+        rect.position = screenPosition;
+
+        var textComp = go.AddComponent<Text>();
+        textComp.text = text;
+        textComp.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        textComp.fontSize = 24;
+        textComp.alignment = TextAnchor.MiddleCenter;
+        textComp.color = Color.white;
+
+        Object.Destroy(go, 1.5f);
     }
 
     public static void CreatePopupTextAfterDelay(string text, Transform transform, float delay)

@@ -109,10 +109,14 @@ public class TurnManager : MonoBehaviour
 
     void AdvanceToNextTurn()
     {
-        // Check to make sure there is someone left alive on each side.
+        // Check victory/defeat: no living enemies = victory, no living friendlies = defeat
         if (CheckGameOver())
         {
             gameOver = true;
+            bool victory = AllLivingEnemies().Count == 0;
+            var panel = FindObjectOfType<CombatPanelUI>();
+            if (panel != null)
+                panel.ShowGameOver(victory);
             return;
         }
         do
@@ -137,6 +141,16 @@ public class TurnManager : MonoBehaviour
     void Update()
     {
         if (frozen || gameOver) return;
+        // Check victory/defeat immediately when one side is eliminated (e.g. last kill in an attack)
+        if (CheckGameOver())
+        {
+            gameOver = true;
+            bool victory = AllLivingEnemies().Count == 0;
+            var panel = FindObjectOfType<CombatPanelUI>();
+            if (panel != null)
+                panel.ShowGameOver(victory);
+            return;
+        }
         if (GetCurrentCombatController() == null || !GetCurrentCombatController().isTurn)
         {
             AdvanceToNextTurn();

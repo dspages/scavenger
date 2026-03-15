@@ -2,25 +2,32 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// Action for ground-attack spells that target a tile and optionally affect a radius
 public class ActionGroundAttack : ActionAttack
 {
-	[SerializeField] public int radius = 1;   // How far the effect spreads from impact tile (tile + adjacencies, etc.)
+	[SerializeField] public int radius = 1;
 
 	public override int AOE_RADIUS { get { return radius; } }
 
 	public override TargetType TARGET_TYPE { get { return TargetType.GROUND_TILE; } }
 
-	// Ground attacks can target any tile and require line of sight
+	private AbilityData abilityData;
+
+	public void ConfigureFromAbility(AbilityData data)
+	{
+		abilityData = data;
+		actionDisplayName = data.displayName;
+		minRange = data.minRange;
+		maxRange = data.maxRange;
+		radius = data.radius;
+		BASE_ACTION_COST = data.actionPointCost;
+	}
+
 	public override bool RequiresLineOfSight { get { return true; } }
 	public override bool TargetsEnemiesOnly { get { return false; } }
 	public override bool CanTargetEmptyTiles { get { return true; } }
 
 	protected override void PerformAttack(Tile targetTile)
 	{
-		// Damage should be applied on projectile arrival. The base AttackSequence
-		// already waits for SpawnProjectileAndWait before calling PerformAttack,
-		// so just apply damage and spawn the AoE effect here.
 		ApplyAreaDamage(targetTile);
 		StartCoroutine(PlayAoEVisual(targetTile));
 	}
@@ -28,15 +35,23 @@ public class ActionGroundAttack : ActionAttack
 	private void ApplyAreaDamage(Tile center)
 	{
 		if (center == null) return;
+		int dist = CalculateManhattanDistance(combatController.GetCurrentTile(), center);
+		var context = AttackContext.AreaEffect(dist, abilityData);
 		var affected = AttackPreviewHelper.EnumerateAoETiles(center, radius);
 		foreach (Tile t in affected)
 		{
-			if (t.occupant != null)
+			var occupant = t.occupant;
+			var popupTarget = occupant != null ? occupant.transform : null;
+
+			if (occupant?.characterSheet != null)
 			{
-				CharacterSheet target = t.occupant.characterSheet;
-				if (target != null)
+				var result = AttackResolver.Resolve(characterSheet, occupant.characterSheet, context);
+				CombatLog.Log(result.logMessage);
+
+				if (result.hit && popupTarget != null)
 				{
-					target.ReceiveDamage(baseDamage);
+					string text = result.critical ? $"CRIT {result.damageDealt}" : result.damageDealt.ToString();
+					PopupTextController.CreatePopupText(text, popupTarget);
 				}
 			}
 		}
@@ -74,14 +89,20 @@ public class ActionGroundAttack : ActionAttack
 
 	protected override IEnumerator SpawnProjectileAndWait(Vector3 from, Vector3 to)
 	{
-		// Reuse the bright whooshing ball for ground attacks as well (thrown grenade feel)
 		yield return SpawnMusketProjectileAndWait(from, to);
 	}
 
 	public override string Description()
 	{
 		string desc = base.Description();
-		desc += $" in a {radius}-tile radius.";
+		if (abilityData != null)
+		{
+			desc = $"{abilityData.displayName} deals {abilityData.damage} damage in a {radius}-tile radius.";
+		}
+		else
+		{
+			desc += $" in a {radius}-tile radius.";
+		}
 		return desc;
 	}
 }

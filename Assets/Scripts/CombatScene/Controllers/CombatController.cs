@@ -3,86 +3,155 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
 using System;
-using System.Linq;
 
 public partial class CombatController : MonoBehaviour
 {
     public CharacterSheet characterSheet = null;
     public bool isTurn = false;
     public bool isActing = false;
-    protected List<Action> possibleActions = new List<Action>();
-    protected Action selectedAction = null;
-    // Distinguishes between actions that share a class (e.g., left/right hand)
-    private string selectedActionKey = null;
     protected List<Tile> selectableTiles = new List<Tile>();
     protected TileManager manager;
-
     protected bool hasMoved = false;
     private Tile currentTile;
+    private IlluminationSource equippedLight = null;
 
-    // Use this for initialization
+    private ActionSelector actionSelector;
+
+    // --- Lifecycle ---
+
     virtual protected void Start()
     {
         manager = FindObjectOfType<TileManager>();
-        // Ensure a baseline attack action exists
-        GetOrAddActionByType(typeof(ActionMeleeAttack));
-        ResetSelectedActionToDefault();
-        // Setup illumination handling for equipped items
+        actionSelector = new ActionSelector(gameObject, () => characterSheet);
+        actionSelector.GetOrAddByType(typeof(ActionMeleeAttack));
+        actionSelector.ResetToDefault();
         if (characterSheet != null)
-        {
-            characterSheet.OnEquipmentChanged += UpdateEquippedLight;
-        }
-    }
-
-    virtual public bool IsPC()
-    {
-        return false;
-    }
-
-    virtual public bool IsEnemy()
-    {
-        return false;
-    }
-
-    // Checks to see if the input tile contains an enemy of this.
-    // Defaults to false, but can be overridden by subclasses.
-    // Note that 'enemy' is from the perspective of the actor;
-    // for player-controlled, enemies are AI and vice versa.
-    virtual public bool ContainsEnemy(Tile tile)
-    {
-        if (tile.occupant == null) return false;
-        return true;
-    }
-
-    // Checks to see if the input tile contains an ally of this.
-    // Defaults to false, but can be overridden by subclasses.
-    // Note that 'ally' is from the perspective of the actor;
-    // for player-controlled, allies are player-controlled and
-    // vice versa for enemies.
-    virtual protected bool ContainsAlly(Tile tile)
-    {
-        if (tile.occupant == null) return false;
-        return true;
+            characterSheet.OnEquipmentChanged += OnEquipmentChanged;
     }
 
     public void SetCharacterSheet(CharacterSheet c)
     {
-        // Unsubscribe previous
         if (characterSheet != null)
-        {
-            characterSheet.OnEquipmentChanged -= UpdateEquippedLight;
-        }
+            characterSheet.OnEquipmentChanged -= OnEquipmentChanged;
         characterSheet = c;
-        characterSheet.OnEquipmentChanged += UpdateEquippedLight;
-        // Make sure default action aligns with equipment
-        ResetSelectedActionToDefault();
+        characterSheet.OnEquipmentChanged += OnEquipmentChanged;
+        actionSelector?.ResetToDefault();
     }
 
-    private IlluminationSource equippedLight = null;
+    // --- Turn lifecycle ---
+
+    public bool BeginTurn()
+    {
+        characterSheet.BeginTurn();
+        if (Dead()) return false;
+        isTurn = true;
+        hasMoved = false;
+        FindSelectableTiles();
+        return true;
+    }
+
+    protected void EndTurn()
+    {
+        isTurn = false;
+    }
+
+    public void BeginAction()
+    {
+        isActing = true;
+    }
+
+    public void EndAction()
+    {
+        isActing = false;
+        manager.ResetTileSearch();
+        FindSelectableTiles();
+    }
+
+    // --- Tile / position ---
+
+    public void SetCurrentTile(Tile t)
+    {
+        if (currentTile != null)
+            currentTile.occupant = null;
+        t.occupant = this;
+        currentTile = t;
+    }
+
+    public Tile GetCurrentTile()
+    {
+        return currentTile;
+    }
+
+    public Vector2 GetFacingDirection()
+    {
+        return transform.up;
+    }
+
+    // --- Identity (overridden by PC/Enemy subclasses) ---
+
+    virtual public bool IsPC() => false;
+    virtual public bool IsEnemy() => false;
+    virtual public bool ContainsEnemy(Tile tile) => tile.occupant != null;
+    virtual protected bool ContainsAlly(Tile tile) => tile.occupant != null;
+    virtual protected bool HasEnemy(Tile t) => false;
+    virtual protected bool DoesGUI() => false;
+    virtual protected bool IsTileVisibleByCurrentActor(Tile tile) => true;
+
+    // --- Death ---
+
+    public void Die()
+    {
+        StartCoroutine(DieAfterDelay(0.8f));
+    }
+
+    private IEnumerator DieAfterDelay(float fDuration)
+    {
+        yield return new WaitForSeconds(fDuration);
+        var ac = GetComponent<AvatarController>();
+        if (ac != null) ac.DestroyAvatar();
+        else Destroy(gameObject);
+    }
+
+    public bool Dead() => characterSheet.dead;
+
+    // --- Status effects / display ---
+
+    public void DisplayPopupDuringCombat(string message)
+    {
+        Debug.Log($"{characterSheet.firstName}: {message}");
+    }
+
+    public void NotifyStatusEffectChanged(StatusEffect.EffectType effectType)
+    {
+        if (effectType == StatusEffect.EffectType.HIDDEN)
+            StartCoroutine(NotifyVisionNextFrame());
+    }
+
+    private IEnumerator NotifyVisionNextFrame()
+    {
+        yield return null;
+        VisionSystem visionSystem = FindObjectOfType<VisionSystem>();
+        if (visionSystem != null)
+            visionSystem.CheckForHiddenStatusChanges();
+    }
+
+    // --- Equipment effects ---
+
+    public void ApplyEquipmentEffects()
+    {
+        UpdateEquippedLight();
+    }
+
+    private void OnEquipmentChanged()
+    {
+        UpdateEquippedLight();
+        actionSelector?.EnsureStillValid();
+        if (isTurn && !isActing)
+            FindSelectableTiles();
+    }
 
     private void UpdateEquippedLight()
     {
-        // Remove existing light if any
         if (characterSheet == null || characterSheet.avatar == null)
         {
             if (equippedLight != null)
@@ -93,7 +162,6 @@ public partial class CombatController : MonoBehaviour
             return;
         }
 
-        // Find any equipped handheld that provides illumination
         var equipped = characterSheet.GetEquippedItems();
         EquippableHandheld lightItem = null;
         foreach (var kv in equipped)
@@ -118,577 +186,84 @@ public partial class CombatController : MonoBehaviour
             equippedLight.illuminationRange = lightItem.illuminationRange;
             equippedLight.SetActive(true);
         }
-        else
+        else if (equippedLight != null)
         {
-            if (equippedLight != null)
-            {
-                Destroy(equippedLight.gameObject);
-                equippedLight = null;
-            }
-        }
-
-        // After any equipment change, ensure the selected action is still valid
-        EnsureSelectedActionStillValid();
-    }
-
-    // Public entry to apply equipment-driven effects (used by VisionSystem after initialization)
-    public void ApplyEquipmentEffects()
-    {
-        UpdateEquippedLight();
-    }
-
-    public void Die()
-    {
-        StartCoroutine(DieAfterDelay(0.8f));
-    }
-
-    private IEnumerator DieAfterDelay(float fDuration)
-    {
-        yield return new WaitForSeconds(fDuration);
-        Destroy(characterSheet.avatar);
-        yield break;
-    }
-
-    public bool Dead()
-    {
-        return characterSheet.dead;
-    }
-    
-    public void DisplayPopupDuringCombat(string message)
-    {
-        // This can be overridden by subclasses to show UI messages
-        Debug.Log($"{characterSheet.firstName}: {message}");
-    }
-    
-    public void NotifyStatusEffectChanged(StatusEffect.EffectType effectType)
-    {
-        // Notify vision system when HIDDEN status effects change
-        if (effectType == StatusEffect.EffectType.HIDDEN)
-        {
-            // Delay the vision update to the next frame to avoid recursive updates
-            StartCoroutine(NotifyVisionNextFrame());
+            Destroy(equippedLight.gameObject);
+            equippedLight = null;
         }
     }
 
-    private IEnumerator NotifyVisionNextFrame()
+    // --- Action selection (delegates to ActionSelector) ---
+
+    protected Action selectedAction
     {
-        yield return null; // wait a frame to let current update cycles finish
-        VisionSystem visionSystem = FindObjectOfType<VisionSystem>();
-        if (visionSystem != null)
-        {
-            visionSystem.CheckForHiddenStatusChanges();
-        }
+        get => actionSelector?.SelectedAction;
+        set => actionSelector?.SetAction(value);
     }
 
-    public bool BeginTurn()
-    {
-        characterSheet.BeginTurn();
-        if (Dead()) return false;
-        if (DoesGUI())
-        {
-            // characterSheet.UpdateUI();
-        }
-        isTurn = true;
-        hasMoved = false;
-        FindSelectableTiles();
-        return true;
-    }
+    public Action GetSelectedAction() => actionSelector?.SelectedAction;
+    public string GetSelectedActionKey() => actionSelector?.SelectedActionKey;
+    public string GetSelectedActionClassName() => actionSelector?.GetSelectedActionClassName();
+    public string GetDefaultActionClassName() => actionSelector?.GetDefaultActionClassName() ?? nameof(ActionMeleeAttack);
 
-    // Defaults to false, but can be overridden by subclasses.
-    // If true, the unit is interactable via the GUI.
-    virtual protected bool DoesGUI()
+    public void ResetSelectedActionToDefault()
     {
-        return false;
-    }
-
-    protected void EndTurn()
-    {
-        isTurn = false;
-    }
-
-    public void BeginAction()
-    {
-        isActing = true;
-    }
-
-    public void EndAction()
-    {
-        isActing = false;
-        manager.ResetTileSearch();
-        FindSelectableTiles();
-        
-        // Vision system updates are now handled by specific actions when needed
-        // (e.g., ActionMove updates vision when tiles change, not after action completes)
-    }
-
-    public void SetCurrentTile(Tile t)
-    {
-        // Unoccupy old tile, if any
-        if (currentTile != null)
-        {
-            currentTile.occupant = null;
-        }
-        t.occupant = this;
-        currentTile = t;
-    }
-    
-    public Tile GetCurrentTile()
-    {
-        return currentTile;
-    }
-    
-    public Vector2 GetFacingDirection()
-    {
-        return transform.up;
-    }
-
-    virtual protected bool HasEnemy(Tile t)
-    {
-        return false;
-    }
-
-    protected void FindSelectableBasicTiles()
-    {
+        actionSelector?.ResetToDefault();
         FindSelectableTiles();
     }
 
-    protected  void FindSelectableChargeTiles() {
-        FindSelectableTiles();
-    }
-
-    protected void FindSelectableMeleeAttackTiles() {
-        FindSelectableTiles();
-    }
-
-    protected void FindSelectableAllyBuffTiles() {
-        FindSelectableTiles();
-    }
-
-    protected void FindSelectableMeleeReachAttackTiles() {
-        FindSelectableTiles();
-    }
-
-    protected void FindSelectableRangedAttackTiles() {
-        FindSelectableTiles();
-    }
-
-    protected void FindSelectableGroundAttackTiles() {
-        FindSelectableTiles();
-    }
-
-    private void FindSelectableTiles()
+    public void SelectActionByType(Type t)
     {
-        manager.ResetTileSearch();
+        actionSelector?.SelectByType(t);
+        FindSelectableTiles();
+    }
+
+    public void SelectActionByName(string className)
+    {
+        actionSelector?.SelectByName(className);
+        FindSelectableTiles();
+    }
+
+    public void SelectAction(string key, string className)
+    {
+        actionSelector?.Select(key, className);
+        FindSelectableTiles();
+    }
+
+    public void SelectActionSilent(string key, string className)
+    {
+        actionSelector?.SelectSilent(key, className);
+    }
+
+    public Action GetOrAddActionByType(Type t) => actionSelector?.GetOrAddByType(t);
+    public Action GetOrAddActionByName(string className) => actionSelector?.GetOrAddByName(className);
+
+    // --- Tile search (delegates to ReachabilityResolver) ---
+
+    protected void FindSelectableTiles()
+    {
         selectableTiles.Clear();
-
-        // Unified targeting system that handles movement+attack combinations
-        // TODO: Change this queue to a priority queue for performance optimization
-        List<Tile> queue = new List<Tile>();
-        queue.Add(currentTile);
-        currentTile.searchWasVisited = true;
-        currentTile.searchDistance = 0;
-
-        // Cache for line-of-sight checks across from/to pairs during this search
-        Dictionary<(Tile, Tile), bool> losCache = new Dictionary<(Tile, Tile), bool>();
-
-        while (queue.Count > 0)
-        {
-            queue.Sort((item1, item2) => item1.searchDistance.CompareTo(item2.searchDistance));
-            Tile tile = queue[0];
-            queue.RemoveAt(0);
-
-            if (tile.searchDistance + selectedAction.BASE_ACTION_COST <= characterSheet.currentActionPoints)
-            {
-                // Check for attacks from this position
-                FindAttackTargetsFromTile(tile, losCache);
-            }
-
-            // Expand movement options
-            foreach (Tile adjacentTile in tile.Neighbors())
-            {
-                if (!adjacentTile.searchWasVisited)
-                {
-                    int newDistance = tile.searchDistance + adjacentTile.GetMoveCost();
-                    if (adjacentTile.occupant == null && newDistance <= characterSheet.currentActionPoints)
-                    {
-                        // If the selected action is a ground attack, tiles don't become available as walking targets (they are attack targets instead).
-                        AttachTile(adjacentTile, tile, -1, selectedAction.TARGET_TYPE != Action.TargetType.GROUND_TILE, markVisited:true);
-                        queue.Add(adjacentTile);
-                    }
-                }
-            }
-        }
+        if (currentTile == null || characterSheet == null || actionSelector == null) return;
+        selectableTiles = ReachabilityResolver.FindSelectableTiles(
+            currentTile,
+            characterSheet.currentActionPoints,
+            actionSelector.SelectedAction,
+            manager,
+            IsPC(),
+            IsTileVisibleByCurrentActor);
     }
 
-    // Find attack targets from a specific tile position
-    private void FindAttackTargetsFromTile(Tile fromTile, Dictionary<(Tile, Tile), bool> losCache)
+    protected bool IsTileInRange(Tile fromTile, int minRange, int maxRange, bool requiresLineOfSight, int x, int y)
     {
-        if (selectedAction == null) return;
-
-        // Check if we have enough action points for this attack from this position
-        int movementCost = fromTile.searchDistance;
-        if (movementCost + selectedAction.BASE_ACTION_COST > characterSheet.currentActionPoints)
-        {
-            return; // Not enough AP to move here and attack
-        }
-
-        // If this action targets empty tiles (e.g., ground attacks), enumerate tiles in range
-        if (selectedAction is ActionAttack atk)
-        {
-            TurnManager tm = FindObjectOfType<TurnManager>();
-            List<CombatController> potentialTargets = new List<CombatController>();
-            HashSet<Tile> tilesInRange = new HashSet<Tile>();
-            switch (selectedAction.TARGET_TYPE)
-            {
-                case Action.TargetType.GROUND_TILE:
-                    tilesInRange = FindTilesInRange(fromTile, atk.minRange, atk.maxRange, atk.RequiresLineOfSight);
-                    break;
-                case Action.TargetType.MELEE:
-                    potentialTargets = IsPC() ? tm.AllLivingEnemies() : tm.AllLivingPCs();
-                    tilesInRange = FilterTilesInRange(fromTile, atk.minRange, atk.maxRange, atk.RequiresLineOfSight, potentialTargets);
-                    break;
-                case Action.TargetType.MELEE_REACH:
-                    potentialTargets = IsPC() ? tm.AllLivingEnemies() : tm.AllLivingPCs();
-                    tilesInRange = FilterTilesInRange(fromTile, atk.minRange, atk.maxRange, atk.RequiresLineOfSight, potentialTargets);
-                    break;
-                case Action.TargetType.RANGED:
-                    potentialTargets = IsPC() ? tm.AllLivingEnemies() : tm.AllLivingPCs();
-                    tilesInRange = FilterTilesInRange(fromTile, atk.minRange, atk.maxRange, atk.RequiresLineOfSight, potentialTargets);
-                    break;
-                case Action.TargetType.SELF_OR_ALLY:
-                    potentialTargets = IsPC() ? tm.AllLivingPCs() : tm.AllLivingEnemies();
-                    tilesInRange = FilterTilesInRange(fromTile, atk.minRange, atk.maxRange, atk.RequiresLineOfSight, potentialTargets);
-                    break;
-                case Action.TargetType.CHARGE:
-                    potentialTargets = IsPC() ? tm.AllLivingEnemies() : tm.AllLivingPCs();
-                    tilesInRange = FilterTilesInRange(fromTile, atk.minRange, atk.maxRange, atk.RequiresLineOfSight, potentialTargets);
-                    break;
-            }
-            foreach (Tile targetTile in tilesInRange)
-            {
-                // If the target tile was already added as a possible target, no need to add it again.
-                if (targetTile.searchCanBeChosen) continue;
-                // Attach as an attack target without marking visited (so movement BFS is unaffected)
-                // Record launch tile separately to avoid cycles with movement parent
-                targetTile.searchAttackParent = fromTile;
-                selectableTiles.Add(targetTile);
-                targetTile.searchCanBeChosen = true;
-                targetTile.searchDistance = movementCost + atk.BASE_ACTION_COST;
-            }
-            return;
-        }
-        return;
+        return ReachabilityResolver.IsTileInRange(fromTile, minRange, maxRange, requiresLineOfSight, x, y, manager);
     }
 
-    // Visibility helper for filtering targets appropriately per controller type
-    private bool IsTileVisibleByCurrentActor(Tile tile)
-    {
-        VisionSystem visionSystem = FindObjectOfType<VisionSystem>();
-        if (visionSystem == null) return true;
-
-        if (IsPC())
-        {
-            return visionSystem.IsTileVisible(tile);
-        }
-        else
-        {
-            // For AI, visibility depends on whether this unit can see the occupant
-            if (tile.occupant == null) return false;
-            return visionSystem.CanSeeUnit(this, tile.occupant);
-        }
-    }
-
-    private void AttachTile(Tile tile, Tile parent, int moveCostOverride = -1, bool canBeChosen = true, bool markVisited = false)
-    {
-        // If we're adding a movement node over an already-selectable target tile (e.g., ground attack target),
-        // mark it visited and set distance, but DO NOT overwrite its attack launch parent or selectability.
-        if (markVisited && tile.searchCanBeChosen)
-        {
-            tile.searchWasVisited = true;
-            if (tile.searchParent == null)
-            {
-                tile.searchParent = parent;
-            }
-            tile.searchDistance = (moveCostOverride != -1)
-                ? moveCostOverride
-                : (tile.GetMoveCost() + parent.searchDistance);
-            return;
-        }
-
-        tile.searchParent = parent;
-        selectableTiles.Add(tile);
-        tile.searchCanBeChosen = canBeChosen;
-        if (markVisited)
-        {
-            tile.searchWasVisited = true;
-        }
-        tile.searchDistance = (moveCostOverride != -1)
-            ? moveCostOverride
-            : (tile.GetMoveCost() + parent.searchDistance);
-    }
-
-    private bool IsTileInRange(Tile fromTile, int minRange, int maxRange, bool requiresLineOfSight, int x, int y) {
-        if (x < 0 || x >= Globals.COMBAT_WIDTH || y < 0 || y >= Globals.COMBAT_HEIGHT) return false;
-
-        int dist = Mathf.Abs(fromTile.x - x) + Mathf.Abs(fromTile.y - y);
-        if (dist < minRange || dist > maxRange) return false;
-
-        Tile tile = manager.getTile(x, y);
-        if (tile == null || tile == fromTile) return false;
-        if (!requiresLineOfSight || LineOfSightUtils.HasLineOfSight(fromTile, tile, manager)) return true;
-        return false;
-    }
-
-    // For potential targets, check which are visible and in range.
-    private HashSet<Tile> FilterTilesInRange(Tile fromTile, int minRange, int maxRange, bool requiresLineOfSight, List<CombatController> potentialTargets) {
-        HashSet<Tile> filteredTiles = new HashSet<Tile>();
-        foreach (CombatController cc in potentialTargets) {
-            Tile tile = cc.GetCurrentTile();
-            if (IsTileInRange(fromTile, minRange, maxRange, requiresLineOfSight, tile.x, tile.y) && IsTileVisibleByCurrentActor(tile)) {
-                filteredTiles.Add(tile);
-            }
-        }
-        return filteredTiles;
-    }
-
-    // Find all tiles within manhattan range from a given position (used by ground attacks)
-    private HashSet<Tile> FindTilesInRange(Tile fromTile, int minRange, int maxRange, bool requiresLineOfSight)
-    {
-        HashSet<Tile> tilesInRange = new HashSet<Tile>();
-
-        // Iterate only within Manhattan bounding diamond around fromTile
-        for (int dx = -maxRange; dx <= maxRange; dx++)
-        {
-            int remaining = maxRange - Mathf.Abs(dx);
-            for (int dy = -remaining; dy <= remaining; dy++)
-            {
-                if (IsTileInRange(fromTile, minRange, maxRange, requiresLineOfSight, fromTile.x + dx, fromTile.y + dy)) {
-                    tilesInRange.Add(manager.getTile(fromTile.x + dx, fromTile.y + dy));
-                }
-            }
-        }
-
-        return tilesInRange;
-    }
-
-    // Get the equipped weapon for the currently selected action
-    private EquippableHandheld GetEquippedWeaponForSelectedAction()
-    {
-        if (characterSheet == null || string.IsNullOrEmpty(selectedActionKey)) return null;
-
-        if (selectedActionKey.EndsWith(":RightHand"))
-        {
-            return characterSheet.GetEquippedItem(EquippableItem.EquipmentSlot.RightHand) as EquippableHandheld;
-        }
-        else if (selectedActionKey.EndsWith(":LeftHand"))
-        {
-            return characterSheet.GetEquippedItem(EquippableItem.EquipmentSlot.LeftHand) as EquippableHandheld;
-        }
-        
-        // Default to right hand
-        return characterSheet.GetEquippedItem(EquippableItem.EquipmentSlot.RightHand) as EquippableHandheld;
-    }
-}
-
-// -------------------- Action Selection & Utilities --------------------
-public partial class CombatController
-{
-	public Action GetSelectedAction()
-	{
-		return selectedAction;
-	}
-
-	public string GetSelectedActionKey()
-	{
-		return selectedActionKey;
-	}
-
-	public void ResetSelectedActionToDefault()
-	{
-		// Default is right-hand item associated action, or basic weapon attack
-		string className = GetDefaultActionClassName();
-		Action act = GetOrAddActionByName(className);
-		if (act == null)
-		{
-			act = GetOrAddActionByType(typeof(ActionMeleeAttack));
-		}
-		selectedAction = act;
-		// Prefer right hand for default if present
-		var right = characterSheet != null ? characterSheet.GetEquippedItem(EquippableItem.EquipmentSlot.RightHand) as EquippableHandheld : null;
-		selectedActionKey = right != null ? ($"{className}:RightHand") : className;
-		// Configure from equipped item if applicable, otherwise initialize spell action
-		if (!ConfigureSelectedActionFromEquippedItem())
-		{
-			InitializeSpellAction();
-		}
-	}
-
-	public void SelectActionByType(Type t)
-	{
-		Action act = GetOrAddActionByType(t);
-		if (act != null)
-		{
-			selectedAction = act;
-			// Configure from equipped item if applicable, otherwise initialize spell action
-			if (!ConfigureSelectedActionFromEquippedItem())
-			{
-				InitializeSpellAction();
-			}
-		}
-        FindSelectableTiles();
-	}
-
-	public void SelectActionByName(string className)
-	{
-		Action act = GetOrAddActionByName(className);
-		if (act != null)
-		{
-			selectedAction = act;
-			// Configure from equipped item if applicable, otherwise initialize spell action
-			if (!ConfigureSelectedActionFromEquippedItem())
-			{
-				InitializeSpellAction();
-			}
-		}
-        FindSelectableTiles();
-	}
-
-	public string GetSelectedActionClassName()
-	{
-		return selectedAction != null ? selectedAction.GetType().Name : null;
-	}
-
-	public string GetDefaultActionClassName()
-	{
-		if (characterSheet == null) return nameof(ActionMeleeAttack);
-		var right = characterSheet.GetEquippedItem(EquippableItem.EquipmentSlot.RightHand) as EquippableHandheld;
-		if (right != null && !string.IsNullOrEmpty(right.associatedActionClass))
-		{
-			return right.associatedActionClass;
-		}
-		return nameof(ActionMeleeAttack);
-	}
-
-	public Action GetOrAddActionByType(Type t)
-	{
-		if (t == null) return null;
-		var existing = GetComponent(t) as Action;
-		if (existing != null) return existing;
-		var added = gameObject.AddComponent(t) as Action;
-		return added;
-	}
-
-	public Action GetOrAddActionByName(string className)
-	{
-		if (string.IsNullOrEmpty(className)) return null;
-		var t = FindTypeByName(className);
-		var result = GetOrAddActionByType(t);
-		return result;
-	}
-
-	private static Type FindTypeByName(string className)
-	{
-		// Search all loaded assemblies for a type with the given simple name
-		foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-		{
-			var t = asm.GetTypes().FirstOrDefault(x => x.Name == className);
-			if (t != null) return t;
-		}
-		return null;
-	}
-
-	// Overload that lets UI pass a stable key (e.g., hand-specific)
-	public void SelectAction(string key, string className)
-	{
-		SelectActionByName(className);
-		selectedActionKey = key;
-		// Configure from equipped item if applicable, otherwise initialize spell action
-		if (!ConfigureSelectedActionFromEquippedItem())
-		{
-			InitializeSpellAction();
-		}
-        FindSelectableTiles();
-	}
-}
-
-// -------------------- Action Configuration Helpers --------------------
-public partial class CombatController
-{
-	// Configure the selected Action using min/max range from equipped item
-	// Returns true if successfully configured from an item, false if no matching item found
-	private bool ConfigureSelectedActionFromEquippedItem()
-	{
-		if (characterSheet == null || selectedAction == null) return false;
-
-		EquippableHandheld equipped = GetEquippedWeaponForSelectedAction();
-		if (equipped == null) return false;
-
-		// Let the item configure the action - it knows its own properties and requirements
-		return equipped.ConfigureAction(selectedAction);
-	}
-
-	// Initialize spell actions that don't depend on equipped items
-	private void InitializeSpellAction()
-	{
-		if (selectedAction == null) return;
-
-		// Call the virtual ConfigureAction method - spells/abilities override this
-		selectedAction.ConfigureAction();
-	}
-}
-
-// Selection validation helpers (main class scope for equipment change handling)
-public partial class CombatController
-{
-    private void EnsureSelectedActionStillValid()
-    {
-        if (characterSheet == null) return;
-
-        // Determine which hand (if any) the current selection depends on
-        bool dependsOnRight = !string.IsNullOrEmpty(selectedActionKey) && selectedActionKey.EndsWith(":RightHand");
-        bool dependsOnLeft = !string.IsNullOrEmpty(selectedActionKey) && selectedActionKey.EndsWith(":LeftHand");
-        bool isPunchSelected = string.IsNullOrEmpty(selectedActionKey) || selectedActionKey == nameof(ActionMeleeAttack);
-
-        var right = characterSheet.GetEquippedItem(EquippableItem.EquipmentSlot.RightHand) as EquippableHandheld;
-        var left = characterSheet.GetEquippedItem(EquippableItem.EquipmentSlot.LeftHand) as EquippableHandheld;
-
-        // Auto-select logic:
-        // 1. If current selection depends on a hand that became empty, switch
-        // 2. If punch is selected but we have weapons, prefer a weapon
-        // 3. Always ensure some valid selection exists
-        bool needsReselection = false;
-        
-        if ((dependsOnRight && right == null) || (dependsOnLeft && left == null))
-        {
-            needsReselection = true;
-        }
-        else if (isPunchSelected && (right != null || left != null))
-        {
-            needsReselection = true;
-        }
-        else if (string.IsNullOrEmpty(selectedActionKey))
-        {
-            needsReselection = true;
-        }
-        
-        if (needsReselection)
-        {
-            // Priority: right hand, then left hand, then punch
-            if (right != null)
-            {
-                string cls = string.IsNullOrEmpty(right.associatedActionClass) ? nameof(ActionMeleeAttack) : right.associatedActionClass;
-                SelectAction($"{cls}:RightHand", cls);
-            }
-            else if (left != null)
-            {
-                string cls = string.IsNullOrEmpty(left.associatedActionClass) ? nameof(ActionMeleeAttack) : left.associatedActionClass;
-                SelectAction($"{cls}:LeftHand", cls);
-            }
-            else
-            {
-                // No weapons – default to punch
-                SelectAction(nameof(ActionMeleeAttack), nameof(ActionMeleeAttack));
-            }
-        }
-    }
+    // Legacy wrappers kept for subclass compatibility
+    protected void FindSelectableBasicTiles() => FindSelectableTiles();
+    protected void FindSelectableChargeTiles() => FindSelectableTiles();
+    protected void FindSelectableMeleeAttackTiles() => FindSelectableTiles();
+    protected void FindSelectableAllyBuffTiles() => FindSelectableTiles();
+    protected void FindSelectableMeleeReachAttackTiles() => FindSelectableTiles();
+    protected void FindSelectableRangedAttackTiles() => FindSelectableTiles();
+    protected void FindSelectableGroundAttackTiles() => FindSelectableTiles();
 }

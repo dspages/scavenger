@@ -49,6 +49,7 @@ public class PathRenderer : MonoBehaviour
             dash.numCapVertices = 8; // rounded ends
             dash.useWorldSpace = true;
             dash.textureMode = LineTextureMode.Stretch;
+            dash.sortingOrder = 2000; // Draw on top of sprites
 
             Vector3[] pts = new Vector3[2];
             pts[0] = segStart;

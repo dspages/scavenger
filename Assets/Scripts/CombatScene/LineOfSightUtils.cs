@@ -14,29 +14,25 @@ public static class LineOfSightUtils
     {
         if (from == null || to == null || tileManager == null) return false;
         
-        // Simple line of sight using Bresenham's line algorithm
         int x0 = from.x, y0 = from.y;
         int x1 = to.x, y1 = to.y;
-        
+        if (x0 == x1 && y0 == y1) return true;
+
         int dx = Mathf.Abs(x1 - x0);
         int dy = Mathf.Abs(y1 - y0);
         int sx = x0 < x1 ? 1 : -1;
         int sy = y0 < y1 ? 1 : -1;
         int err = dx - dy;
-        
+
+        // Bounded loop: at most (dx+dy) steps needed; cap to avoid any possibility of infinite loop
+        int maxSteps = Mathf.Min(Globals.COMBAT_WIDTH + Globals.COMBAT_HEIGHT, dx + dy + 2);
         int x = x0, y = y0;
-        
-        while (true)
+        for (int step = 0; step < maxSteps; step++)
         {
-            if (x == x1 && y == y1) break;
-            
-            // Check if current tile blocks vision
+            if (x == x1 && y == y1) return true;
             Tile currentTile = tileManager.getTile(x, y);
             if (currentTile != null && currentTile.blocksVision && currentTile != from)
-            {
                 return false;
-            }
-            
             int e2 = 2 * err;
             if (e2 > -dy)
             {
@@ -49,8 +45,7 @@ public static class LineOfSightUtils
                 y += sy;
             }
         }
-        
-        return true;
+        return (x == x1 && y == y1);
     }
 }
 

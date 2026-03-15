@@ -2,14 +2,27 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// This is a base class designed to be inherited from by ally buff type actions.
 public class ActionAllyBuff : ActionRangedAttack
 {
     override public TargetType TARGET_TYPE { get { return TargetType.SELF_OR_ALLY; } }
 
-    // For ally buffs that can also target self, minRange should be 0. MinRange > 0 means it can only target allies and not self.
+    private AbilityData buffAbilityData;
 
-    virtual protected void ApplyTargetStatusEffect(Tile targetTile) { }
+    public new void ConfigureFromAbility(AbilityData data)
+    {
+        buffAbilityData = data;
+        base.ConfigureFromAbility(data);
+    }
+
+    virtual protected void ApplyTargetStatusEffect(Tile targetTile)
+    {
+        if (buffAbilityData != null && buffAbilityData.statusDuration > 0 &&
+            targetTile?.occupant?.characterSheet != null)
+        {
+            new StatusEffect(buffAbilityData.statusEffect, buffAbilityData.statusDuration,
+                targetTile.occupant.characterSheet, buffAbilityData.statusPowerLevel);
+        }
+    }
 
     public override void BeginAction(Tile targetTile)
     {
@@ -17,13 +30,9 @@ public class ActionAllyBuff : ActionRangedAttack
         ApplyTargetStatusEffect(targetTile);
     }
 
-    // Update is called once per frame
     void Update()
     {
-        if (!inProgress)
-        {
-            return;
-        }
+        if (!inProgress) return;
         if (currentPhase == Phase.NONE)
         {
             currentPhase = Phase.CASTING;

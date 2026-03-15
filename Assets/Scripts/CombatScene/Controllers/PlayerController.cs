@@ -126,7 +126,8 @@ public class PlayerController : CombatController
 
     private void SetMouseHover()
     {
-        hoverTile = GetMouseTile();
+        // Use hoverTile already set by CheckMouse; do NOT overwrite with GetMouseTile() here.
+        // Re-reading the tile under the mouse can flicker at tile edges and cause this to run every frame.
         if (hoverTile == null) return;
         hoverTile.isHovered = true;
         
@@ -138,7 +139,9 @@ public class PlayerController : CombatController
                 bool isGround = selectedAction.TARGET_TYPE == Action.TargetType.GROUND_TILE || (selectedAction is ActionAttack atk && atk.AOE_RADIUS > 0);
                 bool isRanged = selectedAction is ActionRangedAttack || selectedAction.TARGET_TYPE == Action.TargetType.RANGED;
                 bool isReachMelee = selectedAction.TARGET_TYPE == Action.TargetType.MELEE_REACH;
-                if (isGround || (isRanged && hoverTile.occupant != null && ContainsEnemy(hoverTile)) || (isReachMelee && hoverTile.occupant != null && ContainsEnemy(hoverTile)))
+                bool isMelee = selectedAction.TARGET_TYPE == Action.TargetType.MELEE;
+                
+                if (isGround || ((isRanged || isReachMelee || isMelee) && hoverTile.occupant != null && ContainsEnemy(hoverTile)))
                 {
                     int aoeRadius = 0;
                     if (selectedAction is ActionAttack aa)
@@ -149,9 +152,10 @@ public class PlayerController : CombatController
                 }
                 else
                 {
-                    // Normal movement path
+                    // Normal movement path. Cycle detection guards against bugs (pathfinding uses closed set).
+                    HashSet<Tile> seen = new HashSet<Tile>();
                     Tile t = hoverTile;
-                    while (t.searchParent)
+                    while (t != null && t.searchParent && seen.Add(t))
                     {
                         LineBetweenPositions(t.transform.position, t.searchParent.transform.position);
                         t = t.searchParent;
