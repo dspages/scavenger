@@ -24,9 +24,13 @@ public static class UIClickBlocker
             panelPos.y = Screen.height - panelPos.y;  // Flip Y for UI Toolkit
             
             var picked = root.panel.Pick(panelPos);
-            if (picked != null && picked.ClassListContains("ui-blocker"))
+            // Walk up: if the picked element or any ancestor has ui-blocker, we're over blocking UI
+            var current = picked as VisualElement;
+            while (current != null)
             {
-                return true;
+                if (current.ClassListContains("ui-blocker"))
+                    return true;
+                current = current.parent;
             }
         }
         return false;

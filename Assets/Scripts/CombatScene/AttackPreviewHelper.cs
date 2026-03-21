@@ -8,8 +8,7 @@ public static class AttackPreviewHelper
     {
         if (pathRenderer == null || targetTile == null) return;
 
-        // Resolve launch tile: prefer attack parent, fallback to current tile
-        Tile launchTile = targetTile.searchAttackParent != null ? targetTile.searchAttackParent : currentTile;
+        Tile launchTile = AttackLaunchTile.Resolve(targetTile, currentTile);
 
         
 

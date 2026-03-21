@@ -163,6 +163,61 @@ public static class ItemCatalog
         armorBonus = 2,
     };
 
+    public static readonly ArmorData LeatherHelmet = new ArmorData
+    {
+        id = "leather_helmet",
+        displayName = "Leather Helmet",
+        description = "Light head protection",
+        slot = EquippableItem.EquipmentSlot.Helmet,
+        armorBonus = 1,
+    };
+
+    public static readonly ArmorData LeatherBoots = new ArmorData
+    {
+        id = "leather_boots",
+        displayName = "Leather Boots",
+        description = "Sturdy boots",
+        slot = EquippableItem.EquipmentSlot.Boots,
+        armorBonus = 1,
+    };
+
+    public static readonly ArmorData LeatherGloves = new ArmorData
+    {
+        id = "leather_gloves",
+        displayName = "Leather Gloves",
+        description = "Hand protection",
+        slot = EquippableItem.EquipmentSlot.Gloves,
+        armorBonus = 0,
+        dodgeBonus = 1,
+    };
+
+    public static readonly ArmorData IronRingLeft = new ArmorData
+    {
+        id = "iron_ring_left",
+        displayName = "Iron Ring",
+        description = "A simple ring",
+        slot = EquippableItem.EquipmentSlot.LeftRing,
+        armorBonus = 0,
+    };
+
+    public static readonly ArmorData IronRingRight = new ArmorData
+    {
+        id = "iron_ring_right",
+        displayName = "Iron Ring",
+        description = "A simple ring",
+        slot = EquippableItem.EquipmentSlot.RightRing,
+        armorBonus = 0,
+    };
+
+    public static readonly ArmorData Goggles = new ArmorData
+    {
+        id = "goggles",
+        displayName = "Goggles",
+        description = "Protects eyes from glare",
+        slot = EquippableItem.EquipmentSlot.Goggles,
+        armorBonus = 0,
+    };
+
     // ---- Registry ----
 
     public static readonly ItemData[] All = new ItemData[]
@@ -172,6 +227,7 @@ public static class ItemCatalog
         SteelShield,
         LongMusket, FragGrenade,
         Torch,
-        LeatherArmor,
+        LeatherArmor, LeatherHelmet, LeatherBoots, LeatherGloves,
+        IronRingLeft, IronRingRight, Goggles,
     };
 }

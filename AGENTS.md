@@ -1,5 +1,11 @@
 # Agent Instructions
 
+## Intended Codepath Over Fallbacks
+
+- Prefer fixing the intended (happy) path over adding or relying on fallback behavior. Do not bloat the codebase with unnecessary fallback codepaths.
+- When a feature depends on assets (e.g. prefabs, scene references), document what the user must add to the scene or project so the intended path works; do not treat "missing prefab" or "missing reference" as a reason to add permanent fallback code that hides the problem.
+- If something does not work (e.g. popup not visible), debug until the real cause is found and the intended codepath runs correctly—fix references, add missing prefabs to the scene, or fix the prefab/scene setup—rather than papering over it with alternate code paths.
+
 ## Root Cause Over Symptom
 
 - Do not wallpaper over problems with band-aids or tech debt. It is unacceptable to "fix" bugs by adding caps, step limits, or defensive guards without diagnosing and fixing the underlying cause.

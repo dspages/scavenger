@@ -33,6 +33,8 @@ public class GameSaveData
 public class CharacterSaveData
 {
     public string firstName;
+    /// <summary>Resources path for portrait; optional. Class default used when empty.</summary>
+    public string portraitResourcePath;
     public CharacterSheet.CharacterClass characterClass;
     public int level;
     public int xp;
@@ -58,6 +60,7 @@ public class CharacterSaveData
         var data = new CharacterSaveData
         {
             firstName = sheet.firstName,
+            portraitResourcePath = sheet.portraitResourcePath,
             characterClass = sheet.characterClass,
             level = sheet.level,
             xp = sheet.xp,
@@ -98,6 +101,7 @@ public class CharacterSaveData
     public CharacterSheet ToSheet()
     {
         var sheet = new CharacterSheet(firstName, characterClass, assignDefaults: false);
+        sheet.portraitResourcePath = portraitResourcePath ?? "";
 
         sheet.level = level;
         sheet.xp = xp;

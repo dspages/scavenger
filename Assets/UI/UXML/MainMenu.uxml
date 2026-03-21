@@ -1,11 +1,28 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="UnityEngine.UIElements" noNamespaceSchemaLocation="../UIElementsSchema/UIElements.xsd" schemaLocation="UnityEngine.UIElements ../UIElementsSchema/UnityEngine.UIElements.xsd" editor-extension-mode="False">
     <Style src="project://database/Assets/UI/UXML/MainMenu.uss?fileID=7433441132597879392&amp;guid=0838638bf10a03d42b4c5225f2190041&amp;type=3#MainMenu" />
-    <ui:Box>
-        <ui:Label name="TitleText" text="Main Menu" />
-        <ui:Box name="List">
-            <ui:Button name="NewGameButton" text="New Game" />
-            <ui:Button name="LoadGameButton" text="Load Game" />
-            <ui:Button name="QuitButton" text="Quit" />
-        </ui:Box>
-    </ui:Box>
+    <ui:VisualElement name="MainMenuRoot" class="main-menu-root">
+        <ui:VisualElement name="MainMenuFrame" class="main-menu-frame">
+            <ui:Label name="TitleText" class="main-menu-title" text="SCAVENGER" />
+            <ui:Label name="SubtitleText" class="main-menu-subtitle" text="Salvage, survive, and outlast in the ruins." />
+            <ui:VisualElement name="List" class="main-menu-list">
+                <ui:Button name="NewGameButton" class="main-menu-button main-menu-button--primary" text="New Operation" />
+                <ui:Button name="LoadGameButton" class="main-menu-button" text="Continue Run" />
+                <ui:Button name="OptionsButton" class="main-menu-button" text="Options" />
+                <ui:Button name="QuitButton" class="main-menu-button" text="Abort Mission (Quit)" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement name="OptionsPanel" class="main-menu-options" style="display: none;">
+            <ui:VisualElement class="main-menu-frame" style="width: 520px;">
+                <ui:Label text="Options" class="main-menu-title" style="font-size: 22px;" />
+                <ui:VisualElement style="flex-direction: row; align-items: center; justify-content: space-between; margin-top: 8px;">
+                    <ui:Label text="Tooltip details delay" class="main-menu-subtitle" style="margin-bottom: 0; flex-grow: 1;" />
+                    <ui:Label name="TooltipDelayValueLabel" text="1.0s" class="main-menu-subtitle" style="margin-bottom: 0; min-width: 52px; -unity-text-align: upper-right;" />
+                </ui:VisualElement>
+                <ui:Slider name="TooltipDelaySlider" low-value="0.2" high-value="2.0" value="1.0" style="margin-top: 6px; margin-bottom: 10px;" />
+                <ui:Toggle name="TooltipNeverHoverToggle" text="Never expand on hover (right-click only)" style="margin-bottom: 12px;" />
+                <ui:Button name="OptionsCloseButton" class="main-menu-button" text="Back" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
 </ui:UXML>

@@ -1,11 +1,11 @@
 VisualElement {}
 
 .hud-bar {
-    background-color: rgba(45, 45, 45, 0.95);
+    background-color: var(--color-surface-alt);
     border-top-width: 1px;
     border-top-color: rgba(255,255,255,0.06);
     border-bottom-width: 1px;
-    border-bottom-color: rgba(0,0,0,0.5);
+    border-bottom-color: rgba(0,0,0,0.8);
 }
 
 .action-bar {
@@ -13,8 +13,8 @@ VisualElement {}
 }
 
 .action-btn {
-    background-color: #374151;
-    color: #e5e7eb;
+    background-color: var(--color-surface);
+    color: var(--color-text);
     border-radius: 6px;
     height: 40px;
     min-width: 40px;
@@ -28,21 +28,21 @@ VisualElement {}
     border-right-width: 2px;
     border-bottom-width: 2px;
     border-left-width: 2px;
-    border-top-color: #fbbf24; /* glowing amber */
-    border-right-color: #fbbf24;
-    border-bottom-color: #fbbf24;
-    border-left-color: #fbbf24;
+    border-top-color: var(--color-accent);
+    border-right-color: var(--color-accent);
+    border-bottom-color: var(--color-accent);
+    border-left-color: var(--color-accent);
 }
 
 .primary {
-    background-color: #3b82f6;
-    color: white;
+    background-color: var(--color-primary);
+    color: #0f172a;
     border-radius: 6px;
 }
 
 .secondary {
-    background-color: #4b5563;
-    color: white;
+    background-color: var(--color-surface-alt);
+    color: var(--color-text);
     border-radius: 6px;
 }
 
@@ -62,16 +62,16 @@ VisualElement {}
 }
 
 .panel-title {
-    font-size: 16px;
+    font-size: var(--font-size-title);
     -unity-font-style: bold;
-    color: #e5e7eb;
+    color: var(--color-text);
     margin-bottom: 8px;
 }
 
 .section-title {
-    font-size: 14px;
+    font-size: var(--font-size-label);
     -unity-font-style: bold;
-    color: #d1d5db;
+    color: var(--color-text-muted);
     margin-bottom: 8px;
 }
 
@@ -160,8 +160,8 @@ VisualElement {}
     background-color: rgba(0, 0, 0, 0.7);
     border-radius: 2px;
     padding: 1px 2px;
-    font-weight: bold;
-    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.8);
+    -unity-font-style: bold;
+    /* text-shadow not used: can cause "Unknown property" on some runtimes; use SDF font + text-shadow-* longhands if needed */
 }
 
 /* UI Click Blocking Utilities */
@@ -188,6 +188,6 @@ VisualElement {}
 .action-points-text {
     color: #f8fafc;
     font-size: 14px;
-    font-weight: bold;
+    -unity-font-style: bold;
     -unity-text-align: middle-center;
 }

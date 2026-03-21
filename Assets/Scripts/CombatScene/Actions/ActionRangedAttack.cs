@@ -120,19 +120,14 @@ public class ActionRangedAttack : ActionAttack
             result = AttackResolver.Resolve(characterSheet, enemy.characterSheet, context);
         }
 
-        CombatLog.Log(result.logMessage);
+        CombatLog.Log(result.logMessage, result.hit ? result.damageType : (EquippableHandheld.DamageType?)null);
 
         if (popupTarget != null)
         {
             if (result.hit)
-            {
-                string text = result.critical ? $"CRIT {result.damageDealt}" : result.damageDealt.ToString();
-                PopupTextController.CreatePopupText(text, popupTarget);
-            }
+                PopupTextController.CreateDamagePopup(result.damageDealt, result.critical, result.damageType, popupTarget);
             else
-            {
-                PopupTextController.CreatePopupText("MISS", popupTarget);
-            }
+                PopupTextController.CreateMissPopup(popupTarget);
         }
     }
 

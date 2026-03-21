@@ -54,7 +54,9 @@ public class CharacterTooltipProvider : TooltipProvider
         var myTile = combatController.GetCurrentTile();
         if (playerTile == null || myTile == null) return "";
 
-        int dist = Mathf.Abs(playerTile.x - myTile.x) + Mathf.Abs(playerTile.y - myTile.y);
+        Tile launchTile = AttackLaunchTile.Resolve(myTile, playerTile);
+        if (launchTile == null) return "";
+        int dist = Mathf.Abs(launchTile.x - myTile.x) + Mathf.Abs(launchTile.y - myTile.y);
         var playerWeapon = playerSheet.GetEquippedItem(EquippableItem.EquipmentSlot.RightHand) as EquippableHandheld;
         var context = AttackContext.Ranged(playerWeapon, dist);
 

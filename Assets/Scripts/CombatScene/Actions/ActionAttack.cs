@@ -36,12 +36,7 @@ public abstract class ActionAttack : ActionMove
         // Store the attack target and move toward the launch tile (separate attack parent)
         pendingAttackTarget = targetTile;
 
-        // Resolve launch tile: prefer attack parent, fallback to movement parent, else current tile
-        Tile launchTile = targetTile != null && targetTile.searchAttackParent != null
-            ? targetTile.searchAttackParent
-            : (targetTile != null && targetTile.searchParent != null
-                ? targetTile.searchParent
-                : combatController.GetCurrentTile());
+        Tile launchTile = AttackLaunchTile.Resolve(targetTile, combatController.GetCurrentTile());
 
         currentPhase = Phase.MOVING;
         PreparePath(launchTile);

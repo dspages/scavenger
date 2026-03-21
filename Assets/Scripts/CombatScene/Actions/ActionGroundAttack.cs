@@ -46,13 +46,10 @@ public class ActionGroundAttack : ActionAttack
 			if (occupant?.characterSheet != null)
 			{
 				var result = AttackResolver.Resolve(characterSheet, occupant.characterSheet, context);
-				CombatLog.Log(result.logMessage);
+				CombatLog.Log(result.logMessage, result.hit ? result.damageType : (EquippableHandheld.DamageType?)null);
 
 				if (result.hit && popupTarget != null)
-				{
-					string text = result.critical ? $"CRIT {result.damageDealt}" : result.damageDealt.ToString();
-					PopupTextController.CreatePopupText(text, popupTarget);
-				}
+					PopupTextController.CreateDamagePopup(result.damageDealt, result.critical, result.damageType, popupTarget);
 			}
 		}
 	}

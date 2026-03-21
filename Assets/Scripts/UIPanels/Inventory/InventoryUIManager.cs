@@ -10,21 +10,37 @@ public class InventoryUIManager
 {
     private readonly VisualElement inventoryPanel;
     private readonly VisualElement itemGrid;
-    private readonly VisualElement leftHandSlot;
-    private readonly VisualElement rightHandSlot;
-    private readonly VisualElement armorSlot;
+    private readonly Dictionary<EquippableItem.EquipmentSlot, VisualElement> slotToElement = new Dictionary<EquippableItem.EquipmentSlot, VisualElement>();
     private readonly List<VisualElement> inventorySlots = new List<VisualElement>();
-    
+
+    private static readonly (EquippableItem.EquipmentSlot slot, string name)[] SlotNames = new[]
+    {
+        (EquippableItem.EquipmentSlot.Helmet, "HelmetSlot"),
+        (EquippableItem.EquipmentSlot.Goggles, "GogglesSlot"),
+        (EquippableItem.EquipmentSlot.Armor, "ArmorSlot"),
+        (EquippableItem.EquipmentSlot.Gloves, "GlovesSlot"),
+        (EquippableItem.EquipmentSlot.LeftHand, "LeftHandSlot"),
+        (EquippableItem.EquipmentSlot.RightHand, "RightHandSlot"),
+        (EquippableItem.EquipmentSlot.LeftRing, "LeftRingSlot"),
+        (EquippableItem.EquipmentSlot.RightRing, "RightRingSlot"),
+        (EquippableItem.EquipmentSlot.Boots, "BootsSlot"),
+    };
+
     private CharacterSheet currentCharacter;
 
-    public InventoryUIManager(VisualElement panel, VisualElement grid, 
-        VisualElement leftHand, VisualElement rightHand, VisualElement armor)
+    public InventoryUIManager(VisualElement panel, VisualElement grid, VisualElement equipmentParent)
     {
         inventoryPanel = panel;
         itemGrid = grid;
-        leftHandSlot = leftHand;
-        rightHandSlot = rightHand;
-        armorSlot = armor;
+        if (equipmentParent != null)
+        {
+            foreach (var (slot, name) in SlotNames)
+            {
+                var el = equipmentParent.Q<VisualElement>(name);
+                if (el != null)
+                    slotToElement[slot] = el;
+            }
+        }
     }
 
     public void SetCurrentCharacter(CharacterSheet character)
@@ -65,17 +81,20 @@ public class InventoryUIManager
             CreateItemVisual(slot, item, includeStackCount: true);
         }
         
-        // Re-apply click blocking to all inventory slots and their new children
-        UIClickBlocker.MakeElementAndChildrenBlockClicks(itemGrid);
+        // Re-apply click blocking to all inventory slots and their new children.
+        // Note: we only need the top-most picked element to have "ui-blocker",
+        // so mark the slots themselves, not every deep child.
+        for (int i = 0; i < inventorySlots.Count; i++)
+        {
+            UIClickBlocker.MakeElementBlockClicks(inventorySlots[i]);
+        }
     }
 
     public void RefreshEquipmentUI(System.Action<VisualElement> attachTooltipHandlers)
     {
         if (currentCharacter == null) return;
-
-        RefreshEquipmentSlot(leftHandSlot, EquippableItem.EquipmentSlot.LeftHand, attachTooltipHandlers);
-        RefreshEquipmentSlot(rightHandSlot, EquippableItem.EquipmentSlot.RightHand, attachTooltipHandlers);
-        RefreshEquipmentSlot(armorSlot, EquippableItem.EquipmentSlot.Armor, attachTooltipHandlers);
+        foreach (var kvp in slotToElement)
+            RefreshEquipmentSlot(kvp.Value, kvp.Key, attachTooltipHandlers);
     }
 
     private void RefreshEquipmentSlot(VisualElement slot, EquippableItem.EquipmentSlot equipmentSlot, 
@@ -141,6 +160,32 @@ public class InventoryUIManager
 
         // Set tooltip on slot itself
         slot.tooltip = item.GetDisplayName();
+
+        // Apply rarity framing so inventory visuals can key off the style guide
+        slot.RemoveFromClassList("rarity-common");
+        slot.RemoveFromClassList("rarity-uncommon");
+        slot.RemoveFromClassList("rarity-rare");
+        slot.RemoveFromClassList("rarity-epic");
+        slot.RemoveFromClassList("rarity-legendary");
+
+        switch (item.rarity)
+        {
+            case InventoryItem.ItemRarity.Uncommon:
+                slot.AddToClassList("rarity-uncommon");
+                break;
+            case InventoryItem.ItemRarity.Rare:
+                slot.AddToClassList("rarity-rare");
+                break;
+            case InventoryItem.ItemRarity.Epic:
+                slot.AddToClassList("rarity-epic");
+                break;
+            case InventoryItem.ItemRarity.Legendary:
+                slot.AddToClassList("rarity-legendary");
+                break;
+            default:
+                slot.AddToClassList("rarity-common");
+                break;
+        }
     }
 
     public bool IsInventoryPanelOpen()
@@ -161,9 +206,8 @@ public class InventoryUIManager
 
     public void ForEachEquipSlot(System.Action<VisualElement, EquippableItem.EquipmentSlot> action)
     {
-        if (leftHandSlot != null) action(leftHandSlot, EquippableItem.EquipmentSlot.LeftHand);
-        if (rightHandSlot != null) action(rightHandSlot, EquippableItem.EquipmentSlot.RightHand);
-        if (armorSlot != null) action(armorSlot, EquippableItem.EquipmentSlot.Armor);
+        foreach (var kvp in slotToElement)
+            action(kvp.Value, kvp.Key);
     }
 
     public List<VisualElement> GetInventorySlots()
@@ -173,13 +217,21 @@ public class InventoryUIManager
 
     public VisualElement GetEquipmentSlot(EquippableItem.EquipmentSlot equipmentSlot)
     {
-        switch (equipmentSlot)
+        return slotToElement.TryGetValue(equipmentSlot, out var el) ? el : null;
+    }
+
+    public bool TryGetSlotForElement(VisualElement element, out EquippableItem.EquipmentSlot slot)
+    {
+        foreach (var kvp in slotToElement)
         {
-            case EquippableItem.EquipmentSlot.LeftHand: return leftHandSlot;
-            case EquippableItem.EquipmentSlot.RightHand: return rightHandSlot;
-            case EquippableItem.EquipmentSlot.Armor: return armorSlot;
-            default: return null;
+            if (kvp.Value == element)
+            {
+                slot = kvp.Key;
+                return true;
+            }
         }
+        slot = default;
+        return false;
     }
 
     private string GetWeaponTypeLabel(EquippableHandheld.WeaponType weaponType, EquippableHandheld.RangeType rangeType)

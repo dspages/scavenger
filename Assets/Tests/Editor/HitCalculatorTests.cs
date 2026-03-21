@@ -113,6 +113,22 @@ public class HitCalculatorTests
     }
 
     [Test]
+    public void CalculateHitChance_Ranged_DefenderGearDodge_Penalty()
+    {
+        var attacker = MakeSheet();
+        attacker.perception = 4;
+        var defender = MakeSheet();
+        defender.agility = 0;
+        defender.TryEquipItem(new EquippableItem("Boots", EquippableItem.EquipmentSlot.Boots) { dodgeBonus = 2 });
+        var context = AttackContext.Ranged(weapon: null, distance: 4);
+
+        // base 75% - (2 evasion * 5%) = 65%
+        float chance = HitCalculator.CalculateHitChance(attacker, defender, context);
+
+        Assert.AreEqual(0.65f, chance, 0.001f);
+    }
+
+    [Test]
     public void CalculateHitChance_Ranged_ClampedMin()
     {
         var attacker = MakeSheet();

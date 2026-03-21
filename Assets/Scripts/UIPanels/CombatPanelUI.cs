@@ -18,6 +18,14 @@ public class CombatPanelUI : MonoBehaviour
     private Label actionPointsLabel;
     private CharacterSheet currentCharacter;
     private InventoryUIManager inventoryUI;
+    private VisualElement statsBlockContainer;
+    private VisualElement characterStatsBlockContainer;
+    private VisualElement characterSkillsList;
+
+    private Button inventoryTabButton;
+    private Button characterTabButton;
+    private VisualElement inventoryTab;
+    private VisualElement characterTab;
 
     // UI root reference (the cloned VisualTree) for overlays like drag ghost
     private VisualElement uiRoot;
@@ -29,6 +37,9 @@ public class CombatPanelUI : MonoBehaviour
     // Lightweight UI Toolkit tooltip
     private VisualElement hoverTooltip;
     private Label hoverTooltipLabel;
+    private VisualElement currentTooltipOwner;
+    private IVisualElementScheduledItem pendingDetailExpand;
+    private Vector2 lastPointerPos;
 
     private void Start()
     {
@@ -64,16 +75,26 @@ public class CombatPanelUI : MonoBehaviour
         endTurnButton = visualTree.Q<Button>("EndTurnButton");
         toggleInventoryButton = visualTree.Q<Button>("ToggleInventoryButton");
         var inventoryPanel = visualTree.Q<VisualElement>("InventoryPanel");
+        inventoryTabButton = visualTree.Q<Button>("InventoryTabButton");
+        characterTabButton = visualTree.Q<Button>("CharacterTabButton");
+        inventoryTab = visualTree.Q<VisualElement>("InventoryTab");
+        characterTab = visualTree.Q<VisualElement>("CharacterTab");
         var itemGrid = visualTree.Q<VisualElement>("ItemGrid");
-        var leftHandSlot = visualTree.Q<VisualElement>("LeftHandSlot");
-        var rightHandSlot = visualTree.Q<VisualElement>("RightHandSlot");
-        var armorSlot = visualTree.Q<VisualElement>("ArmorSlot");
+        var equipmentPanel = visualTree.Q<VisualElement>("EquipmentPanel");
         trashSlot = visualTree.Q<VisualElement>("Trash");
         actionBar = visualTree.Q<VisualElement>("ActionBar");
         actionPointsLabel = visualTree.Q<Label>("ActionPointsLabel");
 
-        // Initialize inventory UI manager
-        inventoryUI = new InventoryUIManager(inventoryPanel, itemGrid, leftHandSlot, rightHandSlot, armorSlot);
+        // Initialize inventory UI manager (equipment slots are found by name under equipmentPanel)
+        inventoryUI = new InventoryUIManager(inventoryPanel, itemGrid, equipmentPanel);
+        statsBlockContainer = visualTree.Q<VisualElement>(DerivedStatsView.ContainerName);
+        characterStatsBlockContainer = visualTree.Q<VisualElement>("CharacterStatsBlockContainer");
+        characterSkillsList = visualTree.Q<VisualElement>("CharacterSkillsList");
+
+        // Tabs
+        if (inventoryTabButton != null) inventoryTabButton.clicked += () => SetInventoryTab(true);
+        if (characterTabButton != null) characterTabButton.clicked += () => SetInventoryTab(false);
+        SetInventoryTab(true);
 
         // Ensure HUD bar is visible and blocks clicks (including all buttons and children)
         var hudBar = visualTree.Q<VisualElement>("CombatHudBar");
@@ -286,7 +307,7 @@ public class CombatPanelUI : MonoBehaviour
             {
                 currentCharacter.OnInventoryChanged += inventoryUI.RefreshInventoryUI;
                 currentCharacter.OnInventoryChanged += () => RefreshActionBar();
-                currentCharacter.OnEquipmentChanged += () => { inventoryUI.RefreshEquipmentUI(AttachTooltipHandlers); RefreshActionBar(); };
+                currentCharacter.OnEquipmentChanged += () => { inventoryUI.RefreshEquipmentUI(AttachTooltipHandlers); RefreshActionBar(); RefreshStatsBlock(); };
                 currentCharacter.OnActionPointsChanged += UpdateActionPointsDisplay;
                 // Also reapply selection validity on equipment changes
                 currentCharacter.OnEquipmentChanged += () => {
@@ -299,10 +320,101 @@ public class CombatPanelUI : MonoBehaviour
                 };
                 inventoryUI.RefreshInventoryUI();
                 inventoryUI.RefreshEquipmentUI(AttachTooltipHandlers);
+                RefreshStatsBlock();
                 AttachEquipmentDragTargets();
                 RefreshActionBar();
                 UpdateActionPointsDisplay();
             }
+        }
+    }
+
+    private void RefreshStatsBlock()
+    {
+        DerivedStatsView.Refresh(statsBlockContainer, currentCharacter, compact: true);
+        DerivedStatsView.Refresh(characterStatsBlockContainer, currentCharacter, compact: false);
+        RefreshCharacterSkills();
+
+        // Ensure newly created stats elements block world clicks
+        UIClickBlocker.MakeElementAndChildrenBlockClicks(statsBlockContainer);
+        UIClickBlocker.MakeElementAndChildrenBlockClicks(characterStatsBlockContainer);
+    }
+
+    private void RefreshCharacterSkills()
+    {
+        if (characterSkillsList == null) return;
+        characterSkillsList.Clear();
+        if (currentCharacter == null) return;
+
+        // Data-driven abilities
+        foreach (var ability in currentCharacter.GetKnownAbilities())
+        {
+            if (ability == null) continue;
+            var label = new Label(ability.displayName);
+            label.AddToClassList("text");
+            label.style.whiteSpace = WhiteSpace.Normal;
+            label.tooltip = WrapTooltipText(ability.description, 60);
+            AttachTooltipHandlers(label);
+            characterSkillsList.Add(label);
+        }
+
+        // Legacy special actions
+        foreach (var t in currentCharacter.GetKnownSpecialActionTypes())
+        {
+            if (t == null) continue;
+            var label = new Label(t.Name);
+            label.AddToClassList("text");
+            label.style.whiteSpace = WhiteSpace.Normal;
+            label.tooltip = WrapTooltipText(t.Name, 60);
+            AttachTooltipHandlers(label);
+            characterSkillsList.Add(label);
+        }
+
+        // Skills list should also fully block world clicks
+        UIClickBlocker.MakeElementAndChildrenBlockClicks(characterSkillsList);
+    }
+
+    private static string WrapTooltipText(string text, int maxLineLength)
+    {
+        if (string.IsNullOrEmpty(text) || maxLineLength <= 0) return text;
+        var words = text.Split(' ');
+        System.Text.StringBuilder sb = new System.Text.StringBuilder(text.Length + 16);
+        int current = 0;
+        for (int i = 0; i < words.Length; i++)
+        {
+            var w = words[i];
+            if (current == 0)
+            {
+                sb.Append(w);
+                current = w.Length;
+            }
+            else if (current + 1 + w.Length > maxLineLength)
+            {
+                sb.Append('\n');
+                sb.Append(w);
+                current = w.Length;
+            }
+            else
+            {
+                sb.Append(' ');
+                sb.Append(w);
+                current += 1 + w.Length;
+            }
+        }
+        return sb.ToString();
+    }
+
+    private void SetInventoryTab(bool showInventory)
+    {
+        if (inventoryTab != null) inventoryTab.style.display = showInventory ? DisplayStyle.Flex : DisplayStyle.None;
+        if (characterTab != null) characterTab.style.display = showInventory ? DisplayStyle.None : DisplayStyle.Flex;
+
+        if (inventoryTabButton != null)
+        {
+            inventoryTabButton.EnableInClassList("action-btn--selected", showInventory);
+        }
+        if (characterTabButton != null)
+        {
+            characterTabButton.EnableInClassList("action-btn--selected", !showInventory);
         }
     }
 
@@ -377,37 +489,11 @@ public class CombatPanelUI : MonoBehaviour
         var ve = uiRoot?.panel?.Pick(panelPosition) as VisualElement;
         while (ve != null)
         {
-            var leftHandSlot = inventoryUI.GetEquipmentSlot(EquippableItem.EquipmentSlot.LeftHand);
-            var rightHandSlot = inventoryUI.GetEquipmentSlot(EquippableItem.EquipmentSlot.RightHand);
-            var armorSlot = inventoryUI.GetEquipmentSlot(EquippableItem.EquipmentSlot.Armor);
-            
-            if (ve == leftHandSlot || ve == rightHandSlot || ve == armorSlot)
+            if (inventoryUI.TryGetSlotForElement(ve, out var targetSlot))
             {
                 bool isValid = false;
-                if (drag.Context.payload is EquippableItem eq)
-                {
-                    if (ve == armorSlot && eq.slot == EquippableItem.EquipmentSlot.Armor)
-                    {
-                        // Armor slots only accept armor items
-                        isValid = true;
-                    }
-                    else if (ve == leftHandSlot || ve == rightHandSlot)
-                    {
-                        // Hand slots need to check dual-wielding compatibility
-                        var targetSlot = (ve == leftHandSlot) ? EquippableItem.EquipmentSlot.LeftHand : EquippableItem.EquipmentSlot.RightHand;
-                        
-                        if (eq is EquippableHandheld)
-                        {
-                            // Use the actual equipment compatibility check
-                            isValid = currentCharacter.IsSlotCompatible(targetSlot, eq);
-                        }
-                        else
-                        {
-                            // Non-hand-held items must match their designated slot
-                            isValid = (eq.slot == targetSlot);
-                        }
-                    }
-                }
+                if (drag.Context.payload is EquippableItem eq && currentCharacter != null)
+                    isValid = currentCharacter.IsSlotCompatible(targetSlot, eq);
                 ve.AddToClassList(isValid ? "equip-drop-valid" : "equip-drop-invalid");
                 break;
             }
@@ -618,13 +704,11 @@ public class CombatPanelUI : MonoBehaviour
             var ve = evt.target as VisualElement;
             while (ve != null)
             {
-                var leftHandSlot = inventoryUI.GetEquipmentSlot(EquippableItem.EquipmentSlot.LeftHand);
-                var rightHandSlot = inventoryUI.GetEquipmentSlot(EquippableItem.EquipmentSlot.RightHand);
-                var armorSlot = inventoryUI.GetEquipmentSlot(EquippableItem.EquipmentSlot.Armor);
-                
-                if (ve == leftHandSlot) { target = SlotModel.CreateEquipment(leftHandSlot, EquippableItem.EquipmentSlot.LeftHand); break; }
-                if (ve == rightHandSlot) { target = SlotModel.CreateEquipment(rightHandSlot, EquippableItem.EquipmentSlot.RightHand); break; }
-                if (ve == armorSlot) { target = SlotModel.CreateEquipment(armorSlot, EquippableItem.EquipmentSlot.Armor); break; }
+                if (inventoryUI.TryGetSlotForElement(ve, out var eqSlot))
+                {
+                    target = SlotModel.CreateEquipment(ve, eqSlot);
+                    break;
+                }
                 if (ve == trashSlot) { target = SlotModel.CreateTrash(trashSlot); break; }
                 ve = ve.parent;
             }
@@ -705,24 +789,111 @@ public class CombatPanelUI : MonoBehaviour
 
         element.RegisterCallback<PointerEnterEvent>(evt =>
         {
-            if (string.IsNullOrEmpty(element.tooltip)) return;
-            hoverTooltipLabel.text = element.tooltip;
-            hoverTooltip.style.display = DisplayStyle.Flex;
-            PositionTooltip(evt.position);
+            lastPointerPos = evt.position;
+            var content = BuildTieredTooltipContent(element);
+            if (string.IsNullOrEmpty(content.compact) && string.IsNullOrEmpty(content.detailed)) return;
+            currentTooltipOwner = element;
+            ShowTooltipText(content.compact ?? content.detailed, evt.position);
+
+            CancelPendingDetailExpand();
+            if (!TooltipDetailSettings.NeverExpandOnHover && !string.IsNullOrEmpty(content.detailed))
+            {
+                pendingDetailExpand = element.schedule.Execute(() =>
+                {
+                    if (currentTooltipOwner != element) return;
+                    ShowTooltipText(content.detailed, lastPointerPos);
+                }).StartingIn((long)(TooltipDetailSettings.DetailDelaySeconds * 1000f));
+            }
         });
 
         element.RegisterCallback<PointerMoveEvent>(evt =>
         {
+            lastPointerPos = evt.position;
             if (hoverTooltip.style.display == DisplayStyle.Flex)
             {
                 PositionTooltip(evt.position);
             }
         });
 
+        element.RegisterCallback<PointerDownEvent>(evt =>
+        {
+            if (evt.button != 1) return; // right click
+            var content = BuildTieredTooltipContent(element);
+            if (string.IsNullOrEmpty(content.detailed)) return;
+            currentTooltipOwner = element;
+            ShowTooltipText(content.detailed, evt.position);
+            CancelPendingDetailExpand();
+            evt.StopPropagation();
+        });
+
         element.RegisterCallback<PointerLeaveEvent>(evt =>
         {
+            CancelPendingDetailExpand();
+            if (currentTooltipOwner == element) currentTooltipOwner = null;
             hoverTooltip.style.display = DisplayStyle.None;
         });
+    }
+
+    private void CancelPendingDetailExpand()
+    {
+        if (pendingDetailExpand == null) return;
+        pendingDetailExpand.Pause();
+        pendingDetailExpand = null;
+    }
+
+    private void ShowTooltipText(string text, Vector2 panelPosition)
+    {
+        if (hoverTooltipLabel == null || hoverTooltip == null) return;
+        hoverTooltipLabel.text = text ?? "";
+        hoverTooltip.style.display = DisplayStyle.Flex;
+        PositionTooltip(panelPosition);
+    }
+
+    private (string compact, string detailed) BuildTieredTooltipContent(VisualElement element)
+    {
+        // Action buttons store a payload in userData
+        if (element.userData is ActionTooltipPayload atp)
+        {
+            return (atp.compact, atp.detailed);
+        }
+
+        // Inventory slots by name
+        if (element.name != null && element.name.StartsWith("InventorySlot_") && currentCharacter?.inventory != null)
+        {
+            if (int.TryParse(element.name.Substring("InventorySlot_".Length), out int idx))
+            {
+                var item = (idx >= 0 && idx < currentCharacter.inventory.Items.Count) ? currentCharacter.inventory.Items[idx] : null;
+                return TooltipTextBuilder.ForItem(item);
+            }
+        }
+
+        // Equipment slots
+        if (currentCharacter != null)
+        {
+            var ve = element;
+            while (ve != null)
+            {
+                if (inventoryUI != null && inventoryUI.TryGetSlotForElement(ve, out var slot))
+                {
+                    var item = currentCharacter.GetEquippedItem(slot);
+                    return TooltipTextBuilder.ForEquipped(item, slot);
+                }
+                ve = ve.parent;
+            }
+        }
+
+        // Generic
+        if (!string.IsNullOrEmpty(element.tooltip))
+        {
+            return (element.tooltip, element.tooltip);
+        }
+        return (null, null);
+    }
+
+    private sealed class ActionTooltipPayload
+    {
+        public string compact;
+        public string detailed;
     }
 
     private void PositionTooltip(Vector2 panelPosition)
@@ -820,8 +991,14 @@ public class CombatPanelUI : MonoBehaviour
             btn.clicked += () => { OnActionButtonClicked(controller, key, cls); };
             // Ensure button is clickable even inside a ui-blocker container
             btn.pickingMode = PickingMode.Position;
-            // Tooltip: show item or action description
-            btn.tooltip = BuildActionTooltip(key, cls);
+            // Tooltip: compact on hover, details after delay/right-click
+            var detailed = BuildActionTooltip(key, cls);
+            btn.userData = new ActionTooltipPayload
+            {
+                compact = tuple.label,
+                detailed = detailed
+            };
+            btn.tooltip = tuple.label;
             AttachTooltipHandlers(btn);
             actionBar.Add(btn);
         }

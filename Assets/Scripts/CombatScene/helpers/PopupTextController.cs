@@ -7,14 +7,30 @@ public class PopupTextController : MonoBehaviour
     private static string canvasName = "Canvas";
     private static GameObject canvas;
     private static PopupTextController runner;
+    private const float AboveTargetOffsetYPixels = 40f;
+    private const float RightOffsetXPixels = AboveTargetOffsetYPixels * 1.5f;
 
     public static void Initialize()
     {
+        // Search all loaded scenes for a CanvasPrefabs that has the popup prefab assigned (e.g. Main Menu has it, Combat might not)
+        var all = Object.FindObjectsOfType<CanvasPrefabs>(true);
+        foreach (var cp in all)
+        {
+            if (cp.popupTextPrefab != null)
+            {
+                popupTextPrefab = cp.popupTextPrefab;
+                canvas = cp.gameObject;
+                return;
+            }
+        }
+        // Fallback: use first Canvas/UICanvas and its prefab (may be null)
         canvas = GameObject.Find(canvasName) ?? GameObject.Find("UICanvas");
-        if (canvas == null) return;
-        var canvasPrefabs = canvas.GetComponent<CanvasPrefabs>();
-        if (canvasPrefabs != null)
-            popupTextPrefab = canvasPrefabs.popupTextPrefab;
+        if (canvas != null)
+        {
+            var canvasPrefabs = canvas.GetComponent<CanvasPrefabs>();
+            if (canvasPrefabs != null)
+                popupTextPrefab = canvasPrefabs.popupTextPrefab;
+        }
     }
 
     private static void EnsureInitialized()
@@ -43,56 +59,77 @@ public class PopupTextController : MonoBehaviour
         }
     }
 
-    public static void CreatePopupText(string text, Transform targetTransform)
+    /// <summary>Primary API: show popup with optional color. Fails clearly if prefab or canvas is missing (no silent fallback).</summary>
+    public static void CreatePopupText(string text, Transform targetTransform, Color? color = null)
     {
         EnsureInitialized();
-        if (canvas == null) return;
-
-        Vector2 screenPosition = Camera.main != null
-            ? (Vector2)Camera.main.WorldToScreenPoint(targetTransform.position)
-            : new Vector2(Screen.width / 2f, Screen.height / 2f);
-
-        if (popupTextPrefab != null)
+        if (canvas == null)
         {
-            var instance = Instantiate(popupTextPrefab);
-            instance.transform.SetParent(canvas.transform, false);
-            instance.transform.position = screenPosition;
-            instance.SetText(text);
+            Debug.LogError("PopupTextController: No canvas found (looked for 'Canvas' or 'UICanvas'). Add a Canvas to the scene and assign it.");
+            return;
+        }
+        if (popupTextPrefab == null)
+        {
+            Debug.LogError("PopupTextController: PopupText prefab is not assigned. Add CanvasPrefabs to your UICanvas and assign the PopupText prefab.");
+            return;
+        }
+
+        var canvasRect = canvas.GetComponent<RectTransform>();
+        if (canvasRect == null)
+        {
+            Debug.LogError("PopupTextController: Canvas is missing RectTransform.");
+            return;
+        }
+
+        Vector2 screenPosition;
+        if (Camera.main != null)
+        {
+            var screen3 = Camera.main.WorldToScreenPoint(targetTransform.position);
+            if (screen3.z < 0f)
+                return; // Behind the camera; no sensible screen position.
+            screenPosition = new Vector2(screen3.x, screen3.y);
         }
         else
         {
-            CreateFallbackPopup(text, screenPosition);
+            screenPosition = new Vector2(Screen.width / 2f, Screen.height / 2f);
         }
+
+        var instance = Instantiate(popupTextPrefab);
+        instance.transform.SetParent(canvas.transform, false);
+        // Revert to transform.position assignment (known-good visibility).
+        // We still apply a screen-space Y offset so the popup appears above the target.
+        screenPosition.x += RightOffsetXPixels;
+        screenPosition.y += AboveTargetOffsetYPixels;
+        instance.transform.position = screenPosition;
+
+        instance.SetText(text);
+        if (color.HasValue)
+            instance.SetColor(color.Value);
     }
 
-    private static void CreateFallbackPopup(string text, Vector2 screenPosition)
+    /// <summary>Show damage popup with damage-type color. Use for hit feedback.</summary>
+    public static void CreateDamagePopup(int damage, bool critical, EquippableHandheld.DamageType damageType, Transform targetTransform)
     {
-        var go = new GameObject("PopupText_Fallback");
-        go.transform.SetParent(canvas.transform, false);
-
-        var rect = go.AddComponent<RectTransform>();
-        rect.sizeDelta = new Vector2(150, 40);
-        rect.position = screenPosition;
-
-        var textComp = go.AddComponent<Text>();
-        textComp.text = text;
-        textComp.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        textComp.fontSize = 24;
-        textComp.alignment = TextAnchor.MiddleCenter;
-        textComp.color = Color.white;
-
-        Object.Destroy(go, 1.5f);
+        string text = critical ? $"CRIT {damage}" : damage.ToString();
+        CreatePopupText(text, targetTransform, DamageTypeColors.Get(damageType));
     }
 
-    public static void CreatePopupTextAfterDelay(string text, Transform transform, float delay)
+    /// <summary>Show MISS popup with neutral color.</summary>
+    public static void CreateMissPopup(Transform targetTransform)
+    {
+        CreatePopupText("MISS", targetTransform, DamageTypeColors.MissColor);
+    }
+
+    public static void CreatePopupTextAfterDelay(string text, Transform transform, float delay, Color? color = null)
     {
         EnsureInitialized();
-        runner.StartCoroutine(runner.RunAfterDelay(text, transform, delay));
+        if (runner != null)
+            runner.StartCoroutine(runner.RunAfterDelay(text, transform, delay, color));
     }
 
-    private System.Collections.IEnumerator RunAfterDelay(string text, Transform transform, float delay)
+    private System.Collections.IEnumerator RunAfterDelay(string text, Transform transform, float delay, Color? color = null)
     {
         yield return new WaitForSeconds(delay);
-        CreatePopupText(text, transform);
+        CreatePopupText(text, transform, color);
     }
 }

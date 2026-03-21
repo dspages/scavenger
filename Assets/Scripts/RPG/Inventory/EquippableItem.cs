@@ -13,7 +13,10 @@ public class EquippableItem : InventoryItem
         Armor,
         Helmet,
         Boots,
-        Ring,
+        Gloves,
+        LeftRing,
+        RightRing,
+        Goggles,
         Amulet
     }
     

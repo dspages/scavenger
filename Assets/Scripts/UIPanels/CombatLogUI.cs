@@ -44,8 +44,8 @@ public class CombatLogUI : MonoBehaviour
 
         CombatLog.OnEntryAdded += OnLogEntry;
 
-        foreach (var entry in CombatLog.Entries)
-            AppendLine(entry);
+        for (int i = 0; i < CombatLog.Entries.Count; i++)
+            AppendLine(CombatLog.Entries[i], CombatLog.GetEntryDamageType(i));
     }
 
     private void SetupMinimizeToggle()
@@ -124,18 +124,22 @@ public class CombatLogUI : MonoBehaviour
         });
     }
 
-    private void OnLogEntry(string message)
+    private void OnLogEntry(string message, EquippableHandheld.DamageType? damageType)
     {
-        AppendLine(message);
+        AppendLine(message, damageType);
     }
 
-    private void AppendLine(string text)
+    private void AppendLine(string text, EquippableHandheld.DamageType? damageType = null)
     {
         if (logLabel == null) return;
 
+        logLabel.enableRichText = true;
         if (!string.IsNullOrEmpty(logLabel.text))
             logLabel.text += "\n";
-        logLabel.text += text;
+        if (damageType.HasValue)
+            logLabel.text += $"<color=#{DamageTypeColors.GetHex(damageType.Value)}>{text}</color>";
+        else
+            logLabel.text += text;
 
         if (scrollView != null)
         {

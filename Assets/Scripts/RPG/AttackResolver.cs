@@ -81,10 +81,10 @@ public static class AttackResolver
     {
         int baseDmg = GetBaseDamage(context);
 
-        // Stat bonus: +strength/2 for melee attacks
+        // Stat bonus: melee damage from CharacterSheet (backstab etc. can be added when AttackContext supports it)
         int statBonus = 0;
         if (context.isMelee)
-            statBonus = attacker.strength / 2;
+            statBonus = attacker.GetMeleeDamageBonus();
         float damage = baseDmg + statBonus;
 
         // Status effect multipliers on the attacker
@@ -100,26 +100,11 @@ public static class AttackResolver
         if (isCrit)
             damage *= 1.5f;
 
-        // Armor reduction from defender equipment + BULWARK
-        int armor = GetTotalArmor(defender);
+        // Armor reduction from defender equipment + BULWARK (CharacterSheet is single source of truth)
+        int armor = defender.GetTotalArmor();
         damage -= armor;
 
         return Mathf.Max(0, Mathf.RoundToInt(damage));
-    }
-
-    public static int GetTotalArmor(CharacterSheet defender)
-    {
-        int armor = 0;
-        foreach (var kvp in defender.GetEquippedItems())
-        {
-            armor += kvp.Value.armorBonus;
-        }
-        foreach (var effect in defender.statusEffects)
-        {
-            if (effect.type == StatusEffect.EffectType.BULWARK)
-                armor += effect.PowerLevel;
-        }
-        return armor;
     }
 
     private static string FormatHitMessage(string attackerName, string defenderName,

@@ -43,7 +43,7 @@ public class ActionMeleeAttack : ActionAttack
             var weapon = GetEquippedWeaponForThisAttack();
             var context = AttackContext.Melee(weapon, abilityData);
             var result = AttackResolver.Resolve(characterSheet, enemy.characterSheet, context);
-            CombatLog.Log(result.logMessage);
+            CombatLog.Log(result.logMessage, result.hit ? result.damageType : (EquippableHandheld.DamageType?)null);
 
             if (popupTarget != null)
             {
@@ -55,14 +55,9 @@ public class ActionMeleeAttack : ActionAttack
     private void ShowAttackPopup(AttackResult result, Transform target)
     {
         if (result.hit)
-        {
-            string text = result.critical ? $"CRIT {result.damageDealt}" : result.damageDealt.ToString();
-            PopupTextController.CreatePopupText(text, target);
-        }
+            PopupTextController.CreateDamagePopup(result.damageDealt, result.critical, result.damageType, target);
         else
-        {
-            PopupTextController.CreatePopupText("MISS", target);
-        }
+            PopupTextController.CreateMissPopup(target);
     }
 
     protected override float GetAttackDuration()

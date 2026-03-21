@@ -37,14 +37,14 @@ public class CombatLogTests
     public void Log_FiresEvent()
     {
         string received = null;
-        CombatLog.OnEntryAdded += msg => received = msg;
+        void Handler(string msg, EquippableHandheld.DamageType? _) { received = msg; }
+        CombatLog.OnEntryAdded += Handler;
 
         CombatLog.Log("Hello");
 
         Assert.AreEqual("Hello", received);
 
-        // Cleanup
-        CombatLog.OnEntryAdded -= msg => received = msg;
+        CombatLog.OnEntryAdded -= Handler;
     }
 
     [Test]

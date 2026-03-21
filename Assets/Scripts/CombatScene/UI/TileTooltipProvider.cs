@@ -73,7 +73,9 @@ public class TileTooltipProvider : TooltipProvider
         var enemyTile = enemy.GetCurrentTile();
         if (playerTile == null || enemyTile == null) return "";
 
-        int dist = Mathf.Abs(playerTile.x - enemyTile.x) + Mathf.Abs(playerTile.y - enemyTile.y);
+        Tile launchTile = AttackLaunchTile.Resolve(enemyTile, playerTile);
+        if (launchTile == null) return "";
+        int dist = Mathf.Abs(launchTile.x - enemyTile.x) + Mathf.Abs(launchTile.y - enemyTile.y);
         var playerWeapon = playerSheet.GetEquippedItem(EquippableItem.EquipmentSlot.RightHand) as EquippableHandheld;
         var context = AttackContext.Ranged(playerWeapon, dist);
 

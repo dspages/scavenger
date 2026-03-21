@@ -1,32 +1,181 @@
 :root {
-    --color-surface: rgba(30, 30, 30, 0.98);
-    --color-surface-alt: rgba(45, 45, 45, 0.95);
+    /* Core scavenger sci‑fi palette */
+    --color-surface: rgba(18, 20, 24, 0.98);        /* primary panel surface */
+    --color-surface-alt: rgba(36, 40, 48, 0.96);    /* HUD bar / secondary panels */
+    --color-surface-soft: rgba(15, 18, 24, 0.9);    /* overlays, combat log, modals */
+
     --color-text: #e5e7eb;
-    --color-muted: #9ca3af;
-    --color-primary: #3b82f6;
-    --color-secondary: #4b5563;
+    --color-text-muted: #9ca3af;
+    --color-text-soft: #6b7280;
+
+    --color-primary: #22c1c3;   /* teal salvage tech */
+    --color-primary-soft: rgba(34, 193, 195, 0.18);
+    --color-accent: #fbbf24;    /* amber highlight / selected */
+    --color-danger: #ef4444;
+    --color-warning: #facc15;
+    --color-success: #22c55e;
+
+    /* Damage / status channels */
+    --color-dmg-physical: #e5e7eb;
+    --color-dmg-fire: #f97316;
+    --color-dmg-poison: #22c55e;
+    --color-dmg-psychic: #a855f7;
+
+    /* Rarity frame colors */
+    --color-rarity-common: #6b7280;
+    --color-rarity-uncommon: #22c55e;
+    --color-rarity-rare: #3b82f6;
+    --color-rarity-epic: #a855f7;
+    --color-rarity-legendary: #f59e0b;
+
+    /* Shape & spacing */
     --radius: 8px;
+    --radius-soft: 6px;
+    --radius-hard: 4px;
+
+    --spacing-xs: 4px;
     --spacing-s: 8px;
     --spacing-m: 12px;
     --spacing-l: 16px;
+    --spacing-xl: 24px;
+
+    /* Type scale (approximate – applied via utility classes) */
+    --font-size-caption: 10px;
+    --font-size-small: 12px;
+    --font-size-body: 13px;
+    --font-size-label: 14px;
+    --font-size-title: 18px;
+    --font-size-heading: 22px;
 }
 
-.text-muted { color: var(--color-muted); }
+/* Typography & layout tokens */
 .text { color: var(--color-text); }
+.text-muted { color: var(--color-text-muted); }
+.text-soft { color: var(--color-text-soft); }
+.text-caption { font-size: var(--font-size-caption); }
+.text-small { font-size: var(--font-size-small); }
+.text-body { font-size: var(--font-size-body); }
+.text-label { font-size: var(--font-size-label); }
+.text-title { font-size: var(--font-size-title); -unity-font-style: bold; }
+.text-heading { font-size: var(--font-size-heading); -unity-font-style: bold; }
+
 .bg-surface { background-color: var(--color-surface); }
 .bg-surface-alt { background-color: var(--color-surface-alt); }
+.bg-surface-soft { background-color: var(--color-surface-soft); }
+
 .rounded { border-radius: var(--radius); }
+.rounded-soft { border-radius: var(--radius-soft); }
+.rounded-hard { border-radius: var(--radius-hard); }
+
+.pad-xs { padding: var(--spacing-xs); }
 .pad-s { padding: var(--spacing-s); }
 .pad-m { padding: var(--spacing-m); }
 .pad-l { padding: var(--spacing-l); }
-.btn { border-radius: 6px; color: white; }
-.btn-primary { background-color: var(--color-primary); }
-.btn-secondary { background-color: var(--color-secondary); } 
+.pad-xl { padding: var(--spacing-xl); }
+
+.gap-s { gap: var(--spacing-s); }
+.gap-m { gap: var(--spacing-m); }
+.gap-l { gap: var(--spacing-l); }
+
+/* Generic button tokens */
+.btn {
+    border-radius: 6px;
+    color: white;
+    -unity-text-align: middle-center;
+}
+
+.btn-primary {
+    background-color: var(--color-primary);
+}
+
+.btn-primary:hover {
+    background-color: #38d5d7;
+}
+
+.btn-secondary {
+    background-color: var(--color-surface-alt);
+}
+
+.btn-secondary:hover {
+    background-color: #4b5563;
+}
+
+.btn-ghost {
+    background-color: transparent;
+    border-top-width: 1px;
+    border-bottom-width: 1px;
+    border-left-width: 1px;
+    border-right-width: 1px;
+    border-top-color: rgba(255, 255, 255, 0.06);
+    border-bottom-color: rgba(255, 255, 255, 0.06);
+    border-left-color: rgba(255, 255, 255, 0.06);
+    border-right-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Rarity frames for items */
+.rarity-common {
+    border-width: 1px;
+    border-color: rgba(107, 114, 128, 0.8);
+}
+
+.rarity-uncommon {
+    border-width: 1px;
+    border-color: var(--color-rarity-uncommon);
+}
+
+.rarity-rare {
+    border-width: 1px;
+    border-color: var(--color-rarity-rare);
+}
+
+.rarity-epic {
+    border-width: 1px;
+    border-color: var(--color-rarity-epic);
+}
+
+.rarity-legendary {
+    border-width: 1px;
+    border-color: var(--color-rarity-legendary);
+}
+
+/* Damage / status pill styling */
+.pill {
+    border-radius: 999px;
+    padding-left: 6px;
+    padding-right: 6px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    font-size: var(--font-size-caption);
+}
+
+.pill-physical {
+    color: var(--color-dmg-physical);
+    border-width: 1px;
+    border-color: rgba(229, 231, 235, 0.6);
+}
+
+.pill-fire {
+    color: var(--color-dmg-fire);
+    border-width: 1px;
+    border-color: rgba(249, 115, 22, 0.7);
+}
+
+.pill-poison {
+    color: var(--color-dmg-poison);
+    border-width: 1px;
+    border-color: rgba(34, 197, 94, 0.7);
+}
+
+.pill-psychic {
+    color: var(--color-dmg-psychic);
+    border-width: 1px;
+    border-color: rgba(168, 85, 247, 0.7);
+}
 
 /* Reusable tooltip styles (shared by in-world and UI tooltips) */
 .ui-tooltip {
     position: absolute;
-    background-color: rgba(0, 0, 0, 0.85);
+    background-color: rgba(0, 0, 0, 0.9);
     padding-left: 6px;
     padding-right: 6px;
     padding-top: 4px;

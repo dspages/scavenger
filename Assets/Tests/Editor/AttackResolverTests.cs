@@ -257,7 +257,7 @@ public class AttackResolverTests
         sheet.TryEquipItem(armor);
         new StatusEffect(StatusEffect.EffectType.BULWARK, 3, sheet, 2);
 
-        int total = AttackResolver.GetTotalArmor(sheet);
+        int total = sheet.GetTotalArmor();
 
         Assert.AreEqual(5, total);
     }

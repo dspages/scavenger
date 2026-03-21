@@ -24,30 +24,53 @@
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
-        <ui:VisualElement name="InventoryPanel" class="panel elevated ui-blocker" style="position: absolute; right: 16px; bottom: 84px; width: 520px; height: 420px; background-color: rgba(30,30,30,0.98); border-radius: 8px; padding: 16px; z-index: 100; picking-mode: position;">
-            <ui:Label text="Inventory" class="panel-title" />
-            <ui:VisualElement class="inventory-content ui-blocker" style="flex-direction: row; flex-grow: 1; margin-top: 8px;">
-                <!-- Character Equipment -->
-                <ui:VisualElement name="EquipmentPanel" class="ui-blocker" style="width: 180px; margin-right: 16px;">
-                    <ui:Label text="Equipment" class="section-title" />
-                    <ui:VisualElement class="equipment-grid ui-blocker" style="flex-grow: 1; align-items: center; justify-content: center;">
-                        <!-- Equipment slots arranged in a humanoid pattern -->
-                        <ui:VisualElement name="LeftHandSlot" class="equipment-slot ui-blocker" style="position: absolute; left: 20px; top: 80px; width: 48px; height: 48px;" />
-                        <ui:VisualElement name="ArmorSlot" class="equipment-slot ui-blocker" style="position: absolute; left: 70px; top: 80px; width: 48px; height: 48px;" />
-                        <ui:VisualElement name="RightHandSlot" class="equipment-slot ui-blocker" style="position: absolute; left: 120px; top: 80px; width: 48px; height: 48px;" />
+        <ui:VisualElement name="InventoryPanel" class="panel elevated ui-blocker inventory-panel-root" style="position: absolute; right: 16px; bottom: 84px; width: 600px; height: 460px; background-color: rgba(30,30,30,0.98); border-radius: 8px; padding: 16px; z-index: 100; picking-mode: position; flex-direction: column; overflow: hidden;">
+            <ui:VisualElement style="flex-direction: row; align-items: center; margin-bottom: 10px; flex-shrink: 0;">
+                <ui:Label text="Loadout" class="panel-title" style="flex-grow: 1;" />
+                <ui:Button name="InventoryTabButton" text="Inventory" class="secondary" style="height: 30px; min-width: 96px; margin-right: 6px;" />
+                <ui:Button name="CharacterTabButton" text="Character" class="secondary" style="height: 30px; min-width: 96px;" />
+            </ui:VisualElement>
+
+            <!-- Inventory tab -->
+            <ui:VisualElement name="InventoryTab" class="ui-blocker" style="flex-direction: column; flex-grow: 1; flex-shrink: 1; min-height: 0;">
+                <ui:VisualElement name="StatsBlockContainer" class="ui-blocker" style="flex-shrink: 0; min-height: 56px; margin-bottom: 8px; padding: 6px; background-color: rgba(20,22,28,0.6); border-radius: 4px;" />
+                <ui:VisualElement class="inventory-content ui-blocker" style="flex-direction: row; flex-grow: 1; flex-shrink: 1; min-height: 0; margin-top: 4px;">
+                    <ui:VisualElement name="EquipmentPanel" class="ui-blocker" style="width: 200px; margin-right: 12px; flex-shrink: 0;">
+                        <ui:Label text="Equipment" class="section-title" />
+                        <ui:VisualElement class="equipment-grid ui-blocker" style="position: relative; min-height: 200px;">
+                            <ui:VisualElement name="HelmetSlot" class="equipment-slot ui-blocker" style="position: absolute; left: 74px; top: 8px; width: 48px; height: 48px;" />
+                            <ui:VisualElement name="GogglesSlot" class="equipment-slot ui-blocker" style="position: absolute; left: 20px; top: 28px; width: 40px; height: 40px;" />
+                            <ui:VisualElement name="ArmorSlot" class="equipment-slot ui-blocker" style="position: absolute; left: 66px; top: 56px; width: 48px; height: 48px;" />
+                            <ui:VisualElement name="GlovesSlot" class="equipment-slot ui-blocker" style="position: absolute; left: 66px; top: 108px; width: 44px; height: 44px;" />
+                            <ui:VisualElement name="LeftHandSlot" class="equipment-slot ui-blocker" style="position: absolute; left: 12px; top: 108px; width: 48px; height: 48px;" />
+                            <ui:VisualElement name="RightHandSlot" class="equipment-slot ui-blocker" style="position: absolute; left: 120px; top: 108px; width: 48px; height: 48px;" />
+                            <ui:VisualElement name="LeftRingSlot" class="equipment-slot ui-blocker" style="position: absolute; left: 20px; top: 160px; width: 40px; height: 40px;" />
+                            <ui:VisualElement name="RightRingSlot" class="equipment-slot ui-blocker" style="position: absolute; left: 120px; top: 160px; width: 40px; height: 40px;" />
+                            <ui:VisualElement name="BootsSlot" class="equipment-slot ui-blocker" style="position: absolute; left: 66px; top: 200px; width: 48px; height: 40px;" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                    <ui:VisualElement name="InventoryGrid" class="ui-blocker" style="flex-grow: 1; flex-shrink: 1; min-height: 0; flex-direction: column; position: relative;">
+                        <ui:Label text="Backpack" class="section-title" style="flex-shrink: 0;" />
+                        <ui:ScrollView name="InventoryBackpackScroll" class="ui-blocker" style="flex-grow: 1; min-height: 0; margin-bottom: 4px;" vertical-scroller-visibility="Auto" horizontal-scroller-visibility="Hidden">
+                            <ui:VisualElement name="ItemGrid" class="item-grid ui-blocker" style="flex-direction: row; flex-wrap: wrap; width: 288px;">
+                            </ui:VisualElement>
+                        </ui:ScrollView>
+                        <ui:VisualElement style="flex-direction: row; justify-content: flex-end; flex-shrink: 0;">
+                            <ui:VisualElement name="Trash" class="inventory-slot ui-blocker trash-slot" style="width: 44px; height: 44px;">
+                                <ui:Label text="🗑️" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
                     </ui:VisualElement>
                 </ui:VisualElement>
-                
-                <!-- Inventory Grid -->
-                <ui:VisualElement name="InventoryGrid" class="ui-blocker" style="flex-grow: 1; position: relative;">
-                    <ui:Label text="Backpack" class="section-title" />
-                    <ui:VisualElement name="ItemGrid" class="item-grid ui-blocker" style="flex-direction: row; flex-wrap: wrap; width: 288px; height: 288px;">
-                        <!-- 24 slots in 6x4 grid will be created dynamically -->
-                    </ui:VisualElement>
-                    <ui:VisualElement name="Trash" class="inventory-slot ui-blocker trash-slot" style="position: absolute; right: 0px; bottom: 0px; width: 44px; height: 44px;">
-                        <ui:Label text="🗑️" />
-                    </ui:VisualElement>
-                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <!-- Character tab -->
+            <ui:VisualElement name="CharacterTab" class="ui-blocker" style="flex-direction: column; flex-grow: 1; flex-shrink: 1; min-height: 0; display: none;">
+                <ui:VisualElement name="CharacterStatsBlockContainer" class="ui-blocker" style="min-height: 180px; margin-bottom: 8px; padding: 10px; background-color: rgba(20,22,28,0.6); border-radius: 6px;" />
+                <ui:Label text="Skills" class="section-title" style="margin-top: 4px;" />
+                <ui:ScrollView name="CharacterSkillsScroll" class="ui-blocker" style="flex-grow: 1; padding: 6px; background-color: rgba(15,18,24,0.35); border-radius: 6px; picking-mode: position;" vertical-scroller-visibility="Auto">
+                    <ui:VisualElement name="CharacterSkillsList" class="ui-blocker" style="flex-direction: column; gap: 4px;" />
+                </ui:ScrollView>
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>
