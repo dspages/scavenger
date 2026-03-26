@@ -186,7 +186,7 @@ public class CombatPanelUI : MonoBehaviour
         var uiDoc = GetComponent<UIDocument>();
         if (uiDoc == null)
         {
-            uiDoc = FindObjectOfType<UIDocument>();
+            uiDoc = FindFirstObjectByType<UIDocument>(FindObjectsInactive.Exclude);
         }
 
         if (uiDoc == null)
@@ -250,7 +250,7 @@ public class CombatPanelUI : MonoBehaviour
 
     private void Awake()
     {
-        turnManager = FindObjectOfType<TurnManager>();
+        turnManager = FindFirstObjectByType<TurnManager>(FindObjectsInactive.Exclude);
     }
 
     private void Update()
@@ -278,7 +278,9 @@ public class CombatPanelUI : MonoBehaviour
 			if (show)
 			{
 				EnemyController active = null;
-				var enemies = FindObjectsOfType<EnemyController>();
+				var enemies = FindObjectsByType<EnemyController>(
+					findObjectsInactive: FindObjectsInactive.Exclude,
+					sortMode: FindObjectsSortMode.None);
 				for (int i = 0; i < enemies.Length; i++) { if (enemies[i] != null && enemies[i].isTurn) { active = enemies[i]; break; } }
 				show = (active != null) && active.isActing;
 			}
@@ -422,7 +424,9 @@ public class CombatPanelUI : MonoBehaviour
     {
         if (turnManager == null || !turnManager.IsPlayerTurn()) return null;
 
-        var players = FindObjectsOfType<PlayerController>();
+        var players = FindObjectsByType<PlayerController>(
+            findObjectsInactive: FindObjectsInactive.Exclude,
+            sortMode: FindObjectsSortMode.None);
         for (int i = 0; i < players.Length; i++)
         {
             if (players[i] != null && players[i].isTurn)
@@ -918,7 +922,9 @@ public class CombatPanelUI : MonoBehaviour
 
     private void OnEndTurnButtonClicked()
     {
-        PlayerController[] pcs = FindObjectsOfType<PlayerController>();
+        PlayerController[] pcs = FindObjectsByType<PlayerController>(
+            findObjectsInactive: FindObjectsInactive.Exclude,
+            sortMode: FindObjectsSortMode.None);
         foreach (PlayerController pc in pcs)
         {
             // The controller is responsible for only ending turn if the click is valid.
@@ -1006,7 +1012,9 @@ public class CombatPanelUI : MonoBehaviour
 
     private PlayerController GetActivePlayerController()
     {
-        var players = FindObjectsOfType<PlayerController>();
+        var players = FindObjectsByType<PlayerController>(
+            findObjectsInactive: FindObjectsInactive.Exclude,
+            sortMode: FindObjectsSortMode.None);
         for (int i = 0; i < players.Length; i++)
         {
             if (players[i] != null && players[i].isTurn)

@@ -98,8 +98,8 @@ public class MainMenuUI : MonoBehaviour
     private void OnNewGameButtonClicked()
     {
         PlayerParty.Reset();
-        // Add code here to handle the new game button click
-        SceneManager.LoadScene("CombatScene");
+        CampaignMeta.ResetNewCampaign();
+        SceneManager.LoadScene(SceneNames.HomeBase);
     }
 
     private void OnLoadGameButtonClicked()

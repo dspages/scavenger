@@ -1,0 +1,99 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Assets/UI/UXML/HomeBase.uss?fileID=7433441132597879392&amp;guid=b1b2b3b4c5d6e7f8a9b0c1d2e3f4a5b6&amp;type=3#HomeBase" />
+    <ui:VisualElement name="HomeBaseRoot" class="home-base-root">
+        <ui:VisualElement name="HomeBaseHeader" class="home-base-header">
+            <ui:VisualElement class="home-base-header-stats">
+                <ui:VisualElement style="flex-direction: row; align-items: center; gap: 8px;">
+                    <ui:Label text="Week" class="home-base-stat-label" />
+                    <ui:Label name="WeekValueLabel" text="1" class="home-base-stat-value" />
+                </ui:VisualElement>
+                <ui:VisualElement style="flex-direction: row; align-items: center; gap: 8px;">
+                    <ui:Label text="Gold" class="home-base-stat-label" />
+                    <ui:Label name="GoldValueLabel" text="0" class="home-base-stat-value" />
+                </ui:VisualElement>
+                <ui:VisualElement style="flex-direction: row; align-items: center; gap: 8px;">
+                    <ui:Label text="Roster" class="home-base-stat-label" />
+                    <ui:Label name="RosterCountLabel" text="0 / 8" class="home-base-stat-value" />
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:Button name="ConfirmWeekButton" class="home-base-btn-primary" text="Confirm week" />
+        </ui:VisualElement>
+
+        <ui:VisualElement class="home-base-main-row">
+            <ui:VisualElement class="home-base-column">
+                <ui:Label text="Choose mission (1)" class="home-base-section-title" />
+                <ui:VisualElement name="MissionCardsRow" class="home-base-mission-row">
+                    <ui:VisualElement name="MissionCard0" class="home-base-mission-card">
+                        <ui:Label name="MissionName0" class="home-base-mission-name" text="—" />
+                        <ui:Label name="MissionTag0" class="home-base-mission-tag" text="" />
+                        <ui:Label name="MissionReward0" class="home-base-mission-reward" text="" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="MissionCard1" class="home-base-mission-card">
+                        <ui:Label name="MissionName1" class="home-base-mission-name" text="—" />
+                        <ui:Label name="MissionTag1" class="home-base-mission-tag" text="" />
+                        <ui:Label name="MissionReward1" class="home-base-mission-reward" text="" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="MissionCard2" class="home-base-mission-card">
+                        <ui:Label name="MissionName2" class="home-base-mission-name" text="—" />
+                        <ui:Label name="MissionTag2" class="home-base-mission-tag" text="" />
+                        <ui:Label name="MissionReward2" class="home-base-mission-reward" text="" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Label name="MissionDetailLabel" class="home-base-detail" text="Select a mission." />
+            </ui:VisualElement>
+
+            <ui:VisualElement class="home-base-column">
+                <ui:Label name="ExcursionTitleLabel" text="Excursion squad (max 4)" class="home-base-section-title" />
+                <ui:VisualElement name="SquadSlotsRow" class="home-base-squad-row">
+                    <ui:VisualElement name="SquadSlot0" class="home-base-squad-slot home-base-squad-slot--pickable" picking-mode="position">
+                        <ui:Label name="SquadSlotLabel0" class="home-base-squad-slot-label" text="—" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="SquadSlot1" class="home-base-squad-slot home-base-squad-slot--pickable" picking-mode="position">
+                        <ui:Label name="SquadSlotLabel1" class="home-base-squad-slot-label" text="—" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="SquadSlot2" class="home-base-squad-slot home-base-squad-slot--pickable" picking-mode="position">
+                        <ui:Label name="SquadSlotLabel2" class="home-base-squad-slot-label" text="—" />
+                    </ui:VisualElement>
+                    <ui:VisualElement name="SquadSlot3" class="home-base-squad-slot home-base-squad-slot--pickable" picking-mode="position">
+                        <ui:Label name="SquadSlotLabel3" class="home-base-squad-slot-label" text="—" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:Button name="OpenPreparationButton" class="home-base-btn-secondary" text="Open preparation / loadout" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:Label text="Roster" class="home-base-section-title" style="margin-top: 8px;" />
+        <ui:ScrollView name="RosterScroll" class="home-base-roster-scroll" mode="Horizontal">
+            <ui:VisualElement name="RosterChips" class="home-base-roster-chips" />
+        </ui:ScrollView>
+
+        <ui:Label text="Base this week" class="home-base-section-title" />
+        <ui:ScrollView name="AssignmentsScroll" class="home-base-assignments">
+            <ui:VisualElement name="AssignmentsList" />
+        </ui:ScrollView>
+
+        <ui:VisualElement class="home-base-footer">
+            <ui:Button name="RecruitButton" class="home-base-btn-secondary" text="Recruit" />
+            <ui:Button name="StashSummaryButton" class="home-base-btn-secondary" text="Stash summary" />
+            <ui:Button name="QuickStatusButton" class="home-base-btn-secondary" text="Morale / heal (stub)" />
+            <ui:Button name="MainMenuButton" class="home-base-btn-ghost" text="Main menu" style="margin-left: auto;" />
+        </ui:VisualElement>
+
+        <ui:VisualElement name="PreparationOverlay" class="home-base-preparation-overlay" style="display: none;">
+            <ui:VisualElement class="home-base-preparation-panel">
+                <ui:VisualElement class="home-base-prep-header">
+                    <ui:VisualElement class="home-base-prep-header-text">
+                        <ui:Label text="Preparation" class="home-base-prep-title" />
+                        <ui:Label name="PreparationSubtitle" class="home-base-prep-subtitle" text="Close hides stash and character loadout. Press Esc or click the dimmed area outside this panel to close." />
+                    </ui:VisualElement>
+                    <ui:Button name="ClosePreparationButton" class="home-base-btn-secondary" text="Close" style="min-width: 80px;" />
+                </ui:VisualElement>
+                <ui:VisualElement class="home-base-prep-body">
+                    <ui:VisualElement name="StashColumn" class="home-base-prep-column" />
+                    <ui:VisualElement name="CharacterLoadoutColumn" class="home-base-prep-column" />
+                </ui:VisualElement>
+                <ui:Button name="LearnSkillButton" class="home-base-btn-secondary" text="Learn skill (scroll / manual / blueprint)" style="margin-top: 12px; align-self: flex-start;" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

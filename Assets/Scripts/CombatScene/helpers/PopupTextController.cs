@@ -13,7 +13,9 @@ public class PopupTextController : MonoBehaviour
     public static void Initialize()
     {
         // Search all loaded scenes for a CanvasPrefabs that has the popup prefab assigned (e.g. Main Menu has it, Combat might not)
-        var all = Object.FindObjectsOfType<CanvasPrefabs>(true);
+        var all = Object.FindObjectsByType<CanvasPrefabs>(
+            findObjectsInactive: FindObjectsInactive.Include,
+            sortMode: FindObjectsSortMode.None);
         foreach (var cp in all)
         {
             if (cp.popupTextPrefab != null)

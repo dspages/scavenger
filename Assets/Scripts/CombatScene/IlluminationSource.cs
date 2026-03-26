@@ -14,8 +14,8 @@ public class IlluminationSource : MonoBehaviour
     
     void Start()
     {
-        visionSystem = FindObjectOfType<VisionSystem>();
-        tileManager = FindObjectOfType<TileManager>();
+        visionSystem = FindFirstObjectByType<VisionSystem>(FindObjectsInactive.Exclude);
+        tileManager = FindFirstObjectByType<TileManager>(FindObjectsInactive.Exclude);
         lastIlluminationPosition = transform.position;
         lastTilePosition = new Vector2Int(
             Mathf.RoundToInt(transform.position.x), 

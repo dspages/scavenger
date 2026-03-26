@@ -1,0 +1,176 @@
+/* Loadout / inventory + character tab — scoped under .scav-loadout so Home Base screen USS cannot collide.
+   Shared grid/slot styles stay in CombatPanel.uss (stash + loadout). Theme.uss provides tokens. */
+
+.scav-loadout {
+    flex-direction: column;
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(30, 30, 30, 0.98);
+    border-radius: 8px;
+    padding: 16px;
+    overflow: hidden;
+}
+
+.scav-loadout__panel-title {
+    flex-grow: 1;
+    margin-bottom: 0;
+}
+
+.scav-loadout__inventory-tab {
+    flex-direction: column;
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+}
+
+.scav-loadout__inventory-scroll {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+}
+
+.scav-loadout__scroll-content {
+    flex-direction: column;
+    width: 100%;
+}
+
+.scav-loadout__stats-block {
+    flex-shrink: 0;
+    min-height: 56px;
+    margin-bottom: 8px;
+    padding: 6px;
+    background-color: rgba(20, 22, 28, 0.6);
+    border-radius: 4px;
+}
+
+.scav-loadout .inventory-content {
+    flex-grow: 1;
+}
+
+.scav-loadout__inventory-row {
+    flex-direction: row;
+    flex-shrink: 0;
+    width: 100%;
+    min-height: 280px;
+    margin-top: 4px;
+}
+
+.scav-loadout__equipment-panel {
+    width: 200px;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.scav-loadout__equipment-grid {
+    position: relative;
+    min-height: 200px;
+}
+
+.scav-loadout .equipment-slot {
+    background-color: rgba(75, 85, 99, 0.3);
+    border-top-width: 2px;
+    border-right-width: 2px;
+    border-bottom-width: 2px;
+    border-left-width: 2px;
+    border-top-color: rgba(156, 163, 175, 0.3);
+    border-right-color: rgba(156, 163, 175, 0.3);
+    border-bottom-color: rgba(156, 163, 175, 0.3);
+    border-left-color: rgba(156, 163, 175, 0.3);
+    border-radius: 6px;
+    align-items: center;
+    justify-content: center;
+}
+
+.scav-loadout .equip-drop-valid {
+    background-color: rgba(34, 197, 94, 0.35);
+    border-color: rgba(34, 197, 94, 0.85);
+}
+
+.scav-loadout .equip-drop-invalid {
+    background-color: rgba(239, 68, 68, 0.35);
+    border-color: rgba(239, 68, 68, 0.85);
+}
+
+.scav-loadout .equip-drop-neutral {
+    background-color: rgba(156, 163, 175, 0.35);
+    border-color: rgba(156, 163, 175, 0.85);
+}
+
+.scav-loadout__backpack-column {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+    flex-direction: column;
+    position: relative;
+}
+
+.scav-loadout__backpack-title {
+    flex-shrink: 0;
+}
+
+.scav-loadout__backpack-scroll {
+    flex-grow: 0;
+    flex-shrink: 0;
+    margin-bottom: 4px;
+}
+
+.scav-loadout__item-grid {
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 288px;
+}
+
+.scav-loadout__trash-row {
+    flex-direction: row;
+    justify-content: flex-end;
+    flex-shrink: 0;
+}
+
+.scav-loadout__character-tab {
+    flex-direction: column;
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+    display: none;
+}
+
+.scav-loadout__character-scroll {
+    flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
+}
+
+.scav-loadout__character-scroll-inner {
+    flex-direction: column;
+    width: 100%;
+}
+
+.scav-loadout__character-stats {
+    flex-shrink: 0;
+    min-height: 180px;
+    margin-bottom: 8px;
+    padding: 10px;
+    background-color: rgba(20, 22, 28, 0.6);
+    border-radius: 6px;
+}
+
+.scav-loadout__skills-title {
+    margin-top: 4px;
+    flex-shrink: 0;
+}
+
+.scav-loadout .combat-character-skills-list {
+    flex-direction: column;
+    flex-shrink: 0;
+    padding: 6px;
+    margin-bottom: 8px;
+    background-color: rgba(15, 18, 24, 0.35);
+    border-radius: 6px;
+}
+
+.scav-loadout .combat-character-skills-list > * + * {
+    margin-top: 4px;
+}

@@ -60,7 +60,7 @@ public static class ReachabilityResolver
 
         if (selectedAction is ActionAttack atk)
         {
-            TurnManager tm = UnityEngine.Object.FindObjectOfType<TurnManager>();
+            TurnManager tm = UnityEngine.Object.FindFirstObjectByType<TurnManager>(FindObjectsInactive.Exclude);
             List<CombatController> potentialTargets = new List<CombatController>();
             HashSet<Tile> tilesInRange = new HashSet<Tile>();
 

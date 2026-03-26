@@ -52,7 +52,7 @@ public static class DerivedStatsView
         if (resolvedPortrait != null)
         {
             portraitBox.style.backgroundImage = new StyleBackground(resolvedPortrait);
-            portraitBox.style.unityBackgroundScaleMode = ScaleMode.ScaleToFit;
+            portraitBox.style.backgroundSize = new BackgroundSize(BackgroundSizeType.Contain);
         }
         else
         {

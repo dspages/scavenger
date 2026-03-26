@@ -69,7 +69,7 @@ public class CharacterTooltipProvider : TooltipProvider
     {
         var turnManager = GetComponentInParent<TurnManager>();
         if (turnManager == null)
-            turnManager = FindObjectOfType<TurnManager>();
+            turnManager = FindFirstObjectByType<TurnManager>(FindObjectsInactive.Exclude);
         if (turnManager == null) return null;
 
         var pcs = turnManager.AllLivingPCs();

@@ -65,7 +65,7 @@ public class ActionMove : Action
                 path.Pop();
                 
                 // Trigger vision update when we actually change tiles
-                VisionSystem visionSystem = FindObjectOfType<VisionSystem>();
+                VisionSystem visionSystem = FindFirstObjectByType<VisionSystem>(FindObjectsInactive.Exclude);
                 if (visionSystem != null)
                 {
                     visionSystem.UpdateVision();

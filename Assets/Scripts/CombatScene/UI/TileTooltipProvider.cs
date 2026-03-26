@@ -9,7 +9,7 @@ public class TileTooltipProvider : TooltipProvider
     {
         base.Start();
         tile = GetComponent<Tile>();
-        visionSystem = FindObjectOfType<VisionSystem>();
+        visionSystem = FindFirstObjectByType<VisionSystem>(FindObjectsInactive.Exclude);
     }
     
     protected override string GenerateDynamicText()
@@ -86,7 +86,7 @@ public class TileTooltipProvider : TooltipProvider
 
     private CombatController FindActivePlayer()
     {
-        var turnManager = FindObjectOfType<TurnManager>();
+        var turnManager = FindFirstObjectByType<TurnManager>(FindObjectsInactive.Exclude);
         if (turnManager == null) return null;
 
         var pcs = turnManager.AllLivingPCs();

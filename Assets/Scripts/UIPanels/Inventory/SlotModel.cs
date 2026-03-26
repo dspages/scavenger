@@ -4,7 +4,9 @@ public enum SlotType
 {
     Inventory,
     Equipment,
-    Trash
+    Trash,
+    /// <summary>Party shared stash grid (Home Base).</summary>
+    Stash
 }
 
 public class SlotModel
@@ -41,6 +43,16 @@ public class SlotModel
         return new SlotModel
         {
             slotType = SlotType.Trash,
+            rootElement = root
+        };
+    }
+
+    public static SlotModel CreateStash(VisualElement root, int index)
+    {
+        return new SlotModel
+        {
+            slotType = SlotType.Stash,
+            inventoryIndex = index,
             rootElement = root
         };
     }

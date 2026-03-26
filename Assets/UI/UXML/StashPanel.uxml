@@ -1,0 +1,15 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <ui:VisualElement name="StashPanelRoot" class="panel elevated ui-blocker" style="flex-direction: column; flex-grow: 1; min-height: 0; padding: 16px; background-color: rgba(30,30,30,0.98); border-radius: 8px; picking-mode: position;">
+        <ui:VisualElement class="game-floating-panel__title-row">
+            <ui:Label text="Shared stash" class="panel-title" style="flex-grow: 1; margin-bottom: 0;" />
+        </ui:VisualElement>
+        <ui:ScrollView style="flex-grow: 1; min-height: 120px; flex-shrink: 1;" vertical-scroller-visibility="Auto" horizontal-scroller-visibility="Hidden">
+            <ui:VisualElement name="StashItemGrid" class="item-grid ui-blocker" style="flex-direction: row; flex-wrap: wrap; width: 288px;" />
+        </ui:ScrollView>
+        <ui:VisualElement style="flex-direction: row; justify-content: flex-end; flex-shrink: 0; margin-top: 6px;">
+            <ui:VisualElement name="StashTrash" class="inventory-slot ui-blocker trash-slot" style="width: 44px; height: 44px;">
+                <ui:Label text="🗑️" />
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

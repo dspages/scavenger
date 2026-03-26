@@ -28,9 +28,9 @@ public class PlayerController : CombatController
     override protected void Start()
     {
         base.Start();
-        tooltipManager = FindObjectOfType<TooltipManager>();
+        tooltipManager = FindFirstObjectByType<TooltipManager>(FindObjectsInactive.Exclude);
         // Ensure a PathRenderer exists for drawing paths
-        pathRenderer = FindObjectOfType<PathRenderer>();
+        pathRenderer = FindFirstObjectByType<PathRenderer>(FindObjectsInactive.Exclude);
         if (pathRenderer == null)
         {
             GameObject pr = new GameObject("PathRenderer");
@@ -93,7 +93,7 @@ public class PlayerController : CombatController
     void ClearMouseHover()
     {
         // Clear all hovered tiles (including AoE highlights)
-        TileManager tileManager = FindObjectOfType<TileManager>();
+        TileManager tileManager = FindFirstObjectByType<TileManager>(FindObjectsInactive.Exclude);
         if (tileManager != null)
         {
             // Clear all tile hover states

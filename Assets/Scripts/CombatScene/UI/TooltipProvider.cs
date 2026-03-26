@@ -7,18 +7,18 @@ public class TooltipProvider : MonoBehaviour
     [SerializeField] private bool useDynamicText = false;
     
     [Header("Dynamic Text Settings")]
+#pragma warning disable CS0414 // Used by base.GenerateDynamicText; subclasses may bypass via override.
     [SerializeField] private string dynamicTextFormat = "";
+#pragma warning restore CS0414
     
     private TooltipManager tooltipManager;
     
     protected virtual void Start()
     {
         // Find the TooltipManager in the scene
-        tooltipManager = FindObjectOfType<TooltipManager>();
+        tooltipManager = FindFirstObjectByType<TooltipManager>(FindObjectsInactive.Exclude);
         if (tooltipManager == null)
-        {
             Debug.LogWarning("TooltipProvider: No TooltipManager found in scene!");
-        }
     }
     
     public void OnMouseEnter()
@@ -48,7 +48,8 @@ public class TooltipProvider : MonoBehaviour
     
     protected virtual string GenerateDynamicText()
     {
-        // Override this method in derived classes for dynamic content
+        if (!string.IsNullOrEmpty(dynamicTextFormat))
+            return dynamicTextFormat;
         return tooltipText;
     }
     

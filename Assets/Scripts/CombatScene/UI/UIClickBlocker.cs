@@ -11,7 +11,9 @@ public static class UIClickBlocker
 {
     public static bool IsPointerOverBlockingUI()
     {
-        var docs = Object.FindObjectsOfType<UIDocument>();
+        var docs = Object.FindObjectsByType<UIDocument>(
+            findObjectsInactive: FindObjectsInactive.Exclude,
+            sortMode: FindObjectsSortMode.None);
         if (docs == null || docs.Length == 0) return false;
 
         Vector2 mousePos = Input.mousePosition;

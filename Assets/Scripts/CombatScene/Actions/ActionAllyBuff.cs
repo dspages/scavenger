@@ -30,7 +30,7 @@ public class ActionAllyBuff : ActionRangedAttack
         ApplyTargetStatusEffect(targetTile);
     }
 
-    void Update()
+    protected new void Update()
     {
         if (!inProgress) return;
         if (currentPhase == Phase.NONE)

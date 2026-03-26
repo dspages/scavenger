@@ -124,7 +124,7 @@ VisualElement {}
 }
 
 .inventory-slot:hover {
-    border-color: rgba(156, 163, 175, 0.6);
+    border-color: rgba(156, 163, 175, 0.55);
     background-color: rgba(75, 85, 99, 0.5);
 }
 
@@ -164,15 +164,11 @@ VisualElement {}
     /* text-shadow not used: can cause "Unknown property" on some runtimes; use SDF font + text-shadow-* longhands if needed */
 }
 
-/* UI Click Blocking Utilities */
 .ui-blocker {
-    /* Elements with this class will block world interactions */
-    /* This class is detected by UIClickBlocker.IsPointerOverBlockingUI() */
     picking-mode: position;
 }
 
 .ui-transparent {
-    /* Elements with this class allow world interactions to pass through */
     picking-mode: ignore;
 }
 
@@ -190,4 +186,32 @@ VisualElement {}
     font-size: 14px;
     -unity-font-style: bold;
     -unity-text-align: middle-center;
+}
+
+/* Shared panel chrome: floating drag headers + docked title rows (see PanelDragController, AGENTS.md) */
+.game-floating-panel__header {
+    height: 18px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 6px;
+    padding-right: 2px;
+    background-color: rgba(60, 60, 60, 0.9);
+    border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+    cursor: move-arrow;
+}
+
+.game-floating-panel__title-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 10px;
+    flex-shrink: 0;
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-top: 4px;
+    padding-bottom: 4px;
+    background-color: rgba(60, 60, 60, 0.55);
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
 }

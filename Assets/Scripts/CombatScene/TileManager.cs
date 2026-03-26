@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -11,7 +10,7 @@ public class TileManager : MonoBehaviour
     // Use this for initialization
     void Start()
     {
-        TurnManager manager = GameObject.FindObjectOfType<TurnManager>();
+        TurnManager manager = GameObject.FindFirstObjectByType<TurnManager>(FindObjectsInactive.Exclude);
         // Populate Tile Grid.
         for (int x = 0; x < Globals.COMBAT_WIDTH; x++)
         {
@@ -34,21 +33,8 @@ public class TileManager : MonoBehaviour
 
         //manager.combatants.Sort(new SortCombatants());
         manager.InitiateCombat();
-        
-        // Initialize vision system after all units are spawned
-        StartCoroutine(InitializeVisionSystemAfterDelay());
-    }
-    
-    private IEnumerator InitializeVisionSystemAfterDelay()
-    {
-        // Wait a frame to ensure all units are properly spawned
-        yield return null;
-        
-        VisionSystem visionSystem = FindObjectOfType<VisionSystem>();
-        if (visionSystem != null)
-        {
-            visionSystem.UpdateVision();
-        }
+        // Vision: VisionSystem.InitializeVisionSystemWhenReady() runs on VisionSystem.Start and calls UpdateVision()
+        // once tiles + dictionaries are ready. Do not call UpdateVision() here — it races before that init.
     }
 
     public Tile getTile(int xCoord, int yCoord)

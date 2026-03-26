@@ -21,7 +21,7 @@ public partial class CombatController : MonoBehaviour
 
     virtual protected void Start()
     {
-        manager = FindObjectOfType<TileManager>();
+        manager = FindFirstObjectByType<TileManager>(FindObjectsInactive.Exclude);
         actionSelector = new ActionSelector(gameObject, () => characterSheet);
         actionSelector.GetOrAddByType(typeof(ActionMeleeAttack));
         actionSelector.ResetToDefault();
@@ -130,7 +130,7 @@ public partial class CombatController : MonoBehaviour
     private IEnumerator NotifyVisionNextFrame()
     {
         yield return null;
-        VisionSystem visionSystem = FindObjectOfType<VisionSystem>();
+        VisionSystem visionSystem = FindFirstObjectByType<VisionSystem>(FindObjectsInactive.Exclude);
         if (visionSystem != null)
             visionSystem.CheckForHiddenStatusChanges();
     }

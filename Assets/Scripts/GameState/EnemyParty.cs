@@ -16,7 +16,7 @@ public static class EnemyParty
 
     public static void SpawnPartyMembers(TurnManager turnManager)
     {
-        TileManager tileManager = GameObject.FindObjectOfType<TileManager>();
+        TileManager tileManager = GameObject.FindFirstObjectByType<TileManager>(FindObjectsInactive.Exclude);
         int xPos = Globals.COMBAT_WIDTH - 2;
         int yPos = Globals.COMBAT_HEIGHT - 2;
         Quaternion facing = new Quaternion(0f, 0f, 0f, 0f);

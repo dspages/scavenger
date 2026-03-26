@@ -74,7 +74,7 @@ public class Tile : MonoBehaviour
     // Use this for initialization
     void Start()
     {
-        manager = GameObject.FindObjectOfType<TileManager>();
+        manager = GameObject.FindFirstObjectByType<TileManager>(FindObjectsInactive.Exclude);
         spriteRenderer = GetComponent<SpriteRenderer>();
         originalColor = spriteRenderer.color;
     }
@@ -265,7 +265,7 @@ public class Tile : MonoBehaviour
         // Show selection borders only on the player's turn
         if (show)
         {
-            TurnManager tm = GameObject.FindObjectOfType<TurnManager>();
+            TurnManager tm = GameObject.FindFirstObjectByType<TurnManager>(FindObjectsInactive.Exclude);
             if (tm != null && tm.IsEnemyTurn())
             {
                 show = false;

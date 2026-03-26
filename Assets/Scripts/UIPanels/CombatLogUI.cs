@@ -15,8 +15,6 @@ public class CombatLogUI : MonoBehaviour
     private VisualElement dragHandleLabel;
     private Button minimizeButton;
 
-    private bool isDragging;
-    private Vector2 dragOffset;
     private bool isMinimized;
 
     public void Initialize(VisualElement root)
@@ -39,7 +37,9 @@ public class CombatLogUI : MonoBehaviour
         }
 
         scrollContainer = scrollView; // the part we hide when minimized
-        SetupDragHandle(root);
+        var dragHandle = root.Q<VisualElement>("CombatLogDragHandle");
+        if (dragHandle != null && panel != null)
+            new PanelDragController(panel, dragHandle).Attach();
         SetupMinimizeToggle();
 
         CombatLog.OnEntryAdded += OnLogEntry;
@@ -80,48 +80,6 @@ public class CombatLogUI : MonoBehaviour
     private void OnDestroy()
     {
         CombatLog.OnEntryAdded -= OnLogEntry;
-    }
-
-    private void SetupDragHandle(VisualElement root)
-    {
-        var handle = root.Q<VisualElement>("CombatLogDragHandle");
-        if (handle == null || panel == null) return;
-
-        handle.RegisterCallback<PointerDownEvent>(evt =>
-        {
-            isDragging = true;
-            dragOffset = evt.localPosition;
-            handle.CapturePointer(evt.pointerId);
-            evt.StopPropagation();
-        });
-
-        handle.RegisterCallback<PointerMoveEvent>(evt =>
-        {
-            if (!isDragging) return;
-
-            var parentRect = panel.parent.contentRect;
-            var panelRect = panel.layout;
-
-            float newLeft = panel.resolvedStyle.left + evt.localPosition.x - dragOffset.x;
-            float newTop = panel.resolvedStyle.top + evt.localPosition.y - dragOffset.y;
-
-            newLeft = Mathf.Clamp(newLeft, 0, parentRect.width - panelRect.width);
-            newTop = Mathf.Clamp(newTop, 0, parentRect.height - panelRect.height);
-
-            panel.style.left = newLeft;
-            panel.style.top = newTop;
-            panel.style.bottom = StyleKeyword.Auto;
-            panel.style.right = StyleKeyword.Auto;
-
-            evt.StopPropagation();
-        });
-
-        handle.RegisterCallback<PointerUpEvent>(evt =>
-        {
-            isDragging = false;
-            handle.ReleasePointer(evt.pointerId);
-            evt.StopPropagation();
-        });
     }
 
     private void OnLogEntry(string message, EquippableHandheld.DamageType? damageType)

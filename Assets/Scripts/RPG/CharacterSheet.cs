@@ -109,6 +109,14 @@ public partial class CharacterSheet
         }
     }
 
+    /// <summary>Individual or class-default name for UI lists.</summary>
+    public string DisplayName()
+    {
+        return string.IsNullOrWhiteSpace(firstName)
+            ? GetDefaultDisplayNameForClass(characterClass)
+            : firstName.Trim();
+    }
+
     /// <summary>Plain-English default name when no individual name is set (matches class identity).</summary>
     public static string GetDefaultDisplayNameForClass(CharacterClass cls)
     {

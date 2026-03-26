@@ -84,7 +84,7 @@ public class TurnManager : MonoBehaviour
         }
         
         // Update vision system for the new turn
-        VisionSystem visionSystem = FindObjectOfType<VisionSystem>();
+        VisionSystem visionSystem = FindFirstObjectByType<VisionSystem>(FindObjectsInactive.Exclude);
         if (visionSystem != null)
         {
             visionSystem.UpdateVision();
@@ -114,7 +114,7 @@ public class TurnManager : MonoBehaviour
         {
             gameOver = true;
             bool victory = AllLivingEnemies().Count == 0;
-            var panel = FindObjectOfType<CombatPanelUI>();
+            var panel = FindFirstObjectByType<CombatPanelUI>(FindObjectsInactive.Exclude);
             if (panel != null)
                 panel.ShowGameOver(victory);
             return;
@@ -146,7 +146,7 @@ public class TurnManager : MonoBehaviour
         {
             gameOver = true;
             bool victory = AllLivingEnemies().Count == 0;
-            var panel = FindObjectOfType<CombatPanelUI>();
+            var panel = FindFirstObjectByType<CombatPanelUI>(FindObjectsInactive.Exclude);
             if (panel != null)
                 panel.ShowGameOver(victory);
             return;

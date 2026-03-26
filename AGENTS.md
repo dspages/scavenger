@@ -1,5 +1,11 @@
 # Agent Instructions
 
+## Unity compiler errors and warnings
+
+- After changing C# (or when the user reports build issues), **check the Unity Console** (via UnityMCP `read_console` and/or `validate_script` on touched files) for **errors and warnings** tied to your edits.
+- **Prefer fixing** the underlying issue (correct API usage, null checks that reflect real invariants, remove dead code, adjust types) over **suppressing** diagnostics (`#pragma warning disable`, blanket warning ignores, hiding messages, or turning rules off project-wide).
+- Suppressions are only appropriate when unavoidable (third-party/generated code, documented platform limitation) and should be **narrow** (single line or smallest scope) with a **short comment** explaining why.
+
 ## Intended Codepath Over Fallbacks
 
 - Prefer fixing the intended (happy) path over adding or relying on fallback behavior. Do not bloat the codebase with unnecessary fallback codepaths.
@@ -88,3 +94,9 @@ public class MainMenuIntegrationTests
 
 - Prefer separate test assemblies with `.asmdef` files for EditMode and PlayMode tests when adding more than a trivial smoke test.
 - A PlayMode test assembly must target platforms beyond `Editor`; an Editor-only assembly is an EditMode assembly.
+
+## UI Toolkit floating and docked panels
+
+- **Floating panels** (combat log, popped inventory, future loot/corpse transfer): use a top **chrome** row—title, **drag handle** (name `PanelDragHandle` when adding new UXML, or follow existing `CombatLogDragHandle`), optional minimize/close. Implement dragging with [`PanelDragController`](Assets/Scripts/UIPanels/PanelDragController.cs) (`Attach()` once after resolving panel + handle).
+- **Docked panels** (e.g. Home Base preparation columns): reuse the same **visual** chrome where helpful—USS classes `game-floating-panel__header` (compact drag strip) and `game-floating-panel__title-row` (taller title + actions) live in [`CombatPanel.uss`](Assets/UI/UXML/CombatPanel.uss). Dragging is optional for docked layouts.
+- **Two-sided transfer** (stash, chests, corpses): mirror [`HomeBaseLoadoutPresenter`](Assets/Scripts/UIPanels/HomeBaseLoadoutPresenter.cs) + [`DragDropController`](Assets/Scripts/UIPanels/Inventory/DragDropController.cs); see [`InventoryTransferUiPattern`](Assets/Scripts/UIPanels/InventoryTransferUiPattern.cs) summary.

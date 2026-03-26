@@ -46,7 +46,7 @@ public static class CharacterSetup
             CombatController cc = sheet.avatar.GetComponent<CombatController>();
             if (cc != null)
             {
-                VisionSystem vs = GameObject.FindObjectOfType<VisionSystem>();
+                VisionSystem vs = GameObject.FindFirstObjectByType<VisionSystem>(FindObjectsInactive.Exclude);
                 if (vs != null) vs.UpdateVision();
             }
         }

@@ -8,6 +8,8 @@ public class DragDropController
     private readonly System.Func<Equipment> getEquipment;
     private readonly System.Action refreshInventoryUI;
     private readonly System.Action refreshEquipmentUI;
+    private readonly System.Func<Inventory> getStashInventory;
+    private readonly System.Action refreshStashInventoryUI;
 
     private VisualElement dragGhost;
     public DragContext Context { get; } = new DragContext();
@@ -17,19 +19,22 @@ public class DragDropController
         System.Func<Inventory> getInventory,
         System.Func<Equipment> getEquipment,
         System.Action refreshInventoryUI,
-        System.Action refreshEquipmentUI)
+        System.Action refreshEquipmentUI,
+        System.Func<Inventory> getStashInventory = null,
+        System.Action refreshStashInventoryUI = null)
     {
         this.uiRoot = uiRoot;
         this.getInventory = getInventory;
         this.getEquipment = getEquipment;
         this.refreshInventoryUI = refreshInventoryUI;
         this.refreshEquipmentUI = refreshEquipmentUI;
+        this.getStashInventory = getStashInventory;
+        this.refreshStashInventoryUI = refreshStashInventoryUI;
     }
 
     public void BeginDrag(SlotModel source, InventoryItem item, Vector2 panelPos)
     {
         if (item == null) return;
-        // Ensure any previous ghost is cleaned up to avoid artifacts
         if (dragGhost != null)
         {
             dragGhost.RemoveFromHierarchy();
@@ -66,87 +71,163 @@ public class DragDropController
         if (!Context.isDragging || Context.payload == null || target == null) return;
         var inv = getInventory();
         var eqp = getEquipment();
+        var stash = getStashInventory != null ? getStashInventory() : null;
 
         switch (Context.sourceSlot.slotType)
         {
             case SlotType.Inventory:
-                if (target.slotType == SlotType.Inventory)
-                {
-                    if (target.inventoryIndex != Context.sourceSlot.inventoryIndex)
-                    {
-                        inv.SwapItems(Context.sourceSlot.inventoryIndex, target.inventoryIndex);
-                        refreshInventoryUI();
-                    }
-                }
-                else if (target.slotType == SlotType.Equipment && Context.payload is EquippableItem eq && eq.slot == target.equipmentSlot)
-                {
-                    // Remove from source
-                    inv.SetItemAt(Context.sourceSlot.inventoryIndex, null);
-                    // Equip and return previous to source slot or first empty
-                    if (eqp.TryEquipToSlot(eq, target.equipmentSlot, out var prev))
-                    {
-                        int idx = Context.sourceSlot.inventoryIndex >= 0 ? Context.sourceSlot.inventoryIndex : inv.FindFirstEmptySlot();
-                        if (prev != null && idx >= 0) inv.SetItemAt(idx, prev);
-                    }
-                    refreshInventoryUI();
-                    refreshEquipmentUI();
-                }
-                // Trash handled by caller
+                TryDropFromCharacterInventory(target, inv, stash, eqp);
                 break;
-
+            case SlotType.Stash:
+                if (stash != null)
+                    TryDropFromStash(target, inv, stash, eqp);
+                break;
             case SlotType.Equipment:
-                if (target.slotType == SlotType.Inventory)
-                {
-                    // Place into inventory; if occupied and compatible, swap back to equipment
-                    var existing = inv.GetItem(target.inventoryIndex);
-                    var fromSlot = Context.sourceSlot.equipmentSlot;
-                    if (existing == null)
-                    {
-                        eqp.Unequip(fromSlot);
-                        inv.SetItemAt(target.inventoryIndex, Context.payload);
-                    }
-                    else if (existing is EquippableItem existingEq && existingEq.slot == fromSlot)
-                    {
-                        eqp.Unequip(fromSlot);
-                        inv.SetItemAt(target.inventoryIndex, Context.payload);
-                        eqp.TryEquipToSlot(existingEq, fromSlot, out _);
-                    }
-                    refreshInventoryUI();
-                    refreshEquipmentUI();
-                }
-                else if (target.slotType == SlotType.Equipment)
-                {
-                    var fromSlot = Context.sourceSlot.equipmentSlot;
-                    if (Context.payload is EquippableItem eq && eq.slot == target.equipmentSlot)
-                    {
-                        // Swap equipment
-                        eqp.Unequip(fromSlot);
-                        var prev = eqp.Unequip(target.equipmentSlot);
-                        eqp.TryEquipToSlot(eq, target.equipmentSlot, out _);
-                        if (prev is EquippableItem prevEq && prevEq.slot == fromSlot)
-                        {
-                            eqp.TryEquipToSlot(prevEq, fromSlot, out _);
-                        }
-                        else if (prev != null)
-                        {
-                            int empty = inv.FindFirstEmptySlot();
-                            if (empty >= 0) inv.SetItemAt(empty, prev);
-                        }
-                        refreshEquipmentUI();
-                        refreshInventoryUI();
-                    }
-                    else
-                    {
-                        // Invalid drop: re-equip
-                        if (Context.payload is EquippableItem re)
-                        {
-                            eqp.TryEquipToSlot(re, fromSlot, out _);
-                            refreshEquipmentUI();
-                        }
-                    }
-                }
+                TryDropFromEquipment(target, inv, stash, eqp);
                 break;
         }
+    }
+
+    private void TryDropFromCharacterInventory(SlotModel target, Inventory inv, Inventory stash, Equipment eqp)
+    {
+        if (inv == null) return;
+
+        if (target.slotType == SlotType.Inventory)
+        {
+            if (target.inventoryIndex != Context.sourceSlot.inventoryIndex)
+            {
+                inv.SwapItems(Context.sourceSlot.inventoryIndex, target.inventoryIndex);
+                refreshInventoryUI?.Invoke();
+            }
+        }
+        else if (target.slotType == SlotType.Stash && stash != null)
+        {
+            SwapAcrossInventories(inv, Context.sourceSlot.inventoryIndex, stash, target.inventoryIndex);
+            refreshInventoryUI?.Invoke();
+            refreshStashInventoryUI?.Invoke();
+        }
+        else if (target.slotType == SlotType.Equipment && Context.payload is EquippableItem eq && eq.slot == target.equipmentSlot)
+        {
+            inv.SetItemAt(Context.sourceSlot.inventoryIndex, null);
+            if (eqp.TryEquipToSlot(eq, target.equipmentSlot, out var prev))
+            {
+                int idx = Context.sourceSlot.inventoryIndex >= 0 ? Context.sourceSlot.inventoryIndex : inv.FindFirstEmptySlot();
+                if (prev != null && idx >= 0) inv.SetItemAt(idx, prev);
+            }
+            refreshInventoryUI?.Invoke();
+            refreshEquipmentUI?.Invoke();
+        }
+    }
+
+    private void TryDropFromStash(SlotModel target, Inventory inv, Inventory stash, Equipment eqp)
+    {
+        int srcIdx = Context.sourceSlot.inventoryIndex;
+
+        if (target.slotType == SlotType.Stash)
+        {
+            if (target.inventoryIndex != srcIdx)
+            {
+                stash.SwapItems(srcIdx, target.inventoryIndex);
+                refreshStashInventoryUI?.Invoke();
+            }
+        }
+        else if (target.slotType == SlotType.Inventory && inv != null)
+        {
+            SwapAcrossInventories(stash, srcIdx, inv, target.inventoryIndex);
+            refreshInventoryUI?.Invoke();
+            refreshStashInventoryUI?.Invoke();
+        }
+        else if (target.slotType == SlotType.Equipment && Context.payload is EquippableItem eq && eq.slot == target.equipmentSlot && inv != null)
+        {
+            stash.SetItemAt(srcIdx, null);
+            if (eqp.TryEquipToSlot(eq, target.equipmentSlot, out var prev))
+            {
+                int idx = srcIdx >= 0 ? srcIdx : stash.FindFirstEmptySlot();
+                if (prev != null && idx >= 0) stash.SetItemAt(idx, prev);
+            }
+            refreshStashInventoryUI?.Invoke();
+            refreshEquipmentUI?.Invoke();
+        }
+    }
+
+    private void TryDropFromEquipment(SlotModel target, Inventory inv, Inventory stash, Equipment eqp)
+    {
+        if (inv == null) return;
+
+        if (target.slotType == SlotType.Inventory)
+        {
+            var existing = inv.GetItem(target.inventoryIndex);
+            var fromSlot = Context.sourceSlot.equipmentSlot;
+            if (existing == null)
+            {
+                eqp.Unequip(fromSlot);
+                inv.SetItemAt(target.inventoryIndex, Context.payload);
+            }
+            else if (existing is EquippableItem existingEq && existingEq.slot == fromSlot)
+            {
+                eqp.Unequip(fromSlot);
+                inv.SetItemAt(target.inventoryIndex, Context.payload);
+                eqp.TryEquipToSlot(existingEq, fromSlot, out _);
+            }
+            refreshInventoryUI?.Invoke();
+            refreshEquipmentUI?.Invoke();
+        }
+        else if (target.slotType == SlotType.Stash && stash != null)
+        {
+            var existing = stash.GetItem(target.inventoryIndex);
+            var fromSlot = Context.sourceSlot.equipmentSlot;
+            if (existing == null)
+            {
+                eqp.Unequip(fromSlot);
+                stash.SetItemAt(target.inventoryIndex, Context.payload);
+            }
+            else if (existing is EquippableItem existingEq && existingEq.slot == fromSlot)
+            {
+                eqp.Unequip(fromSlot);
+                stash.SetItemAt(target.inventoryIndex, Context.payload);
+                eqp.TryEquipToSlot(existingEq, fromSlot, out _);
+            }
+            refreshStashInventoryUI?.Invoke();
+            refreshEquipmentUI?.Invoke();
+        }
+        else if (target.slotType == SlotType.Equipment)
+        {
+            var fromSlot = Context.sourceSlot.equipmentSlot;
+            if (Context.payload is EquippableItem eq && eq.slot == target.equipmentSlot)
+            {
+                eqp.Unequip(fromSlot);
+                var prev = eqp.Unequip(target.equipmentSlot);
+                eqp.TryEquipToSlot(eq, target.equipmentSlot, out _);
+                if (prev is EquippableItem prevEq && prevEq.slot == fromSlot)
+                {
+                    eqp.TryEquipToSlot(prevEq, fromSlot, out _);
+                }
+                else if (prev != null)
+                {
+                    int empty = inv.FindFirstEmptySlot();
+                    if (empty >= 0) inv.SetItemAt(empty, prev);
+                }
+                refreshEquipmentUI?.Invoke();
+                refreshInventoryUI?.Invoke();
+            }
+            else
+            {
+                if (Context.payload is EquippableItem re)
+                {
+                    eqp.TryEquipToSlot(re, fromSlot, out _);
+                    refreshEquipmentUI?.Invoke();
+                }
+            }
+        }
+    }
+
+    private static void SwapAcrossInventories(Inventory a, int idxA, Inventory b, int idxB)
+    {
+        if (a == null || b == null) return;
+        var itemA = a.GetItem(idxA);
+        var itemB = b.GetItem(idxB);
+        a.SetItemAt(idxA, itemB);
+        b.SetItemAt(idxB, itemA);
     }
 
     private void CreateDragGhostForItem(InventoryItem item)
@@ -176,5 +257,3 @@ public class DragDropController
         dragGhost.style.top = panelPos.y + 10f;
     }
 }
-
-

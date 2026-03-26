@@ -142,9 +142,9 @@ public class EnemyController : CombatController
 
         if (action is ActionAttack atk)
         {
-             TurnManager tm = FindObjectOfType<TurnManager>();
+             TurnManager tm = FindFirstObjectByType<TurnManager>(FindObjectsInactive.Exclude);
              // Use shared vision for target SELECTION
-             VisionSystem vision = FindObjectOfType<VisionSystem>();
+             VisionSystem vision = FindFirstObjectByType<VisionSystem>(FindObjectsInactive.Exclude);
              var knownPCs = vision.GetKnownPCsToEnemies();
              
              List<CombatController> potentialTargets = new List<CombatController>();
@@ -315,7 +315,7 @@ public class EnemyController : CombatController
         }
 
         // 4. Fallback: Chase closest known PC
-        VisionSystem vision = FindObjectOfType<VisionSystem>();
+        VisionSystem vision = FindFirstObjectByType<VisionSystem>(FindObjectsInactive.Exclude);
         var knownPCs = vision.GetKnownPCsToEnemies();
         
         CombatController bestTarget = null;

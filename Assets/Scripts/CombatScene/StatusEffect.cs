@@ -55,34 +55,25 @@ public class StatusEffect
 
     public string GetIconName()
     {
-        switch (type)
-        {
-            default:
-                return null;
-        }
         return null;
     }
 
     // Some status effects have varying power levels, others default to -1
     public StatusEffect(EffectType effectType, int durationRounds, CharacterSheet effectTarget, int effectPowerLevel = -1)
     {
-        if (effectTarget == null)
+        if (effectTarget != null)
         {
-            return;
-        }
-        roundsRemaining = durationRounds;
-        type = effectType;
-        target = effectTarget;
-        powerLevel = effectPowerLevel;
-        target.RegisterStatusEffect(this);
-        
-        // Notify the CombatController if this is a HIDDEN effect
-        if (effectType == EffectType.HIDDEN && target.avatar != null)
-        {
-            CombatController combatController = target.avatar.GetComponent<CombatController>();
-            if (combatController != null)
+            roundsRemaining = durationRounds;
+            type = effectType;
+            target = effectTarget;
+            powerLevel = effectPowerLevel;
+            target.RegisterStatusEffect(this);
+
+            if (effectType == EffectType.HIDDEN && target.avatar != null)
             {
-                combatController.NotifyStatusEffectChanged(EffectType.HIDDEN);
+                CombatController combatController = target.avatar.GetComponent<CombatController>();
+                if (combatController != null)
+                    combatController.NotifyStatusEffectChanged(EffectType.HIDDEN);
             }
         }
     }

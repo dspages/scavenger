@@ -15,6 +15,8 @@ public class VisionSystem : MonoBehaviour
     private HashSet<CombatController> knownPCsToEnemies = new HashSet<CombatController>();
     
     private bool isUpdatingVision = false;
+    /// <summary>True after tile dictionaries are built and equipment effects applied; UpdateVision is a no-op until then.</summary>
+    private bool visionInitialized = false;
     
     void Start()
     {
@@ -26,7 +28,7 @@ public class VisionSystem : MonoBehaviour
         // Wait for TileManager to be available
         while (tileManager == null)
         {
-            tileManager = FindObjectOfType<TileManager>();
+            tileManager = FindFirstObjectByType<TileManager>(FindObjectsInactive.Exclude);
             if (tileManager == null)
             {
                 yield return new WaitForEndOfFrame();
@@ -76,11 +78,17 @@ public class VisionSystem : MonoBehaviour
         // Initialization complete
 
         // After vision system is ready, apply equipment-driven effects for already-spawned combatants
-        CombatController[] allCombatants = FindObjectsOfType<CombatController>();
+        CombatController[] allCombatants = FindObjectsByType<CombatController>(
+            findObjectsInactive: FindObjectsInactive.Exclude,
+            sortMode: FindObjectsSortMode.None);
         foreach (CombatController cc in allCombatants)
         {
             cc.ApplyEquipmentEffects();
         }
+
+        visionInitialized = true;
+        // First vision pass: tiles and combatants are already placed by TileManager.Start before this coroutine finishes.
+        UpdateVision();
     }
     
     // Safe method to add new tiles to the system (called during runtime if needed)
@@ -103,11 +111,8 @@ public class VisionSystem : MonoBehaviour
         // Prevent re-entrant updates which can cause infinite recursion
         if (isUpdatingVision) return;
 
-        if (tileManager == null || tileVisibility.Count == 0)
-        {
-            Debug.LogWarning("VisionSystem: Cannot update vision - system not yet initialized");
+        if (!visionInitialized || tileManager == null || tileVisibility.Count == 0)
             return;
-        }
 
         isUpdatingVision = true;
         try
@@ -124,7 +129,9 @@ public class VisionSystem : MonoBehaviour
         unitVisionCones.Clear();
         
         // Get all combatants
-        CombatController[] allCombatants = FindObjectsOfType<CombatController>();
+        CombatController[] allCombatants = FindObjectsByType<CombatController>(
+            findObjectsInactive: FindObjectsInactive.Exclude,
+            sortMode: FindObjectsSortMode.None);
         
         foreach (CombatController combatant in allCombatants)
         {
@@ -287,7 +294,9 @@ public class VisionSystem : MonoBehaviour
     private void UpdateIlluminationEffects()
     {
         // Cancel HIDDEN status effect for units in illuminated tiles
-        CombatController[] allCombatants = FindObjectsOfType<CombatController>();
+        CombatController[] allCombatants = FindObjectsByType<CombatController>(
+            findObjectsInactive: FindObjectsInactive.Exclude,
+            sortMode: FindObjectsSortMode.None);
         
         foreach (CombatController combatant in allCombatants)
         {
@@ -308,7 +317,9 @@ public class VisionSystem : MonoBehaviour
     // Ensure enemies inside fogged tiles are hidden from the player, and reappear when unfogged
     private void UpdateEnemyAvatarVisibility()
     {
-        CombatController[] allCombatants = FindObjectsOfType<CombatController>();
+        CombatController[] allCombatants = FindObjectsByType<CombatController>(
+            findObjectsInactive: FindObjectsInactive.Exclude,
+            sortMode: FindObjectsSortMode.None);
         foreach (CombatController combatant in allCombatants)
         {
             if (combatant == null || combatant.Dead()) continue;
@@ -357,7 +368,7 @@ public class VisionSystem : MonoBehaviour
     
     public bool IsInitialized()
     {
-        return tileManager != null && tileVisibility.Count > 0;
+        return visionInitialized && tileManager != null && tileVisibility.Count > 0;
     }
     
     public bool IsTileVisible(Tile tile)
@@ -405,7 +416,7 @@ public class VisionSystem : MonoBehaviour
     private void RebuildKnownPCsToEnemies()
     {
         knownPCsToEnemies.Clear();
-        TurnManager tm = FindObjectOfType<TurnManager>();
+        TurnManager tm = FindFirstObjectByType<TurnManager>(FindObjectsInactive.Exclude);
         if (tm == null) return;
 
         List<CombatController> enemies = tm.AllLivingEnemies();

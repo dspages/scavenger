@@ -27,11 +27,15 @@ public class InventoryUIManager
     };
 
     private CharacterSheet currentCharacter;
+    /// <summary>When set, backpack grid reads/writes this inventory instead of <see cref="currentCharacter"/>.</summary>
+    private Inventory boundInventory;
+    private readonly string inventorySlotNamePrefix;
 
-    public InventoryUIManager(VisualElement panel, VisualElement grid, VisualElement equipmentParent)
+    public InventoryUIManager(VisualElement panel, VisualElement grid, VisualElement equipmentParent, string inventorySlotNamePrefix = "InventorySlot")
     {
         inventoryPanel = panel;
         itemGrid = grid;
+        this.inventorySlotNamePrefix = string.IsNullOrEmpty(inventorySlotNamePrefix) ? "InventorySlot" : inventorySlotNamePrefix;
         if (equipmentParent != null)
         {
             foreach (var (slot, name) in SlotNames)
@@ -46,7 +50,17 @@ public class InventoryUIManager
     public void SetCurrentCharacter(CharacterSheet character)
     {
         currentCharacter = character;
+        boundInventory = null;
     }
+
+    /// <summary>Bind grid to a raw inventory (e.g. party stash). Clears character binding for backpack display.</summary>
+    public void SetBoundInventory(Inventory inventory)
+    {
+        boundInventory = inventory;
+        currentCharacter = null;
+    }
+
+    private Inventory ActiveBackpack => boundInventory ?? currentCharacter?.inventory;
 
     public void CreateInventorySlots(System.Action<VisualElement, int> attachHandlers)
     {
@@ -60,7 +74,7 @@ public class InventoryUIManager
             var slot = new VisualElement();
             slot.AddToClassList("inventory-slot");
             slot.AddToClassList("ui-blocker");
-            slot.name = $"InventorySlot_{i}";
+            slot.name = $"{inventorySlotNamePrefix}_{i}";
             
             attachHandlers?.Invoke(slot, i);
             
@@ -71,9 +85,10 @@ public class InventoryUIManager
 
     public void RefreshInventoryUI()
     {
-        if (currentCharacter?.inventory == null || inventorySlots.Count == 0) return;
+        var inv = ActiveBackpack;
+        if (inv == null || inventorySlots.Count == 0) return;
 
-        var items = currentCharacter.inventory.Items;
+        var items = inv.Items;
         for (int i = 0; i < inventorySlots.Count; i++)
         {
             var slot = inventorySlots[i];
@@ -116,6 +131,7 @@ public class InventoryUIManager
     {
         slot.Clear();
         slot.tooltip = null;
+        ClearSlotItemFraming(slot);
 
         if (item == null) return;
 
@@ -161,13 +177,6 @@ public class InventoryUIManager
         // Set tooltip on slot itself
         slot.tooltip = item.GetDisplayName();
 
-        // Apply rarity framing so inventory visuals can key off the style guide
-        slot.RemoveFromClassList("rarity-common");
-        slot.RemoveFromClassList("rarity-uncommon");
-        slot.RemoveFromClassList("rarity-rare");
-        slot.RemoveFromClassList("rarity-epic");
-        slot.RemoveFromClassList("rarity-legendary");
-
         switch (item.rarity)
         {
             case InventoryItem.ItemRarity.Uncommon:
@@ -186,6 +195,16 @@ public class InventoryUIManager
                 slot.AddToClassList("rarity-common");
                 break;
         }
+    }
+
+    private static void ClearSlotItemFraming(VisualElement slot)
+    {
+        if (slot == null) return;
+        slot.RemoveFromClassList("rarity-common");
+        slot.RemoveFromClassList("rarity-uncommon");
+        slot.RemoveFromClassList("rarity-rare");
+        slot.RemoveFromClassList("rarity-epic");
+        slot.RemoveFromClassList("rarity-legendary");
     }
 
     public bool IsInventoryPanelOpen()
