@@ -1,5 +1,7 @@
 # Agent Instructions
 
+For a focused **post-change verification** checklist (Unity Console after C# edits, EditMode/PlayMode tests, UnityMCP test run prerequisites and cleanup), see [`.cursor/skills/scavenger-post-change-verification/SKILL.md`](.cursor/skills/scavenger-post-change-verification/SKILL.md).
+
 ## Unity compiler errors and warnings
 
 - After changing C# (or when the user reports build issues), **check the Unity Console** (via UnityMCP `read_console` and/or `validate_script` on touched files) for **errors and warnings** tied to your edits.
