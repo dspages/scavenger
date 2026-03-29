@@ -1,17 +1,18 @@
 ---
 name: scavenger-post-change-verification
 description: >-
-  Defines Scavenger's post-change verification: Unity Console check after C# edits,
-  choosing EditMode vs PlayMode tests and correct test folders, running or extending
-  tests that cover the changed area, and UnityMCP prerequisites and cleanup before and
-  after running tests. Use after nontrivial code changes, when validating fixes or
-  checking for regressions, when the user asks to verify changes or run tests safely,
-  or after C# edits that need Unity Console review.
+  Defines Scavenger's post-change verification: self-review and DRY pass on your own
+  diff, Unity Console check after C# edits, choosing EditMode vs PlayMode tests and
+  correct test folders, running or extending tests that cover the changed area, and
+  UnityMCP prerequisites and cleanup before and after running tests. Use after
+  nontrivial code changes, when validating fixes or checking for regressions, when the
+  user asks to verify changes or run tests safely, or after C# edits that need Unity
+  Console review.
 ---
 
 # Scavenger — post-change verification
 
-Canonical detail lives in **`AGENTS.md`** at the repository root (Unity compiler, test workflow, UnityMCP, cleanup). This skill is the executable checklist.
+Canonical checklist for verification after changes. For **what tests or docs to add** with a change, see **`scavenger-change-companion`**. For debugging see **`scavenger-debugging-workflow`**; for UI see **`scavenger-ui-toolkit`**; for code layout see **`scavenger-architecture`**; for saves see **`scavenger-data-persistence`**. **`AGENTS.md`** at the repo root indexes which skill to open.
 
 ## When to apply
 
@@ -19,25 +20,59 @@ Canonical detail lives in **`AGENTS.md`** at the repository root (Unity compiler
 - User asks for regression checks, verification, or safe test runs.
 - Before treating work as done or ready for review.
 
-## Step 1 — Unity Console (after C# changes)
+## Step 1 — Self-review and DRY (your own change)
+
+- **Re-read the diff** (or changed files): names, control flow, obvious redundancies, and whether the change matches project patterns in nearby code.
+- **Search for existing helpers** before leaving new logic in place: look for the same operation already implemented (utilities, extension methods, existing services, parallel types). Prefer **reusing or extending** shared code over **copy-paste** variants.
+- If you inlined something that duplicates behavior elsewhere, **refactor to a single implementation** (or a thin wrapper) when the cost is reasonable—do not ship near-duplicates “to save time” when consolidation is straightforward.
+- **Remove** dead code, stray debug logging, and commented-out blocks introduced during iteration unless they are intentionally kept with context.
+
+## Step 2 — Unity Console (after C# changes)
 
 - Use UnityMCP **`read_console`** and/or **`validate_script`** on touched files.
 - Address **errors and warnings** tied to the edits by fixing root causes (API usage, invariants, dead code, types)—not by broad `#pragma warning disable` or project-wide suppression.
 - Narrow suppressions only when unavoidable (third-party/generated, documented platform limits), smallest scope, with a short comment.
 
-## Step 2 — Tests: type, location, coverage
+## Step 3 — Tests: type, location, coverage
 
 - Prefer **EditMode** for pure logic and non-scene behavior; **PlayMode** when runtime, scene objects, or frame behavior must be exercised.
 - Do not rely on whichever scene is open in the Editor for PlayMode tests—load explicitly in setup.
 - **Locations:** EditMode under `Assets/Tests/Editor/`; PlayMode under `Assets/Tests/PlayMode/`; optional committed scene fixtures under `Assets/Tests/Scenes/`.
-- For PlayMode, load the required scene in test setup (`EditorSceneManager.LoadSceneInPlayMode` / `LoadSceneAsyncInPlayMode` with full asset path). Production scenes like `Assets/Scenes/MainMenu.unity` or `Assets/Scenes/CombatScene.unity` are OK for integration tests when appropriate.
+- For PlayMode, load the required scene in test setup (`EditorSceneManager.LoadSceneInPlayMode` / `LoadSceneAsyncInPlayMode` with a full asset path). Use `[UnitySetUp]` for per-test loading or `[UnityOneTimeSetUp]` when one scene load is shared by a whole fixture. Production scenes such as `Assets/Scenes/MainMenu.unity` or `Assets/Scenes/CombatScene.unity` are OK for integration tests when appropriate.
 - Do **not** create temporary `.unity` assets under `Assets/` solely to run a test.
+- **Isolated vs integration:** for isolated PlayMode tests, use a dedicated committed scene in `Assets/Tests/Scenes/`. For integration tests, load the real committed scene the game uses. If a test only needs temporary runtime objects, create them in memory rather than saving a new scene asset.
 - Prefer **running or adding tests** that cover the changed code paths (regression focus).
-- For non-trivial new suites, prefer separate test assemblies with `.asmdef`; PlayMode assemblies must target platforms beyond Editor only.
+- Prefer separate test assemblies with `.asmdef` for EditMode and PlayMode when adding more than a trivial smoke test. A PlayMode test assembly must target platforms beyond `Editor`; an Editor-only assembly is an EditMode assembly.
 
-Full PlayMode loading example: see **`AGENTS.md`** (“Controlling The PlayMode Test Scene”).
+Example — explicit PlayMode scene load:
 
-## Step 3 — UnityMCP before `run_tests`
+```csharp
+using System.Collections;
+using NUnit.Framework;
+using UnityEditor.SceneManagement;
+using UnityEngine.SceneManagement;
+using UnityEngine.TestTools;
+
+public class MainMenuIntegrationTests
+{
+    [UnitySetUp]
+    public IEnumerator LoadScene()
+    {
+        yield return EditorSceneManager.LoadSceneAsyncInPlayMode(
+            "Assets/Scenes/MainMenu.unity",
+            new LoadSceneParameters(LoadSceneMode.Single));
+    }
+
+    [UnityTest]
+    public IEnumerator MainMenuScene_Loads()
+    {
+        Assert.AreEqual("MainMenu", SceneManager.GetActiveScene().name);
+        yield return null;
+    }
+}
+```
+
+## Step 4 — UnityMCP before `run_tests`
 
 - Call **`manage_editor(stop)`** so the editor is not already in Play Mode.
 - Poll **`mcpforunity://editor/state`** and start tests only when all are true:
@@ -47,7 +82,7 @@ Full PlayMode loading example: see **`AGENTS.md`** (“Controlling The PlayMode 
   - `advice.ready_for_tools == true`
 - After compilation, domain reload, or a PlayMode transition, allow a short settle period or poll again before **`run_tests`**.
 
-## Step 4 — Cleanup after UnityMCP PlayMode runs
+## Step 5 — Cleanup after UnityMCP PlayMode runs
 
 - Confirm the editor has exited Play Mode and is idle.
 - Reload the usual working scene (**`Assets/Scenes/MainMenu.unity`**) before ending the task unless the user asked for a different scene left open.
