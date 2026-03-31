@@ -37,6 +37,8 @@ Use the architecture skill for *where things live*; use these for *how to change
 
 | Topic | Skill |
 | --- | --- |
+| Formatting, directory layout, where new files go | [`scavenger-conventions`](../scavenger-conventions/SKILL.md) |
+| DRY habits, implementation pitfalls, parameterization | [`scavenger-coding-principles`](../scavenger-coding-principles/SKILL.md) |
 | Save ids, JsonUtility, checkpoints, extending `SaveData` | [`scavenger-data-persistence`](../scavenger-data-persistence/SKILL.md) |
 | Root cause vs symptom, intended codepath, avoiding band-aids | [`scavenger-debugging-workflow`](../scavenger-debugging-workflow/SKILL.md) |
 | UXML/USS, panels, drag/transfer, shared HUD chrome | [`scavenger-ui-toolkit`](../scavenger-ui-toolkit/SKILL.md) |
@@ -89,6 +91,7 @@ Exact transition code may evolve; treat this as **intent** so new code does not 
 - **Party characters** — [`PlayerParty.partyMembers`](../../../Assets/Scripts/GameState/PlayerParty.cs) (`CharacterSheet` instances).
 - **Camp stash** — [`PlayerParty.sharedStash`](../../../Assets/Scripts/GameState/PlayerParty.cs) (shared inventory).
 - **Excursion squad** — [`PlayerParty.excursionSquadIndices`](../../../Assets/Scripts/GameState/PlayerParty.cs) (who deploys next).
+- **Per-hero weekly base jobs** (workbench, barracks, etc.) — **not** fully modeled in code yet; target UX and `CanAssign` hook are described in [`scavenger-ui-toolkit`](../scavenger-ui-toolkit/reference.md) (weekly command section).
 - **Campaign clock / gold** — [`CampaignMeta`](../../../Assets/Scripts/GameState/CampaignMeta.cs) (lightweight until a fuller meta layer exists).
 
 Combat-specific state (positions, turn order, map) lives in **CombatScene** objects and is **not** the same as the persistent party snapshot; see [`scavenger-data-persistence`](../scavenger-data-persistence/SKILL.md) for checkpoint rules.
@@ -107,10 +110,26 @@ Avoid introducing a **second** global combat state machine; extend the existing 
 - Catalogs and registries under [`Assets/Scripts/RPG/Content/`](../../../Assets/Scripts/RPG/Content/) (e.g. [`ItemCatalog`](../../../Assets/Scripts/RPG/Content/ItemCatalog.cs), [`AbilityCatalog`](../../../Assets/Scripts/RPG/Content/AbilityCatalog.cs)).
 - Saved games reference content by **ids** (e.g. ability ids, item registry ids); changing ids breaks loads — see persistence skill.
 
+## Ability resources (prep & combat — design contract)
+
+**Four-line model** for content tags (`AbilityData` or equivalent): UI and validators debit the correct pool or item. **Hybrids** (two lines on one class) = stacked pressure by design — do not duplicate long balance essays here; only this contract.
+
+| Line | Combat cost | Pacing / scaling |
+| --- | --- | --- |
+| **Arcane** | Drains **morale** (UI may say **sanity**). | Mission decay, mental effects, and **arcane casts** all use this meter; arcane is a **primary** drain. |
+| **Divine** | **Mana crystals** (inventory). | Cost **ramps hard** with ability tier / level. |
+| **Tech** | **Tech components** (inventory). | Same steep scaling as divine. |
+| **Physical** | **No** consumables. | **Cooldown vs power** is the main limiter. |
+
+**Workbench tension:** Crafting spends **crystals and/or components** — **same stockpiles** as combat divine/tech, so **fights vs base crafts** compete.
+
+**Symmetric sanity:** **PC ↔ enemy** — abilities can reduce **target** sanity (e.g. **Befuddle**). Enemies may skip **inventory** logistics for crystals/components where desired but can still participate in **sanity** interaction.
+
 ## Changing one subsystem — watch these
 
 | Change | Also consider |
 | --- | --- |
+| Weekly assignment UI (roster, slots, DnD) | [`scavenger-ui-toolkit`](../scavenger-ui-toolkit/reference.md) wireframe + `CanAssign`; [`PlayerParty`](../../../Assets/Scripts/GameState/PlayerParty.cs); persistence if jobs become save-backed |
 | `CharacterSheet` fields | Save/load ([`CharacterSaveData`](../../../Assets/Scripts/GameState/SaveData.cs)), UI that displays stats |
 | New equipment or item types | `ItemSaveData` / registry resolution in [`SaveData.cs`](../../../Assets/Scripts/GameState/SaveData.cs), catalogs |
 | New persistent meta | [`GameSaveData`](../../../Assets/Scripts/GameState/SaveData.cs), possibly [`CampaignMeta`](../../../Assets/Scripts/GameState/CampaignMeta.cs) |

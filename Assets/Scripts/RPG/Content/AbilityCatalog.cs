@@ -17,7 +17,7 @@ public static class AbilityCatalog
         description = "Fireball deals fire damage to all enemies in a radius.",
         archetype = AbilityData.Archetype.GroundAttack,
         damage = 12,
-        damageType = EquippableHandheld.DamageType.Fire,
+        damageType = DamageType.Fire,
         minRange = 3,
         maxRange = 6,
         radius = 2,

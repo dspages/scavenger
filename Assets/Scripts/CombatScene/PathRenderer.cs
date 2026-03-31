@@ -7,7 +7,8 @@ public class PathRenderer : MonoBehaviour
     public enum LineType
     {
         MovementPath,   // Marches toward the target (normal behavior)
-        SpellTarget     // Emanates outward from the caster
+        SpellTarget,    // Emanates outward from the caster
+        UnaffordablePath // Geometrically valid but hard costs cannot be paid
     }
 
     // Draw a dashed line segment between two world positions
@@ -23,9 +24,12 @@ public class PathRenderer : MonoBehaviour
         Vector3 direction = (end - start).normalized;
 
         float dashWidth = 0.08f;
-        Color baseColor = lineType == LineType.SpellTarget 
-            ? new Color(1f, 0.6f, 0.2f, 0.7f)  // Orange-ish for spells
-            : new Color(0.9f, 0.95f, 1f, 0.6f); // Bluish white for movement
+        Color baseColor = lineType switch
+        {
+            LineType.SpellTarget => new Color(1f, 0.6f, 0.2f, 0.7f),
+            LineType.UnaffordablePath => new Color(1f, 0.45f, 0.15f, 0.75f),
+            _ => new Color(0.9f, 0.95f, 1f, 0.6f),
+        };
 
         for (int i = 0; i < segmentCount; i++)
         {

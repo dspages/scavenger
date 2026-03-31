@@ -10,7 +10,7 @@ public class AttackResolverTests
     private EquippableHandheld MakeSword(int damage = 5)
     {
         return new EquippableHandheld("Cutlass", EquippableHandheld.WeaponType.OneHanded,
-            damage, 1, 1, 10, EquippableHandheld.DamageType.Slashing);
+            damage, 1, 1, 10, DamageType.Slashing);
     }
 
     // --- Basic damage ---
@@ -180,12 +180,12 @@ public class AttackResolverTests
         var attacker = MakeSheet();
         var defender = MakeSheet();
         var weapon = new EquippableHandheld("Mace", EquippableHandheld.WeaponType.OneHanded,
-            5, 1, 1, 10, EquippableHandheld.DamageType.Bludgeoning);
+            5, 1, 1, 10, DamageType.Bludgeoning);
         var context = AttackContext.Melee(weapon);
 
         var result = AttackResolver.Resolve(attacker, defender, context);
 
-        Assert.AreEqual(EquippableHandheld.DamageType.Bludgeoning, result.damageType);
+        Assert.AreEqual(DamageType.Bludgeoning, result.damageType);
     }
 
     [Test]
@@ -197,7 +197,7 @@ public class AttackResolverTests
 
         var result = AttackResolver.Resolve(attacker, defender, context);
 
-        Assert.AreEqual(EquippableHandheld.DamageType.Bludgeoning, result.damageType);
+        Assert.AreEqual(DamageType.Bludgeoning, result.damageType);
     }
 
     [Test]
@@ -209,14 +209,14 @@ public class AttackResolverTests
         {
             id = "test_fire",
             damage = 10,
-            damageType = EquippableHandheld.DamageType.Fire,
+            damageType = DamageType.Fire,
             archetype = AbilityData.Archetype.GroundAttack,
         };
         var context = AttackContext.AreaEffect(distance: 3, ability: ability);
 
         var result = AttackResolver.Resolve(attacker, defender, context);
 
-        Assert.AreEqual(EquippableHandheld.DamageType.Fire, result.damageType);
+        Assert.AreEqual(DamageType.Fire, result.damageType);
     }
 
     // --- Armor reduction ---
@@ -329,7 +329,7 @@ public class AttackResolverTests
         var defender = MakeSheet("Target");
         var musket = new EquippableHandheld("Long Musket",
             EquippableHandheld.WeaponType.TwoHanded, 12, 2, 10, 30,
-            EquippableHandheld.DamageType.Bludgeoning);
+            DamageType.Bludgeoning);
         var context = AttackContext.Ranged(musket, distance: 2);
 
         // Ranged can miss, so run multiple times
@@ -356,7 +356,7 @@ public class AttackResolverTests
         var defender = MakeSheet("Target");
         var musket = new EquippableHandheld("Musket",
             EquippableHandheld.WeaponType.TwoHanded, 8, 2, 10, 30,
-            EquippableHandheld.DamageType.Piercing);
+            DamageType.Piercing);
         var context = AttackContext.Ranged(musket, distance: 3);
 
         var result = AttackResolver.Resolve(attacker, defender, context);

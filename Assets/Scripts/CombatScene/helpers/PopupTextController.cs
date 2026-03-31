@@ -110,7 +110,7 @@ public class PopupTextController : MonoBehaviour
     }
 
     /// <summary>Show damage popup with damage-type color. Use for hit feedback.</summary>
-    public static void CreateDamagePopup(int damage, bool critical, EquippableHandheld.DamageType damageType, Transform targetTransform)
+    public static void CreateDamagePopup(int damage, bool critical, DamageType damageType, Transform targetTransform)
     {
         string text = critical ? $"CRIT {damage}" : damage.ToString();
         CreatePopupText(text, targetTransform, DamageTypeColors.Get(damageType));

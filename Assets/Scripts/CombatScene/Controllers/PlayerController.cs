@@ -85,9 +85,7 @@ public class PlayerController : CombatController
     void LineBetweenPositions(Vector3 start, Vector3 end, PathRenderer.LineType lineType = PathRenderer.LineType.MovementPath)
     {
         if (pathRenderer != null)
-        {
             pathRenderer.DrawSegment(start, end, lineType);
-        }
     }
 
     void ClearMouseHover()
@@ -140,7 +138,10 @@ public class PlayerController : CombatController
                 bool isRanged = selectedAction is ActionRangedAttack || selectedAction.TARGET_TYPE == Action.TargetType.RANGED;
                 bool isReachMelee = selectedAction.TARGET_TYPE == Action.TargetType.MELEE_REACH;
                 bool isMelee = selectedAction.TARGET_TYPE == Action.TargetType.MELEE;
-                
+                var pathLineType = hoverTile.searchHardCostsAffordable
+                    ? PathRenderer.LineType.MovementPath
+                    : PathRenderer.LineType.UnaffordablePath;
+
                 if (isGround || ((isRanged || isReachMelee || isMelee) && hoverTile.occupant != null && ContainsEnemy(hoverTile)))
                 {
                     int aoeRadius = 0;
@@ -157,7 +158,7 @@ public class PlayerController : CombatController
                     Tile t = hoverTile;
                     while (t != null && t.searchParent && seen.Add(t))
                     {
-                        LineBetweenPositions(t.transform.position, t.searchParent.transform.position);
+                        LineBetweenPositions(t.transform.position, t.searchParent.transform.position, pathLineType);
                         t = t.searchParent;
                     }
                 }
@@ -239,7 +240,7 @@ public class PlayerController : CombatController
             if (Input.GetMouseButtonUp(0))
             {
                 Tile clickedTile = mouseTile;
-                if (clickedTile == null || !clickedTile.searchCanBeChosen) return;
+                if (clickedTile == null || !clickedTile.searchCanBeChosen || !clickedTile.searchHardCostsAffordable) return;
                 ClearMouseHover();
                 if (clickedTile.occupant != null)
                 {
@@ -273,5 +274,50 @@ public class PlayerController : CombatController
                 ClearMouseHover(); // Clear path when not hovering over anything
             }
         }
+    }
+
+    /// <summary>Called from <see cref="CombatHardwareCursor"/> when pointer is over the world (not blocking UI).</summary>
+    public void ApplyHardwareCursor(CombatHardwareCursor driver)
+    {
+        if (driver == null) return;
+
+        Action act = GetSelectedAction();
+        if (hoverTile == null || act == null)
+        {
+            driver.Clear();
+            return;
+        }
+
+        if (!hoverTile.searchCanBeChosen)
+        {
+            driver.ApplyDisabled();
+            return;
+        }
+
+        if (!hoverTile.searchHardCostsAffordable)
+        {
+            driver.ApplyDisabled();
+            return;
+        }
+
+        bool isGround = act.TARGET_TYPE == Action.TargetType.GROUND_TILE
+            || (act is ActionAttack atk && atk.AOE_RADIUS > 0);
+        bool isRanged = act is ActionRangedAttack || act.TARGET_TYPE == Action.TargetType.RANGED;
+        bool isReachMelee = act.TARGET_TYPE == Action.TargetType.MELEE_REACH;
+        bool isMelee = act.TARGET_TYPE == Action.TargetType.MELEE;
+        bool enemyOnTile = hoverTile.occupant != null && ContainsEnemy(hoverTile);
+        bool attackPreview = isGround || (((isRanged || isReachMelee || isMelee) && enemyOnTile));
+
+        if (attackPreview)
+        {
+            if (isGround)
+                driver.ApplyGround();
+            else if (isRanged)
+                driver.ApplyRanged();
+            else
+                driver.ApplyMelee();
+        }
+        else
+            driver.ApplyMovement();
     }
 }

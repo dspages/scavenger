@@ -46,6 +46,14 @@ public class CharacterSheetTests
     }
 
     [Test]
+    public void Constructor_InitializesSanityToMax()
+    {
+        var sheet = MakeSheet();
+
+        Assert.AreEqual(sheet.MaxSanity(), sheet.currentSanity);
+    }
+
+    [Test]
     public void Constructor_CreatesInventory()
     {
         var sheet = MakeSheet();
@@ -433,7 +441,7 @@ public class CharacterSheetTests
     {
         var sheet = MakeSheet();
         var sword = new EquippableHandheld("Sword", EquippableHandheld.WeaponType.OneHanded, 5, 10,
-            EquippableHandheld.DamageType.Slashing);
+            DamageType.Slashing);
 
         Assert.IsTrue(sheet.TryEquipItem(sword));
 
@@ -460,7 +468,7 @@ public class CharacterSheetTests
     {
         var sheet = MakeSheet();
         var dagger = new EquippableHandheld("Dagger", EquippableHandheld.WeaponType.OneHanded, 2, 4,
-            EquippableHandheld.DamageType.Piercing);
+            DamageType.Piercing);
 
         Assert.IsTrue(sheet.TryEquipItemToSlot(dagger, EquippableItem.EquipmentSlot.LeftHand));
 
@@ -474,7 +482,7 @@ public class CharacterSheetTests
     {
         var sheet = MakeSheet();
         var sword = new EquippableHandheld("Sword", EquippableHandheld.WeaponType.OneHanded, 5, 10,
-            EquippableHandheld.DamageType.Slashing);
+            DamageType.Slashing);
         sheet.TryEquipItem(sword);
 
         var removed = sheet.UnequipItem(EquippableItem.EquipmentSlot.RightHand);
@@ -491,7 +499,7 @@ public class CharacterSheetTests
         bool fired = false;
         sheet.OnEquipmentChanged += () => fired = true;
         var sword = new EquippableHandheld("Sword", EquippableHandheld.WeaponType.OneHanded, 5, 10,
-            EquippableHandheld.DamageType.Slashing);
+            DamageType.Slashing);
 
         sheet.TryEquipItem(sword);
 

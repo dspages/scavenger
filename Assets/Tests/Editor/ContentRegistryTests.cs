@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using NUnit.Framework;
 
 [TestFixture]
@@ -23,7 +24,7 @@ public class ContentRegistryTests
         var item = ContentRegistry.CreateItem("health_potion");
         Assert.IsNotNull(item);
         Assert.AreEqual("Health Potion", item.itemName);
-        Assert.AreEqual(10, item.stackSize);
+        Assert.AreEqual(10, item.MaxStack);
     }
 
     [Test]
@@ -35,7 +36,7 @@ public class ContentRegistryTests
         var weapon = (EquippableHandheld)item;
         Assert.AreEqual(5, weapon.damage);
         Assert.AreEqual(EquippableHandheld.WeaponType.OneHanded, weapon.weaponType);
-        Assert.AreEqual(EquippableHandheld.DamageType.Slashing, weapon.damageType);
+        Assert.AreEqual(DamageType.Slashing, weapon.damageType);
     }
 
     [Test]
@@ -74,7 +75,7 @@ public class ContentRegistryTests
         Assert.AreEqual(2, item.minRange);
         Assert.AreEqual(10, item.maxRange);
         Assert.IsTrue(item.requiresAmmo);
-        Assert.AreEqual("Musket Ball", item.ammoType);
+        Assert.AreEqual("musket_ball", item.ammoType);
         Assert.AreEqual(EquippableHandheld.RangeType.Ranged, item.rangeType);
     }
 
@@ -100,9 +101,22 @@ public class ContentRegistryTests
     [Test]
     public void AllItems_ContainsAllCatalogEntries()
     {
-        int count = 0;
-        foreach (var _ in ContentRegistry.AllItems()) count++;
-        Assert.AreEqual(ItemCatalog.All.Length, count);
+        var catalogIds = new HashSet<string>();
+        foreach (var catalogItem in ItemCatalog.All)
+        {
+            catalogIds.Add(catalogItem.id);
+            Assert.AreSame(
+                catalogItem,
+                ContentRegistry.GetItemData(catalogItem.id),
+                $"Catalog item {catalogItem.id} must be registered.");
+        }
+        int fromCatalog = 0;
+        foreach (var item in ContentRegistry.AllItems())
+        {
+            if (catalogIds.Contains(item.id))
+                fromCatalog++;
+        }
+        Assert.AreEqual(ItemCatalog.All.Length, fromCatalog);
     }
 
     [Test]

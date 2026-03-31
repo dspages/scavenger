@@ -3,18 +3,26 @@ public class ItemData
     public string id;
     public string displayName;
     public string description = "";
-    public int stackSize = 1;
+    private int maxStack = 1;
     public int weight = 0;
     public InventoryItem.ItemRarity rarity = InventoryItem.ItemRarity.Common;
 
+    /// <summary>Maximum stack size for instances created from this definition.</summary>
+    public int MaxStack
+    {
+        get => maxStack;
+        set => maxStack = value < 1 ? 1 : value;
+    }
+
     public virtual InventoryItem CreateInstance()
     {
-        return new InventoryItem(displayName)
+        var item = new InventoryItem(displayName)
         {
             description = description,
-            stackSize = stackSize,
             weight = weight,
             rarity = rarity,
         };
+        item.ConfigureStacks(MaxStack, MaxStack);
+        return item;
     }
 }

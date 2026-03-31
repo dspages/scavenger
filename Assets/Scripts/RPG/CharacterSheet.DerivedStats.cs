@@ -28,14 +28,15 @@ public partial class CharacterSheet
         return agility + GetTotalGearDodgeBonus();
     }
 
-    /// <summary>Attacker-side ranged hit total in percent before defender penalty (base + perception distance + blinded).</summary>
+    /// <summary>Attacker-side ranged hit total in percent before defender penalty (base + vision-range distance + blinded).</summary>
     public int GetRangedHitChanceAttackerPartsPercent(int distance)
     {
         int p = RpgCombatBalance.BaseRangedHitChancePercent;
-        int overPerception = Mathf.Max(0, distance - perception);
-        int underPerception = Mathf.Max(0, perception - distance);
-        p -= overPerception * RpgCombatBalance.RangedHitPenaltyPerTileOverPerceptionPercent;
-        p += underPerception * RpgCombatBalance.RangedHitBonusPerTileUnderPerceptionPercent;
+        int visionRange = GetVisionRange();
+        int overVision = Mathf.Max(0, distance - visionRange);
+        int underVision = Mathf.Max(0, visionRange - distance);
+        p -= overVision * RpgCombatBalance.RangedHitPenaltyPerTileOverVisionRangePercent;
+        p += underVision * RpgCombatBalance.RangedHitBonusPerTileUnderVisionRangePercent;
         if (HasStatusEffect(StatusEffect.EffectType.BLINDED))
             p -= RpgCombatBalance.BlindedRangedHitPenaltyPercent;
         return p;

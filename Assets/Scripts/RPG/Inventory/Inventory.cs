@@ -33,7 +33,7 @@ public class Inventory
             if (inventory[i] != null && inventory[i].CanStackWith(item))
             {
                 int transferred = inventory[i].TryStackWith(item);
-                if (item.currentStack <= 0)
+                if (item.PeekStackSize() <= 0)
                 {
                     OnInventoryChanged?.Invoke();
                     return true;
@@ -67,9 +67,10 @@ public class Inventory
         if (inventory[slotIndex] == null) return false;
         
         InventoryItem item = inventory[slotIndex];
-        item.currentStack -= count;
-        
-        if (item.currentStack <= 0)
+        if (!item.AttemptDecrementStackSize(count))
+            return false;
+
+        if (item.PeekStackSize() <= 0)
         {
             inventory[slotIndex] = null;
         }

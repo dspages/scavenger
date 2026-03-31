@@ -62,6 +62,7 @@ public class SaveDataTests
 
         Assert.AreEqual(original.currentHealth, restored.currentHealth);
         Assert.AreEqual(original.currentMana, restored.currentMana);
+        Assert.AreEqual(original.currentSanity, restored.currentSanity);
     }
 
     [Test]
@@ -132,13 +133,13 @@ public class SaveDataTests
     {
         var original = MakeSheet();
         var potion = ContentRegistry.CreateItem("health_potion");
-        potion.currentStack = 7;
+        potion.ConfigureStacks(potion.MaxStack, 7);
         original.inventory.TryAddItem(potion);
 
         var save = CharacterSaveData.FromSheet(original);
         var restored = save.ToSheet();
 
-        Assert.AreEqual(7, restored.inventory.Items[0].currentStack);
+        Assert.AreEqual(7, restored.inventory.Items[0].PeekStackSize());
     }
 
     [Test]

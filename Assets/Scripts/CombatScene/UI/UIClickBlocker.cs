@@ -16,15 +16,16 @@ public static class UIClickBlocker
             sortMode: FindObjectsSortMode.None);
         if (docs == null || docs.Length == 0) return false;
 
-        Vector2 mousePos = Input.mousePosition;
+        Vector2 screenPos = Input.mousePosition;
+        // Match Unity docs: convert to top-left screen origin before ScreenToPanel, then Pick.
+        screenPos.y = Screen.height - screenPos.y;
+
         for (int i = 0; i < docs.Length; i++)
         {
             var root = docs[i].rootVisualElement;
             if (root == null || root.panel == null) continue;
-            
-            Vector2 panelPos = RuntimePanelUtils.ScreenToPanel(root.panel, mousePos);
-            panelPos.y = Screen.height - panelPos.y;  // Flip Y for UI Toolkit
-            
+
+            Vector2 panelPos = RuntimePanelUtils.ScreenToPanel(root.panel, screenPos);
             var picked = root.panel.Pick(panelPos);
             // Walk up: if the picked element or any ancestor has ui-blocker, we're over blocking UI
             var current = picked as VisualElement;

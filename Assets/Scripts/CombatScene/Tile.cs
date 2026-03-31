@@ -22,6 +22,8 @@ public class Tile : MonoBehaviour
     // Needed for breadth-first search
     public bool searchWasVisited = false;
     public bool searchCanBeChosen = false;
+    /// <summary>False when the tile is in attack range but hard costs (ammo, mana crystals, etc.) cannot be paid. Sanity does not set this false.</summary>
+    public bool searchHardCostsAffordable = true;
     public Tile searchParent = null;
     public int searchDistance = 0;
     // For attack target tiles: where to launch the attack from (separate from movement parent)
@@ -140,8 +142,10 @@ public class Tile : MonoBehaviour
         // Apply interaction highlights (hover is now handled by icon, not color)
         if (searchCanBeChosen)
         {
-            // Use a unified subtle selection tint
-            finalColor = BlendOverlay(finalColor, selectionTintColor);
+            Color tint = searchHardCostsAffordable
+                ? selectionTintColor
+                : new Color(1f, 0.65f, 0.2f, 0.22f);
+            finalColor = BlendOverlay(finalColor, tint);
         }
         
         // Ensure alpha is always 1 (we don't want transparent tiles)
@@ -393,6 +397,7 @@ public class Tile : MonoBehaviour
     {
         isHovered = false;
         searchCanBeChosen = false;
+        searchHardCostsAffordable = true;
         searchWasVisited = false;
         searchParent = null;
         searchDistance = 0;

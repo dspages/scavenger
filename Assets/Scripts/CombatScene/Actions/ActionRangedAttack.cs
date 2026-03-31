@@ -28,6 +28,8 @@ public class ActionRangedAttack : ActionAttack
         actionDisplayName = "Ranged Attack";
     }
 
+    public override AbilityData GetAbilityDataForCosts() => abilityData;
+
     public override TargetType TARGET_TYPE { get { return TargetType.RANGED; } }
     public override bool RequiresLineOfSight { get { return true; } }
     public override bool TargetsEnemiesOnly { get { return true; } }
@@ -43,6 +45,12 @@ public class ActionRangedAttack : ActionAttack
     private IEnumerator RangedAttackSequence(Tile targetTile)
     {
         if (targetTile == null)
+        {
+            EndAction();
+            yield break;
+        }
+
+        if (!ConsumeAttackResources())
         {
             EndAction();
             yield break;
@@ -120,7 +128,7 @@ public class ActionRangedAttack : ActionAttack
             result = AttackResolver.Resolve(characterSheet, enemy.characterSheet, context);
         }
 
-        CombatLog.Log(result.logMessage, result.hit ? result.damageType : (EquippableHandheld.DamageType?)null);
+        CombatLog.Log(result.logMessage, result.hit ? result.damageType : (DamageType?)null);
 
         if (popupTarget != null)
         {

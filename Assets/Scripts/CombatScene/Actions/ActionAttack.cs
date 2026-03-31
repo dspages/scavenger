@@ -85,6 +85,12 @@ public abstract class ActionAttack : ActionMove
             yield break;
         }
 
+        if (!ConsumeAttackResources())
+        {
+            EndAction();
+            yield break;
+        }
+
         Vector3 originalPos = transform.position;
         Vector3 targetPos = targetTile.transform.position;
         Vector3 direction = CalculateDirection(targetPos);
@@ -122,7 +128,7 @@ public abstract class ActionAttack : ActionMove
         // Return to original position with slight deceleration (ease-out)
         yield return VfxHelpers.MoveWithEase(transform, lungePos, originalPos, backTime, VfxHelpers.EaseOutQuad, true, direction);
 
-        // Accrue base action cost (movement already accrued in PreparePath)
+        // Accrue base action cost (movement accrued per tile in ActionMove.Move)
         actionPointCost += BASE_ACTION_COST;
 
         // End after a short cosmetic delay and snap facing to grid
@@ -228,6 +234,38 @@ public abstract class ActionAttack : ActionMove
     protected IEnumerator SpawnMusketProjectileAndWait(Vector3 from, Vector3 to)
     {
         yield return VfxHelpers.ProjectileWhooshingBall(from, to, 20f);
+    }
+
+    /// <summary>Optional ability data for ammo overrides and inventory costs. Weapon-only attacks return null.</summary>
+    public virtual AbilityData GetAbilityDataForCosts() => null;
+
+    /// <summary>Spend ammo / consumable weapon stacks before damage resolution.</summary>
+    protected virtual bool ConsumeAttackResources()
+    {
+        var ability = GetAbilityDataForCosts();
+        var sheet = combatController.characterSheet;
+#if UNITY_EDITOR
+        bool affordExpected = CombatActionAffordance.CanAffordFullAttackAction(
+            combatController, GetEquippedWeaponForThisAttack(), ability);
+#endif
+        if (!CombatItemSpend.TrySpendAbilityHardCosts(ability, sheet))
+        {
+#if UNITY_EDITOR
+            if (affordExpected)
+                CombatItemSpend.LogEditorInvariantFailed("TrySpendAbilityHardCosts failed after CanAffordFullAttackAction returned true.");
+#endif
+            return false;
+        }
+        if (!CombatItemSpend.TryCommitWeaponAttackCosts(combatController, GetEquippedWeaponForThisAttack(), ability))
+        {
+#if UNITY_EDITOR
+            if (affordExpected)
+                CombatItemSpend.LogEditorInvariantFailed("TryCommitWeaponAttackCosts failed after CanAffordFullAttackAction returned true.");
+#endif
+            return false;
+        }
+        CombatItemSpend.ApplySanityCost(ability, sheet);
+        return true;
     }
 
     // Abstract method for subclasses to implement their specific attack logic

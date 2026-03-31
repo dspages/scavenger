@@ -61,37 +61,37 @@ public class HitCalculatorTests
         defender.agility = 0;
         var context = AttackContext.Ranged(weapon: null, distance: 4);
 
-        // distance == perception, defender agility 0 => base 75%
+        // visionRange=8, distance 4 => 4 tiles under vision => 75% + 20% = 95%
         float chance = HitCalculator.CalculateHitChance(attacker, defender, context);
 
-        Assert.AreEqual(0.75f, chance, 0.001f);
+        Assert.AreEqual(0.95f, chance, 0.001f);
     }
 
     [Test]
-    public void CalculateHitChance_Ranged_DistanceBeyondPerception_Penalty()
+    public void CalculateHitChance_Ranged_DistanceBeyondVisionRange_Penalty()
     {
         var attacker = MakeSheet();
         attacker.perception = 4;
         var defender = MakeSheet();
         defender.agility = 0;
-        var context = AttackContext.Ranged(weapon: null, distance: 6);
+        var context = AttackContext.Ranged(weapon: null, distance: 10);
 
-        // 2 tiles over perception => 75% - 40% = 35%
+        // visionRange=8, 2 tiles over => 75% - 40% = 35%
         float chance = HitCalculator.CalculateHitChance(attacker, defender, context);
 
         Assert.AreEqual(0.35f, chance, 0.001f);
     }
 
     [Test]
-    public void CalculateHitChance_Ranged_DistanceUnderPerception_Bonus()
+    public void CalculateHitChance_Ranged_DistanceUnderVisionRange_Bonus()
     {
         var attacker = MakeSheet();
-        attacker.perception = 6;
+        attacker.perception = 3;
         var defender = MakeSheet();
         defender.agility = 0;
         var context = AttackContext.Ranged(weapon: null, distance: 3);
 
-        // 3 tiles under perception => 75% + 15% = 90%
+        // visionRange=6, 3 tiles under => 75% + 15% = 90%
         float chance = HitCalculator.CalculateHitChance(attacker, defender, context);
 
         Assert.AreEqual(0.90f, chance, 0.001f);
@@ -106,10 +106,10 @@ public class HitCalculatorTests
         defender.agility = 4;
         var context = AttackContext.Ranged(weapon: null, distance: 4);
 
-        // base 75% - (4 * 5%) = 55%
+        // 95% attacker - (4 * 5%) = 75%
         float chance = HitCalculator.CalculateHitChance(attacker, defender, context);
 
-        Assert.AreEqual(0.55f, chance, 0.001f);
+        Assert.AreEqual(0.75f, chance, 0.001f);
     }
 
     [Test]
@@ -122,10 +122,10 @@ public class HitCalculatorTests
         defender.TryEquipItem(new EquippableItem("Boots", EquippableItem.EquipmentSlot.Boots) { dodgeBonus = 2 });
         var context = AttackContext.Ranged(weapon: null, distance: 4);
 
-        // base 75% - (2 evasion * 5%) = 65%
+        // 95% - (2 evasion * 5%) = 85%
         float chance = HitCalculator.CalculateHitChance(attacker, defender, context);
 
-        Assert.AreEqual(0.65f, chance, 0.001f);
+        Assert.AreEqual(0.85f, chance, 0.001f);
     }
 
     [Test]
@@ -166,10 +166,10 @@ public class HitCalculatorTests
         defender.agility = 0;
         var context = AttackContext.Ranged(weapon: null, distance: 4);
 
-        // base 75% - 40% blinded = 35%
+        // 95% attacker parts - 40% blinded = 55%
         float chance = HitCalculator.CalculateHitChance(attacker, defender, context);
 
-        Assert.AreEqual(0.35f, chance, 0.001f);
+        Assert.AreEqual(0.55f, chance, 0.001f);
     }
 
     // --- Crit chance ---

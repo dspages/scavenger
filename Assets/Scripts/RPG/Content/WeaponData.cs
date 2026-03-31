@@ -2,7 +2,7 @@ public class WeaponData : ItemData
 {
     public EquippableHandheld.WeaponType weaponType = EquippableHandheld.WeaponType.OneHanded;
     public EquippableHandheld.RangeType rangeType = EquippableHandheld.RangeType.Melee;
-    public EquippableHandheld.DamageType damageType = EquippableHandheld.DamageType.Slashing;
+    public DamageType damageType = DamageType.Slashing;
     public int damage = 1;
     public int minRange = 1;
     public int maxRange = 1;
@@ -19,15 +19,15 @@ public class WeaponData : ItemData
 
     public bool isConsumable = false;
     public bool requiresAmmo = false;
+    /// <summary>Registry id of ammo item (e.g. musket_ball); must match <see cref="ItemData.id"/> in <see cref="ItemCatalog"/>.</summary>
     public string ammoType = "";
 
     public override InventoryItem CreateInstance()
     {
-        return new EquippableHandheld(
+        var w = new EquippableHandheld(
             displayName, weaponType, damage, minRange, maxRange, actionPointCost, damageType)
         {
             description = description,
-            stackSize = stackSize,
             weight = weight,
             rarity = rarity,
             rangeType = rangeType,
@@ -42,5 +42,7 @@ public class WeaponData : ItemData
             requiresAmmo = requiresAmmo,
             ammoType = ammoType,
         };
+        w.ConfigureStacks(MaxStack, MaxStack);
+        return w;
     }
 }

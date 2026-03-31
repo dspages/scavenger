@@ -43,7 +43,7 @@ public class ActionMeleeAttack : ActionAttack
             var weapon = GetEquippedWeaponForThisAttack();
             var context = AttackContext.Melee(weapon, abilityData);
             var result = AttackResolver.Resolve(characterSheet, enemy.characterSheet, context);
-            CombatLog.Log(result.logMessage, result.hit ? result.damageType : (EquippableHandheld.DamageType?)null);
+            CombatLog.Log(result.logMessage, result.hit ? result.damageType : (DamageType?)null);
 
             if (popupTarget != null)
             {

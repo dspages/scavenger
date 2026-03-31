@@ -37,7 +37,7 @@ public class CombatLogTests
     public void Log_FiresEvent()
     {
         string received = null;
-        void Handler(string msg, EquippableHandheld.DamageType? _) { received = msg; }
+        void Handler(string msg, DamageType? _) { received = msg; }
         CombatLog.OnEntryAdded += Handler;
 
         CombatLog.Log("Hello");

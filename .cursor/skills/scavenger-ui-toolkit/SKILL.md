@@ -43,3 +43,12 @@ For **palette, typography, spacing, and visual principles**, read **[`reference.
 
 - Prefer **USS classes** and shared theme rules (`Theme.uss`, panel `.uss` files) over inline styles in UXML unless the project already uses inline for that element.
 - Keep spacing, typography, and color **consistent** with adjacent panels and `Theme.uss`.
+
+## Cursors (runtime USS)
+
+- **`cursor: url("Assets/...")`** on VisualElements needs textures imported with **Read/Write enabled** (or **Texture Type: Cursor**), per Unity’s `UIElements.Cursor` docs. Without that, hover cursors **silently fail** at runtime while `Cursor.SetCursor` from scripts can still work.
+- Avoid fighting the OS cursor: code that calls **`UnityEngine.Cursor.SetCursor`** every frame can override UI Toolkit until it **clears** when entering panels (see `CombatHardwareCursor` + `UIClickBlocker`).
+
+## Home Base — weekly assignment (target UX)
+
+Between-mission **squad + roster + base jobs** interaction rules and ASCII wireframe live in **[`reference.md`](reference.md) → Home Base — weekly command (target UX)** (dropdown vs drag-and-drop, `CanAssign`, full roster with job icons).

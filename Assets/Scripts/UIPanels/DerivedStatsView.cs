@@ -108,6 +108,7 @@ public static class DerivedStatsView
         derivedRow.Add(MakeDerivedChip("Crit " + sheet.GetCritChancePercent() + "%"));
         derivedRow.Add(MakeDerivedChip("Backstab +" + sheet.GetBackstabDamageBonus()));
         derivedRow.Add(MakeDerivedChip("Dodge +" + sheet.GetTotalGearDodgeBonus()));
+        derivedRow.Add(MakeDerivedChip("Vision " + sheet.GetVisionRange()));
         container.Add(derivedRow);
 
         sheet.GetEquippedWeaponRangeSummaries(out var rangeLeft, out var rangeRight);
@@ -223,7 +224,7 @@ public static class DerivedStatsView
         return label;
     }
 
-    private static Label MakeDamageChip(string text, EquippableHandheld.DamageType type)
+    private static Label MakeDamageChip(string text, DamageType type)
     {
         var label = new Label(text);
         label.style.color = DamageTypeColors.Get(type);

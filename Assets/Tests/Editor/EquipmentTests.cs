@@ -5,19 +5,19 @@ public class EquipmentTests
     private EquippableHandheld MakeSword(string name = "Sword")
     {
         return new EquippableHandheld(name, EquippableHandheld.WeaponType.OneHanded, 5, 10,
-            EquippableHandheld.DamageType.Slashing);
+            DamageType.Slashing);
     }
 
     private EquippableHandheld MakeShield(string name = "Shield")
     {
         return new EquippableHandheld(name, EquippableHandheld.WeaponType.Shield, 1, 8,
-            EquippableHandheld.DamageType.Bludgeoning);
+            DamageType.Bludgeoning);
     }
 
     private EquippableHandheld MakeTwoHander(string name = "Pike")
     {
         return new EquippableHandheld(name, EquippableHandheld.WeaponType.TwoHanded, 10, 15,
-            EquippableHandheld.DamageType.Piercing);
+            DamageType.Piercing);
     }
 
     // --- Basic equip/unequip ---

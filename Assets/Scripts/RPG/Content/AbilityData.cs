@@ -14,15 +14,29 @@ public class AbilityData
     public string description;
 
     public Archetype archetype;
-    public int manaCost;
     public int actionPointCost = 10;
 
+    /// <summary>Arcane-style spend (morale / sanity bar).</summary>
+    public int sanityCost;
+    /// <summary>Tech ability spend (inventory stackables).</summary>
+    public int techComponentsCost;
+    /// <summary>Divine-style spend (mana crystals, inventory stackables).</summary>
+    public int manaCrystalCost;
+    /// <summary>Turns before the ability can be used again; 0 = no cooldown.</summary>
+    public int cooldown = 0;
+
     public int damage;
-    public EquippableHandheld.DamageType damageType = EquippableHandheld.DamageType.Bludgeoning;
+    public DamageType damageType = DamageType.Bludgeoning;
     public int minRange = 1;
     public int maxRange = 1;
     public int radius;
     public float lungeDistance = 0.3f;
+
+    /// <summary>Optional override for ammo registry id when this ability supplies a different ammo type than the weapon default.</summary>
+    public string ammoTypeOverride;
+
+    /// <summary>Extra inventory items consumed when this ability resolves (registry id + amount).</summary>
+    public ItemStackCost[] extraItemCosts;
 
     public StatusEffect.EffectType statusEffect;
     public int statusDuration;

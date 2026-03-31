@@ -47,7 +47,7 @@ public partial class CharacterSheet
     public int speed = 4; // Action point pool, turn order
     public int intellect = 4; // Controls how many special abilities you can learn and level up
     public int endurance = 4; // Life points, physical resistances
-    public int perception = 4; // Fog of war clearing, ranged accuracy, bonus loot
+    public int perception = 4; // Fog of war clearing (see GetVisionRange), bonus loot
     public int willpower = 4; // Mental resistances, mana pool
 
     public int level = 1;
@@ -70,6 +70,8 @@ public partial class CharacterSheet
 
     public int currentHealth;
     public int currentMana;
+    /// <summary>Morale / sanity pool for arcane costs. May be spent below zero by player choice.</summary>
+    public int currentSanity;
     public int currentActionPoints = 0;
 
     public CharacterClass characterClass;
@@ -96,6 +98,7 @@ public partial class CharacterSheet
             : name.Trim();
         currentHealth = MaxHealth();
         currentMana = MaxMana();
+        currentSanity = MaxSanity();
         inventory = new Inventory();
         equipment = new Equipment();
         
@@ -161,6 +164,10 @@ public partial class CharacterSheet
         return (10 * level) + (5 * willpower);
     }
 
+    public int MaxSanity()
+    {
+        return (10 * level) + (5 * willpower);
+    }
 
     public bool CanDeploy()
     {
@@ -298,9 +305,9 @@ public partial class CharacterSheet
     }
 
     /// <summary>Nonzero resistances (percent) from equipment and status. Keys are damage types; values are percent reduction. Empty if none.</summary>
-    public IReadOnlyDictionary<EquippableHandheld.DamageType, int> GetNonzeroResistances()
+    public IReadOnlyDictionary<DamageType, int> GetNonzeroResistances()
     {
-        var dict = new Dictionary<EquippableHandheld.DamageType, int>();
+        var dict = new Dictionary<DamageType, int>();
         // TODO: add resistance from equipment/status when those fields exist; for now base stats could contribute
         return dict;
     }
@@ -310,7 +317,7 @@ public partial class CharacterSheet
     {
         public int minDamage;
         public int maxDamage;
-        public EquippableHandheld.DamageType damageType;
+        public DamageType damageType;
         public string label; // e.g. "R" or "L"
     }
 
@@ -337,7 +344,7 @@ public partial class CharacterSheet
         if (left == null && right == null)
         {
             int u = AttackResolver.UNARMED_DAMAGE;
-            right = new WeaponDamageSummary { minDamage = Mathf.Max(1, u - 1), maxDamage = u + 1, damageType = EquippableHandheld.DamageType.Bludgeoning, label = "R" };
+            right = new WeaponDamageSummary { minDamage = Mathf.Max(1, u - 1), maxDamage = u + 1, damageType = DamageType.Bludgeoning, label = "R" };
         }
     }
 

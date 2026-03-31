@@ -65,7 +65,7 @@ public static class AttackResolver
         return UNARMED_DAMAGE;
     }
 
-    private static EquippableHandheld.DamageType GetDamageType(AttackContext context)
+    private static DamageType GetDamageType(AttackContext context)
     {
         if (context.weapon != null)
             return context.weapon.damageType;
@@ -73,7 +73,7 @@ public static class AttackResolver
         if (context.abilityData != null)
             return context.abilityData.damageType;
 
-        return EquippableHandheld.DamageType.Bludgeoning;
+        return DamageType.Bludgeoning;
     }
 
     private static int GetFinalDamage(CharacterSheet attacker, CharacterSheet defender,
@@ -108,7 +108,7 @@ public static class AttackResolver
     }
 
     private static string FormatHitMessage(string attackerName, string defenderName,
-        string weaponName, int damage, EquippableHandheld.DamageType dmgType, bool crit, bool killed)
+        string weaponName, int damage, DamageType dmgType, bool crit, bool killed)
     {
         string verb = crit ? "critically strikes" : "strikes";
         string dmgTypeName = dmgType.ToString();

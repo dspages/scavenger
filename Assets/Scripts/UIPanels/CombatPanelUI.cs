@@ -41,6 +41,15 @@ public class CombatPanelUI : MonoBehaviour
     private IVisualElementScheduledItem pendingDetailExpand;
     private Vector2 lastPointerPos;
 
+    private TurnManager turnManager;
+
+    private void Awake()
+    {
+        if (GetComponent<CombatHardwareCursor>() == null)
+            gameObject.AddComponent<CombatHardwareCursor>();
+        turnManager = FindFirstObjectByType<TurnManager>(FindObjectsInactive.Exclude);
+    }
+
     private void Start()
     {
         // Load the UXML template and style sheets
@@ -244,13 +253,6 @@ public class CombatPanelUI : MonoBehaviour
 
         if (overlay.parent != null)
             overlay.RemoveFromHierarchy();
-    }
-
-    private TurnManager turnManager;
-
-    private void Awake()
-    {
-        turnManager = FindFirstObjectByType<TurnManager>(FindObjectsInactive.Exclude);
     }
 
     private void Update()

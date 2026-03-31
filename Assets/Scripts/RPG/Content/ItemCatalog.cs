@@ -7,7 +7,7 @@ public static class ItemCatalog
         id = "health_potion",
         displayName = "Health Potion",
         description = "Restores 50 HP",
-        stackSize = 10,
+        MaxStack = 10,
     };
 
     public static readonly ItemData ManaPotion = new ItemData
@@ -15,7 +15,7 @@ public static class ItemCatalog
         id = "mana_potion",
         displayName = "Mana Potion",
         description = "Restores 30 MP",
-        stackSize = 5,
+        MaxStack = 5,
     };
 
     public static readonly ItemData Bread = new ItemData
@@ -23,7 +23,7 @@ public static class ItemCatalog
         id = "bread",
         displayName = "Bread",
         description = "Basic food item",
-        stackSize = 20,
+        MaxStack = 20,
     };
 
     public static readonly ItemData GoldCoin = new ItemData
@@ -31,7 +31,7 @@ public static class ItemCatalog
         id = "gold_coin",
         displayName = "Gold Coin",
         description = "Currency",
-        stackSize = 99,
+        MaxStack = 99,
     };
 
     public static readonly ItemData MusketBall = new ItemData
@@ -39,7 +39,23 @@ public static class ItemCatalog
         id = "musket_ball",
         displayName = "Musket Ball",
         description = "Ammunition for muskets",
-        stackSize = 50,
+        MaxStack = 50,
+    };
+
+    public static readonly ItemData ManaCrystal = new ItemData
+    {
+        id = "mana_crystal",
+        displayName = "Mana Crystal",
+        description = "Divine-style ability consumable",
+        MaxStack = 99,
+    };
+
+    public static readonly ItemData TechComponent = new ItemData
+    {
+        id = "tech_component",
+        displayName = "Tech Component",
+        description = "Tech ability consumable",
+        MaxStack = 99,
     };
 
     // ---- Melee Weapons ----
@@ -51,7 +67,7 @@ public static class ItemCatalog
         description = "A basic sword",
         weaponType = EquippableHandheld.WeaponType.OneHanded,
         rangeType = EquippableHandheld.RangeType.Melee,
-        damageType = EquippableHandheld.DamageType.Slashing,
+        damageType = DamageType.Slashing,
         damage = 5,
         actionPointCost = 10,
     };
@@ -63,7 +79,7 @@ public static class ItemCatalog
         description = "A quick dagger",
         weaponType = EquippableHandheld.WeaponType.OneHanded,
         rangeType = EquippableHandheld.RangeType.Melee,
-        damageType = EquippableHandheld.DamageType.Piercing,
+        damageType = DamageType.Piercing,
         damage = 2,
         actionPointCost = 4,
     };
@@ -75,7 +91,7 @@ public static class ItemCatalog
         description = "A long pike that requires distance to use effectively",
         weaponType = EquippableHandheld.WeaponType.TwoHanded,
         rangeType = EquippableHandheld.RangeType.Melee,
-        damageType = EquippableHandheld.DamageType.Piercing,
+        damageType = DamageType.Piercing,
         damage = 10,
         minRange = 2,
         maxRange = 2,
@@ -91,7 +107,7 @@ public static class ItemCatalog
         description = "A sturdy steel shield",
         weaponType = EquippableHandheld.WeaponType.Shield,
         rangeType = EquippableHandheld.RangeType.Melee,
-        damageType = EquippableHandheld.DamageType.Bludgeoning,
+        damageType = DamageType.Bludgeoning,
         damage = 1,
         actionPointCost = 8,
         armorBonus = 2,
@@ -107,13 +123,13 @@ public static class ItemCatalog
         description = "A musket that requires distance to avoid muzzle flash",
         weaponType = EquippableHandheld.WeaponType.TwoHanded,
         rangeType = EquippableHandheld.RangeType.Ranged,
-        damageType = EquippableHandheld.DamageType.Bludgeoning,
+        damageType = DamageType.Bludgeoning,
         damage = 12,
         minRange = 2,
         maxRange = 10,
         actionPointCost = 30,
         requiresAmmo = true,
-        ammoType = "Musket Ball",
+        ammoType = "musket_ball",
         associatedActionClass = nameof(ActionRangedAttack),
         attackLungeDistance = -0.2f,
     };
@@ -125,7 +141,7 @@ public static class ItemCatalog
         description = "A grenade that explodes on impact - keep your distance!",
         weaponType = EquippableHandheld.WeaponType.OneHanded,
         rangeType = EquippableHandheld.RangeType.Ranged,
-        damageType = EquippableHandheld.DamageType.Fire,
+        damageType = DamageType.Fire,
         damage = 12,
         minRange = 2,
         maxRange = 8,
@@ -145,7 +161,7 @@ public static class ItemCatalog
         description = "A basic torch. Provides light and small fire damage.",
         weaponType = EquippableHandheld.WeaponType.OneHanded,
         rangeType = EquippableHandheld.RangeType.Melee,
-        damageType = EquippableHandheld.DamageType.Fire,
+        damageType = DamageType.Fire,
         damage = 2,
         actionPointCost = 10,
         providesIllumination = true,
@@ -222,7 +238,7 @@ public static class ItemCatalog
 
     public static readonly ItemData[] All = new ItemData[]
     {
-        HealthPotion, ManaPotion, Bread, GoldCoin, MusketBall,
+        HealthPotion, ManaPotion, Bread, GoldCoin, MusketBall, ManaCrystal, TechComponent,
         Cutlass, IronDagger, ReachPike,
         SteelShield,
         LongMusket, FragGrenade,

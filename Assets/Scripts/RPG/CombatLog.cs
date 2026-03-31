@@ -6,13 +6,13 @@ public static class CombatLog
     public const int MaxEntries = 200;
 
     private static readonly List<string> entries = new List<string>();
-    private static readonly List<EquippableHandheld.DamageType?> entryDamageTypes = new List<EquippableHandheld.DamageType?>();
+    private static readonly List<DamageType?> entryDamageTypes = new List<DamageType?>();
 
-    public static event Action<string, EquippableHandheld.DamageType?> OnEntryAdded;
+    public static event Action<string, DamageType?> OnEntryAdded;
 
     public static IReadOnlyList<string> Entries => entries;
 
-    public static void Log(string message, EquippableHandheld.DamageType? damageType = null)
+    public static void Log(string message, DamageType? damageType = null)
     {
         if (string.IsNullOrEmpty(message)) return;
         entries.Add(message);
@@ -31,7 +31,7 @@ public static class CombatLog
         entryDamageTypes.Clear();
     }
 
-    public static EquippableHandheld.DamageType? GetEntryDamageType(int index)
+    public static DamageType? GetEntryDamageType(int index)
     {
         if (index < 0 || index >= entryDamageTypes.Count) return null;
         return entryDamageTypes[index];

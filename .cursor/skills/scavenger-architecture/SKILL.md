@@ -11,7 +11,7 @@ description: >-
 
 # Scavenger — architecture (map)
 
-Read **[`reference.md`](reference.md)** for the **four-layer architecture**, expanded principles (dependency direction, single source of truth for combat numbers, `CharacterSheet` vs avatar, player/AI parity, observation vs coupling, tuning homes vs UI/controllers), a **related skills** table, roles of major types (`CharacterSheet`, `Action`, controllers, shared character/inventory UI), scene flows, and “if you change X, consider Y.”
+Read **[`reference.md`](reference.md)** for the **four-layer architecture**, expanded principles (dependency direction, single source of truth for combat numbers, `CharacterSheet` vs avatar, player/AI parity, observation vs coupling, tuning homes vs UI/controllers), a **related skills** table, roles of major types (`CharacterSheet`, `Action`, controllers, shared character/inventory UI), scene flows, **`PlayerParty` / excursion ownership**, **ability resource contract** (four-line model, workbench tension, symmetric sanity), and “if you change X, consider Y.” For **Home Base weekly command** wireframe (Chosen pairing, `CanAssign`), see **[`scavenger-ui-toolkit`](../scavenger-ui-toolkit/reference.md)**.
 
 ## Scenes
 

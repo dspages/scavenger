@@ -16,14 +16,16 @@ public class InventoryTests
     public void TryAddItem_StacksWithExistingCompatibleItem()
     {
         var inventory = new Inventory();
-        var firstStack = new InventoryItem("Potion") { stackSize = 10, currentStack = 6 };
-        var secondStack = new InventoryItem("Potion") { stackSize = 10, currentStack = 3 };
+        var firstStack = new InventoryItem("Potion");
+        firstStack.ConfigureStacks(10, 6);
+        var secondStack = new InventoryItem("Potion");
+        secondStack.ConfigureStacks(10, 3);
 
         Assert.IsTrue(inventory.TryAddItem(firstStack));
         Assert.IsTrue(inventory.TryAddItem(secondStack));
 
-        Assert.AreEqual(9, inventory.GetItem(0).currentStack);
-        Assert.AreEqual(0, secondStack.currentStack);
+        Assert.AreEqual(9, inventory.GetItem(0).PeekStackSize());
+        Assert.AreEqual(0, secondStack.PeekStackSize());
         Assert.IsTrue(inventory.IsSlotEmpty(1));
     }
 
@@ -31,7 +33,8 @@ public class InventoryTests
     public void RemoveItem_RemovesSlotWhenStackDropsToZero()
     {
         var inventory = new Inventory();
-        var potion = new InventoryItem("Potion") { stackSize = 5, currentStack = 2 };
+        var potion = new InventoryItem("Potion");
+        potion.ConfigureStacks(5, 2);
         inventory.TryAddItem(potion);
 
         Assert.IsTrue(inventory.RemoveItem(0, 2));

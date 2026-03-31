@@ -49,6 +49,7 @@ public class CharacterSaveData
 
     public int currentHealth;
     public int currentMana;
+    public int currentSanity;
     public bool dead;
 
     public List<ItemSaveData> inventorySlots = new List<ItemSaveData>();
@@ -73,6 +74,7 @@ public class CharacterSaveData
             willpower = sheet.willpower,
             currentHealth = sheet.currentHealth,
             currentMana = sheet.currentMana,
+            currentSanity = sheet.currentSanity,
             dead = sheet.dead,
         };
 
@@ -114,6 +116,7 @@ public class CharacterSaveData
         sheet.willpower = willpower;
         sheet.currentHealth = currentHealth;
         sheet.currentMana = currentMana;
+        sheet.currentSanity = currentSanity;
         sheet.dead = dead;
 
         RestoreInventory(sheet);
@@ -187,10 +190,10 @@ public class ItemSaveData
         var data = new ItemSaveData
         {
             isEmpty = false,
-            currentStack = item.currentStack,
+            currentStack = item.PeekStackSize(),
             itemName = item.itemName,
             description = item.description,
-            stackSize = item.stackSize,
+            stackSize = item.MaxStack,
             weight = item.weight,
         };
 
@@ -231,7 +234,7 @@ public class ItemSaveData
             var item = ContentRegistry.CreateItem(registryId);
             if (item != null)
             {
-                item.currentStack = currentStack;
+                item.ConfigureStacks(stackSize, currentStack);
                 return item;
             }
         }
@@ -240,39 +243,38 @@ public class ItemSaveData
         {
             var wep = new EquippableHandheld(itemName,
                 EquippableHandheld.WeaponType.OneHanded, damage, minRange, maxRange,
-                actionPointCost, EquippableHandheld.DamageType.Slashing)
+                actionPointCost, DamageType.Slashing)
             {
                 description = description,
-                stackSize = stackSize,
                 weight = weight,
-                currentStack = currentStack,
                 armorBonus = armorBonus,
                 dodgeBonus = dodgeBonus,
             };
+            wep.ConfigureStacks(stackSize, currentStack);
             return wep;
         }
 
         if (!string.IsNullOrEmpty(equipSlot) &&
             System.Enum.TryParse<EquippableItem.EquipmentSlot>(equipSlot, out var slot))
         {
-            return new EquippableItem(itemName, slot)
+            var eq = new EquippableItem(itemName, slot)
             {
                 description = description,
-                stackSize = stackSize,
                 weight = weight,
-                currentStack = currentStack,
                 armorBonus = armorBonus,
                 dodgeBonus = dodgeBonus,
             };
+            eq.ConfigureStacks(stackSize, currentStack);
+            return eq;
         }
 
-        return new InventoryItem(itemName)
+        var plain = new InventoryItem(itemName)
         {
             description = description,
-            stackSize = stackSize,
             weight = weight,
-            currentStack = currentStack,
         };
+        plain.ConfigureStacks(stackSize, currentStack);
+        return plain;
     }
 
     private static string FindRegistryId(InventoryItem item)

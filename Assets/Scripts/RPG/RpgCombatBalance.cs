@@ -2,8 +2,8 @@
 public static class RpgCombatBalance
 {
     public const int BaseRangedHitChancePercent = 75;
-    public const int RangedHitPenaltyPerTileOverPerceptionPercent = 20;
-    public const int RangedHitBonusPerTileUnderPerceptionPercent = 5;
+    public const int RangedHitPenaltyPerTileOverVisionRangePercent = 20;
+    public const int RangedHitBonusPerTileUnderVisionRangePercent = 5;
     /// <summary>Applied per point of defender agility + total gear dodge bonus.</summary>
     public const int RangedHitPenaltyPerDefenderEvasionPointPercent = 5;
 

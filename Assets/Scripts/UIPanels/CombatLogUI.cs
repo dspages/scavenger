@@ -82,12 +82,12 @@ public class CombatLogUI : MonoBehaviour
         CombatLog.OnEntryAdded -= OnLogEntry;
     }
 
-    private void OnLogEntry(string message, EquippableHandheld.DamageType? damageType)
+    private void OnLogEntry(string message, DamageType? damageType)
     {
         AppendLine(message, damageType);
     }
 
-    private void AppendLine(string text, EquippableHandheld.DamageType? damageType = null)
+    private void AppendLine(string text, DamageType? damageType = null)
     {
         if (logLabel == null) return;
 

@@ -21,6 +21,7 @@ VisualElement {}
     padding-left: 10px;
     padding-right: 10px;
     margin-top: 4px;
+    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
 }
 
 .action-btn--selected {
@@ -38,12 +39,14 @@ VisualElement {}
     background-color: var(--color-primary);
     color: #0f172a;
     border-radius: 6px;
+    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
 }
 
 .secondary {
     background-color: var(--color-surface-alt);
     color: var(--color-text);
     border-radius: 6px;
+    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
 }
 
 .panel {
@@ -199,7 +202,7 @@ VisualElement {}
     background-color: rgba(60, 60, 60, 0.9);
     border-top-left-radius: 4px;
     border-top-right-radius: 4px;
-    cursor: move-arrow;
+    cursor: url("Assets/Art/cursors/gauntlet_open.png") 4 4;
 }
 
 .game-floating-panel__title-row {

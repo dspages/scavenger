@@ -251,11 +251,37 @@ public partial class CombatController : MonoBehaviour
             manager,
             IsPC(),
             IsTileVisibleByCurrentActor);
+        ApplyAffordanceToSelectableTiles();
     }
 
-    protected bool IsTileInRange(Tile fromTile, int minRange, int maxRange, bool requiresLineOfSight, int x, int y)
+    /// <summary>Weapon driving the current hand selection (same rules as <see cref="ActionAttack"/>).</summary>
+    public EquippableHandheld GetEquippedWeaponForSelectedAction()
     {
-        return ReachabilityResolver.IsTileInRange(fromTile, minRange, maxRange, requiresLineOfSight, x, y, manager);
+        if (characterSheet == null) return null;
+        string key = GetSelectedActionKey();
+        if (string.IsNullOrEmpty(key)) return null;
+        if (key.EndsWith(":LeftHand"))
+            return characterSheet.GetEquippedItem(EquippableItem.EquipmentSlot.LeftHand) as EquippableHandheld;
+        if (key.EndsWith(":RightHand"))
+            return characterSheet.GetEquippedItem(EquippableItem.EquipmentSlot.RightHand) as EquippableHandheld;
+        return characterSheet.GetEquippedItem(EquippableItem.EquipmentSlot.RightHand) as EquippableHandheld;
+    }
+
+    void ApplyAffordanceToSelectableTiles()
+    {
+        if (characterSheet == null || selectableTiles == null) return;
+        var act = GetSelectedAction();
+        foreach (var t in selectableTiles)
+        {
+            t.searchHardCostsAffordable = true;
+            if (t.searchAttackParent != null && act is ActionAttack atk)
+                t.searchHardCostsAffordable = CombatActionAffordance.CanAffordAttackFromSearchTile(this, t, atk);
+        }
+    }
+
+    protected bool IsTileInRange(Tile fromTile, int minRange, int maxRange, bool requiresLineOfSight, int x, int y, bool interposedOccupantsBlockRanged = false)
+    {
+        return ReachabilityResolver.IsTileInRange(fromTile, minRange, maxRange, requiresLineOfSight, x, y, manager, interposedOccupantsBlockRanged);
     }
 
     // Legacy wrappers kept for subclass compatibility

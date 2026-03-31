@@ -40,6 +40,13 @@ description: >-
 
 [`GameSaveData`](../../../Assets/Scripts/GameState/SaveData.cs) currently persists **party members** via `CharacterSaveData`. **Camp stash**, **excursion squad**, and **CampaignMeta** may need to be added to the save model as those flows harden — extend `GameSaveData` deliberately and document new fields.
 
+### Weekly roster & assignment hooks (when implemented)
+
+- **`CanAssign(character, slot)`** — not persisted; only **assignment outcomes** (who is in which slot / job) belong in save data. When weekly UI lands, ensure **JsonUtility** DTOs can round-trip every valid state the UI allows after `CanAssign` checks.
+- **Excursion squad** — mirror [`PlayerParty.excursionSquadIndices`](../../../Assets/Scripts/GameState/PlayerParty.cs) (or successor) in save data when loads must round-trip Home Base → combat.
+- **Per-character weekly base jobs** — when the meta layer stores “who is on workbench / barracks / …”, add a stable representation (indices + room/task ids) to `GameSaveData` / per-character blobs; **JsonUtility** shape rules apply.
+- **Shared resources** — **mana crystals**, **tech components**, **sanity/morale** (`currentSanity` on [`CharacterSheet`](../../../Assets/Scripts/RPG/CharacterSheet.cs)), and related stacks must stay consistent with combat + workbench (see [`scavenger-architecture`](../scavenger-architecture/reference.md) ability contract).
+
 ## Options vs game save
 
 [`TooltipDetailSettings`](../../../Assets/Scripts/GameState/TooltipDetailSettings.cs) uses **PlayerPrefs** for UI preferences — not the same as `savegame.json`. Do not conflate the two.

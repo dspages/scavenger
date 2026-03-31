@@ -54,7 +54,21 @@ public class TileTooltipProvider : TooltipProvider
                 text += $" (AP Cost: {tile.searchDistance})";
             }
         }
-        
+
+        var activePc = FindActivePlayer();
+        if (activePc != null && tile.searchCanBeChosen && !tile.searchHardCostsAffordable)
+            text += "\n<color=#FF8800>Cannot pay costs for this action (ammo / resources).</color>";
+
+        if (activePc != null)
+        {
+            var action = activePc.GetSelectedAction();
+            if (action is ActionAttack atk &&
+                CombatActionAffordance.ShouldWarnSanityRisk(atk.GetAbilityDataForCosts(), activePc.characterSheet))
+            {
+                text += "\n<color=#FF8800>Warning: this action may cause insanity!</color>";
+            }
+        }
+
         return text;
     }
 

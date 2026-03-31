@@ -12,7 +12,7 @@ description: >-
 
 # Scavenger — post-change verification
 
-Canonical checklist for verification after changes. For **what tests or docs to add** with a change, see **`scavenger-change-companion`**. For debugging see **`scavenger-debugging-workflow`**; for UI see **`scavenger-ui-toolkit`**; for code layout see **`scavenger-architecture`**; for saves see **`scavenger-data-persistence`**. **`AGENTS.md`** at the repo root indexes which skill to open.
+Canonical checklist for verification after changes. For **what tests or docs to add** with a change, see **`scavenger-change-companion`**. For debugging see **`scavenger-debugging-workflow`**; for UI see **`scavenger-ui-toolkit`**; for code layout see **`scavenger-architecture`**; for repo folders and formatting see **`scavenger-conventions`**; for DRY and implementation habits see **`scavenger-coding-principles`**; for saves see **`scavenger-data-persistence`**. **`AGENTS.md`** at the repo root indexes which skill to open.
 
 ## When to apply
 

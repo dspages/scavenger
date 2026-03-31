@@ -13,7 +13,7 @@ Companion to [`SKILL.md`](SKILL.md). Use when the change **restructures** the pr
 | Area | What to refresh |
 | --- | --- |
 | **Architecture** | [`scavenger-architecture`](../scavenger-architecture/SKILL.md) **map** and [`reference.md`](../scavenger-architecture/reference.md) — scenes, flows, state ownership, “if you change X” table. |
-| **Conventions** | [`scavenger-conventions`](../scavenger-conventions/SKILL.md) — only when the team has **new stable** rules (naming, folders, test layout). |
+| **Conventions** | [`scavenger-conventions`](../scavenger-conventions/SKILL.md) — update when **directory layout, formatting policy, or test placement** changes materially. |
 | **Persistence** | [`scavenger-data-persistence`](../scavenger-data-persistence/SKILL.md) — save model, checkpoint policy, JsonUtility fields, item/ability ids. |
 | **Human / players** | [`docs/PLAYER_GUIDE.md`](../../../docs/PLAYER_GUIDE.md) — gameplay loop, controls, stats, abilities when those **meaningfully** change. |
 | **Other skills** | Update **debugging**, **UI toolkit**, etc., only when facts they assert are no longer true—surgical edits, not wholesale rewrites. |

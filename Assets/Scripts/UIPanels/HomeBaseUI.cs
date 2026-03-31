@@ -4,7 +4,8 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
 /// <summary>
-/// Weekly command screen for <see cref="SceneNames.HomeBase"/>. Layout follows the design wireframe (missions, squad, roster, base assignments, preparation modal).
+/// Weekly command screen for <see cref="SceneNames.HomeBase"/>. Missions, fixed excursion squad slots
+/// (dropdown + drag from roster), full roster with assignment icons, base assignments stub, preparation modal.
 /// </summary>
 public class HomeBaseUI : MonoBehaviour
 {
@@ -23,6 +24,7 @@ public class HomeBaseUI : MonoBehaviour
     private const int MaxSquadSlots = 4;
     private const int MaxRosterCapacity = 8;
 
+    private VisualElement uiTreeRoot;
     private VisualElement preparationOverlay;
 
     private Label weekValueLabel;
@@ -35,8 +37,12 @@ public class HomeBaseUI : MonoBehaviour
     private readonly Label[] missionTags = new Label[3];
     private readonly Label[] missionRewards = new Label[3];
     private readonly Label[] squadSlotLabels = new Label[4];
+    private readonly Label[] squadSlotHints = new Label[4];
+    private readonly Button[] squadSlotRemoves = new Button[4];
+    private readonly Button[] squadSlotPicks = new Button[4];
     private readonly VisualElement[] squadSlotRoots = new VisualElement[4];
     private VisualElement rosterChips;
+    private Label rosterLegendLabel;
     private VisualElement assignmentsList;
     private Label excursionTitleLabel;
     private Button recruitButton;
@@ -46,6 +52,37 @@ public class HomeBaseUI : MonoBehaviour
 
     private HomeBaseLoadoutPresenter loadoutPresenter;
     private bool preparationOverlayOpen;
+
+    private int dragPartyIndex = -1;
+    private VisualElement dragGhost;
+    private VisualElement dragSourceRow;
+    private VisualElement dragPointerCaptureElement;
+    private int dragPointerId = -1;
+    private int dragHoverSlot = -1;
+
+    /// <summary>Pointer-down without crossing threshold → roster click (select). Crossing threshold → drag.</summary>
+    private int pendingRosterPartyIndex = -1;
+    private VisualElement pendingRosterRow;
+    private Vector2 pendingRosterStartPanelPos;
+    private int pendingRosterPointerId = -1;
+    private const float RosterDragThresholdPx = 8f;
+
+    private VisualElement pickMenuOverlay;
+    private int pickMenuSlot = -1;
+
+    private EventCallback<PointerMoveEvent> rosterInteractionMoveHandler;
+    private EventCallback<PointerUpEvent> rosterInteractionUpHandler;
+    private EventCallback<PointerCaptureOutEvent> rosterDragCaptureOutHandler;
+    private EventCallback<PointerMoveEvent> rosterDragCapturedMoveHandler;
+    private EventCallback<PointerUpEvent> rosterDragCapturedUpHandler;
+    private EventCallback<PointerCancelEvent> rosterDragCapturedCancelHandler;
+
+    /// <summary>UITK often uses 0 or -1 for the mouse across pointer phases; mismatches skip cleanup and leave drag stuck.</summary>
+    static bool RosterPointerIdsMatch(int a, int b)
+    {
+        if (a == b) return true;
+        return (a == 0 || a == -1) && (b == 0 || b == -1);
+    }
 
     private static readonly (string name, string tag, string reward, string detail)[] StubMissions =
     {
@@ -58,6 +95,16 @@ public class HomeBaseUI : MonoBehaviour
     {
         loadoutPresenter?.Dispose();
         loadoutPresenter = null;
+        if (uiTreeRoot != null)
+        {
+            uiTreeRoot.UnregisterCallback(rosterInteractionMoveHandler);
+            uiTreeRoot.UnregisterCallback(rosterInteractionUpHandler);
+        }
+        if (dragSourceRow != null && rosterDragCaptureOutHandler != null)
+            dragSourceRow.UnregisterCallback(rosterDragCaptureOutHandler);
+        if (dragPointerCaptureElement != null && dragPointerId >= 0)
+            dragPointerCaptureElement.ReleasePointer(dragPointerId);
+        dragGhost?.RemoveFromHierarchy();
     }
 
     private void Start()
@@ -71,6 +118,7 @@ public class HomeBaseUI : MonoBehaviour
         }
 
         VisualElement tree = HomeBaseTemplate.CloneTree();
+        uiTreeRoot = tree;
         tree.style.flexGrow = 1;
         tree.style.width = Length.Percent(100);
         tree.style.height = Length.Percent(100);
@@ -96,6 +144,7 @@ public class HomeBaseUI : MonoBehaviour
         confirmWeekButton = tree.Q<Button>("ConfirmWeekButton");
         missionDetailLabel = tree.Q<Label>("MissionDetailLabel");
         rosterChips = tree.Q<VisualElement>("RosterChips");
+        rosterLegendLabel = tree.Q<Label>("RosterLegendLabel");
         assignmentsList = tree.Q<VisualElement>("AssignmentsList");
         excursionTitleLabel = tree.Q<Label>("ExcursionTitleLabel");
 
@@ -116,12 +165,36 @@ public class HomeBaseUI : MonoBehaviour
         for (int i = 0; i < MaxSquadSlots; i++)
         {
             squadSlotLabels[i] = tree.Q<Label>($"SquadSlotLabel{i}");
+            squadSlotHints[i] = tree.Q<Label>($"SquadSlotHint{i}");
+            squadSlotRemoves[i] = tree.Q<Button>($"SquadSlotRemove{i}");
+            squadSlotPicks[i] = tree.Q<Button>($"SquadSlotPick{i}");
             squadSlotRoots[i] = tree.Q<VisualElement>($"SquadSlot{i}");
             int idx = i;
             if (squadSlotRoots[i] != null)
             {
-                squadSlotRoots[i].RegisterCallback<ClickEvent>(_ => OnExcursionSquadSlotClicked(idx));
+                squadSlotRoots[i].RegisterCallback<ClickEvent>(evt =>
+                {
+                    if (evt.target is Button) return;
+                    OnExcursionSquadSlotClicked(idx);
+                });
                 squadSlotRoots[i].focusable = true;
+            }
+            if (squadSlotRemoves[i] != null)
+            {
+                squadSlotRemoves[i].RegisterCallback<ClickEvent>(evt =>
+                {
+                    evt.StopPropagation();
+                    PlayerParty.TryClearExcursionSlot(idx);
+                    RefreshAll();
+                });
+            }
+            if (squadSlotPicks[i] != null)
+            {
+                squadSlotPicks[i].RegisterCallback<ClickEvent>(evt =>
+                {
+                    evt.StopPropagation();
+                    ShowExcursionPickMenu(idx);
+                });
             }
         }
 
@@ -160,11 +233,24 @@ public class HomeBaseUI : MonoBehaviour
 
         uiDoc.rootVisualElement.Add(tree);
 
+        rosterInteractionMoveHandler = OnRosterInteractionMove;
+        rosterInteractionUpHandler = OnRosterInteractionUp;
+        rosterDragCaptureOutHandler = OnRosterDragPointerCaptureOut;
+        rosterDragCapturedMoveHandler = OnRosterDragCapturedMove;
+        rosterDragCapturedUpHandler = OnRosterDragCapturedUp;
+        rosterDragCapturedCancelHandler = OnRosterDragCapturedCancel;
+
         var party = PlayerParty.partyMembers;
         if (party != null && party.Count > 0)
             selectedRosterIndex = Mathf.Clamp(selectedRosterIndex, 0, party.Count - 1);
         else
             selectedRosterIndex = 0;
+
+        if (rosterLegendLabel != null)
+        {
+            rosterLegendLabel.text =
+                "Legend: ⊕ excursion · ⌂ base job · · unassigned — dropdown lists only unassigned heroes; drag can move anyone.";
+        }
 
         PopulateStubMissions();
         RefreshAll();
@@ -174,7 +260,12 @@ public class HomeBaseUI : MonoBehaviour
     {
         if (!preparationOverlayOpen) return;
         if (Input.GetKeyDown(KeyCode.Escape))
-            HidePreparation();
+        {
+            if (pickMenuOverlay != null)
+                DismissPickMenu();
+            else
+                HidePreparation();
+        }
     }
 
     private void PopulateStubMissions()
@@ -211,11 +302,10 @@ public class HomeBaseUI : MonoBehaviour
 
     private void OnExcursionSquadSlotClicked(int squadSlotIndex)
     {
-        var squad = PlayerParty.excursionSquadIndices;
-        var party = PlayerParty.partyMembers;
-        if (squad == null || party == null || squadSlotIndex < 0 || squadSlotIndex >= squad.Count)
-            return;
-        SelectRoster(squad[squadSlotIndex]);
+        int idx = PlayerParty.GetExcursionSlotPartyIndex(squadSlotIndex);
+        if (idx < 0) return;
+        SelectRoster(idx);
+        ShowPreparation();
     }
 
     private void SelectRoster(int partyIndex)
@@ -232,28 +322,22 @@ public class HomeBaseUI : MonoBehaviour
     {
         if (rosterChips != null)
         {
+            const string prefix = "HomeRosterRow_";
             for (int i = 0; i < rosterChips.childCount; i++)
             {
-                var row = rosterChips[i];
-                if (row == null || row.childCount == 0) continue;
-                var nameLabel = row[0] as Label;
-                if (nameLabel == null) continue;
-                if (i == selectedRosterIndex)
-                    nameLabel.AddToClassList("home-base-chip--selected");
-                else
-                    nameLabel.RemoveFromClassList("home-base-chip--selected");
+                var row = rosterChips[i] as VisualElement;
+                if (row == null || row.name == null || !row.name.StartsWith(prefix)) continue;
+                if (!int.TryParse(row.name.Substring(prefix.Length), out int partyIdx)) continue;
+                row.EnableInClassList("home-base-roster-row--selected", partyIdx == selectedRosterIndex);
             }
         }
 
-        var squad = PlayerParty.excursionSquadIndices;
         for (int i = 0; i < MaxSquadSlots; i++)
         {
             if (squadSlotRoots[i] == null) continue;
-            bool selected = squad != null && i < squad.Count && squad[i] == selectedRosterIndex;
-            if (selected)
-                squadSlotRoots[i].AddToClassList("home-base-squad-slot--selected");
-            else
-                squadSlotRoots[i].RemoveFromClassList("home-base-squad-slot--selected");
+            int inSlot = PlayerParty.GetExcursionSlotPartyIndex(i);
+            bool selected = inSlot >= 0 && inSlot == selectedRosterIndex;
+            squadSlotRoots[i].EnableInClassList("home-base-squad-slot--selected", selected);
         }
     }
 
@@ -311,11 +395,13 @@ public class HomeBaseUI : MonoBehaviour
             selectedRosterIndex = Mathf.Clamp(selectedRosterIndex, 0, party.Count - 1);
 
         if (excursionTitleLabel != null)
+        {
             excursionTitleLabel.text =
-                "Excursion squad (max 4) — toggle Deploy on roster members; click a filled slot to edit loadout.";
+                "Excursion squad (order = spawn) — empty: ▼ bench pick or drag roster here; filled: − benches; click name for loadout.";
+        }
 
         RefreshSquadSlots(party);
-        RefreshRosterChips(party);
+        RefreshRosterRows(party);
         RefreshAssignments(party);
         RefreshRosterSelectionVisual();
         loadoutPresenter?.SetCharacter(party != null && party.Count > 0 ? party[selectedRosterIndex] : null);
@@ -323,24 +409,39 @@ public class HomeBaseUI : MonoBehaviour
 
     private void RefreshSquadSlots(List<CharacterSheet> party)
     {
-        var squad = PlayerParty.excursionSquadIndices;
         for (int i = 0; i < MaxSquadSlots; i++)
         {
             if (squadSlotLabels[i] == null) continue;
-            if (party != null && squad != null && i < squad.Count)
+            int pIdx = PlayerParty.GetExcursionSlotPartyIndex(i);
+            bool filled = party != null && pIdx >= 0 && pIdx < party.Count;
+
+            if (filled)
             {
-                int idx = squad[i];
-                if (idx >= 0 && idx < party.Count)
-                    squadSlotLabels[i].text = party[idx].DisplayName();
-                else
-                    squadSlotLabels[i].text = "—";
+                var sheet = party[pIdx];
+                squadSlotLabels[i].text = sheet.DisplayName();
+                if (squadSlotHints[i] != null)
+                {
+                    squadSlotHints[i].style.display = DisplayStyle.None;
+                }
             }
             else
-                squadSlotLabels[i].text = "—";
+            {
+                squadSlotLabels[i].text = "Empty";
+                if (squadSlotHints[i] != null)
+                {
+                    squadSlotHints[i].style.display = DisplayStyle.Flex;
+                    squadSlotHints[i].text = "drop";
+                }
+            }
+
+            if (squadSlotRemoves[i] != null)
+                squadSlotRemoves[i].style.display = filled ? DisplayStyle.Flex : DisplayStyle.None;
+            if (squadSlotPicks[i] != null)
+                squadSlotPicks[i].style.display = DisplayStyle.Flex;
         }
     }
 
-    private void RefreshRosterChips(List<CharacterSheet> party)
+    private void RefreshRosterRows(List<CharacterSheet> party)
     {
         if (rosterChips == null) return;
         rosterChips.Clear();
@@ -348,31 +449,382 @@ public class HomeBaseUI : MonoBehaviour
 
         for (int i = 0; i < party.Count; i++)
         {
-            var row = new VisualElement();
+            var row = new VisualElement { name = $"HomeRosterRow_{i}" };
             row.AddToClassList("home-base-roster-row");
+            row.pickingMode = PickingMode.Position;
+            row.focusable = true;
+
+            GetWeeklyAssignmentGlyphAndDetail(i, out string glyph, out string detail);
+
+            var icon = new Label(glyph);
+            icon.AddToClassList("home-base-roster-job-icon");
+            icon.pickingMode = PickingMode.Ignore;
 
             var nameLabel = new Label(party[i].DisplayName());
             nameLabel.AddToClassList("home-base-chip");
             nameLabel.focusable = true;
-            nameLabel.pickingMode = PickingMode.Position;
-            if (PlayerParty.IsOnExcursionSquad(i))
-                nameLabel.AddToClassList("home-base-chip--in-squad");
-            int partyIdx = i;
-            nameLabel.RegisterCallback<ClickEvent>(_ => SelectRoster(partyIdx));
+            nameLabel.pickingMode = PickingMode.Ignore;
 
-            var deployToggle = new Toggle("Deploy") { value = PlayerParty.IsOnExcursionSquad(i) };
-            deployToggle.AddToClassList("home-base-roster-deploy-toggle");
-            deployToggle.RegisterValueChangedCallback(evt =>
+            var jobLabel = new Label(detail);
+            jobLabel.AddToClassList("home-base-detail");
+            jobLabel.style.flexGrow = 1;
+            jobLabel.style.fontSize = 11;
+            jobLabel.pickingMode = PickingMode.Ignore;
+
+            int partyIdx = i;
+            row.RegisterCallback<PointerDownEvent>(evt =>
             {
-                if (!PlayerParty.TrySetExcursionSquad(partyIdx, evt.newValue))
-                    deployToggle.SetValueWithoutNotify(!evt.newValue);
-                RefreshAll();
+                if (evt.button != 0) return;
+                if (evt.target is Button) return;
+                BeginRosterPointerPending(partyIdx, row, evt);
             });
 
+            row.Add(icon);
             row.Add(nameLabel);
-            row.Add(deployToggle);
+            row.Add(jobLabel);
             rosterChips.Add(row);
         }
+    }
+
+    private static void GetWeeklyAssignmentGlyphAndDetail(int partyIndex, out string glyph, out string detail)
+    {
+        for (int s = 0; s < MaxSquadSlots; s++)
+        {
+            if (PlayerParty.GetExcursionSlotPartyIndex(s) != partyIndex) continue;
+            glyph = "⊕";
+            detail = $"excursion · slot {s + 1}";
+            return;
+        }
+
+        if (PlayerParty.weeklyBaseJobByPartyIndex != null &&
+            PlayerParty.weeklyBaseJobByPartyIndex.TryGetValue(partyIndex, out var job) &&
+            job != WeeklyBaseJobKind.None)
+        {
+            glyph = "⌂";
+            detail = job.ToString().ToLowerInvariant();
+            return;
+        }
+
+        glyph = "·";
+        detail = "unassigned";
+    }
+
+    private void BeginRosterPointerPending(int partyIndex, VisualElement row, PointerDownEvent evt)
+    {
+        if (uiTreeRoot == null) return;
+        if (dragPartyIndex >= 0 || pendingRosterPartyIndex >= 0) return;
+        DismissPickMenu();
+        pendingRosterPartyIndex = partyIndex;
+        pendingRosterRow = row;
+        pendingRosterStartPanelPos = evt.position;
+        pendingRosterPointerId = evt.pointerId;
+        uiTreeRoot.RegisterCallback(rosterInteractionMoveHandler, TrickleDown.TrickleDown);
+        uiTreeRoot.RegisterCallback(rosterInteractionUpHandler, TrickleDown.TrickleDown);
+    }
+
+    private void CommitRosterDragFromPending(Vector2 panelPosition)
+    {
+        if (pendingRosterPartyIndex < 0 || pendingRosterRow == null || uiTreeRoot == null) return;
+
+        int partyIndex = pendingRosterPartyIndex;
+        dragSourceRow = pendingRosterRow;
+        int pid = pendingRosterPointerId;
+        pendingRosterPartyIndex = -1;
+        pendingRosterRow = null;
+        pendingRosterPointerId = -1;
+
+        dragPartyIndex = partyIndex;
+        dragSourceRow.AddToClassList("home-base-roster-row--dragging");
+
+        var party = PlayerParty.partyMembers;
+        string name = party != null && partyIndex >= 0 && partyIndex < party.Count
+            ? party[partyIndex].DisplayName()
+            : "?";
+        dragGhost = new Label($" {name} ");
+        dragGhost.AddToClassList("home-base-chip");
+        dragGhost.style.position = Position.Absolute;
+        dragGhost.pickingMode = PickingMode.Ignore;
+        dragGhost.style.opacity = 0.92f;
+        uiTreeRoot.Add(dragGhost);
+        PositionDragGhost(panelPosition);
+
+        dragPointerId = pid;
+        dragPointerCaptureElement = dragSourceRow;
+        dragSourceRow.RegisterCallback(rosterDragCapturedMoveHandler);
+        dragSourceRow.RegisterCallback(rosterDragCapturedUpHandler);
+        dragSourceRow.RegisterCallback(rosterDragCapturedCancelHandler);
+        dragSourceRow.RegisterCallback(rosterDragCaptureOutHandler);
+        dragSourceRow.CapturePointer(dragPointerId);
+    }
+
+    private void PositionDragGhost(Vector2 panelPosition)
+    {
+        if (dragGhost == null) return;
+        const float ox = 12f;
+        const float oy = 12f;
+        dragGhost.style.left = panelPosition.x + ox;
+        dragGhost.style.top = panelPosition.y + oy;
+    }
+
+    private void OnRosterDragCapturedMove(PointerMoveEvent evt)
+    {
+        if (dragPartyIndex < 0) return;
+        if (!RosterPointerIdsMatch(evt.pointerId, dragPointerId)) return;
+        PositionDragGhost(evt.position);
+        SetDragHoverSlot(PickSquadSlotIndexAtPanelPos(evt.position));
+    }
+
+    private void OnRosterDragCapturedUp(PointerUpEvent evt)
+    {
+        if (dragPartyIndex < 0) return;
+        if (!RosterPointerIdsMatch(evt.pointerId, dragPointerId)) return;
+        int slot = PickSquadSlotIndexAtPanelPos(evt.position);
+        if (slot >= 0)
+        {
+            bool ok = PlayerParty.TryAssignExcursionSlot(slot, dragPartyIndex);
+            if (!ok)
+                Debug.Log("Home Base: cannot assign to that excursion slot (slot rules).");
+        }
+        EndRosterDrag();
+    }
+
+    private void OnRosterDragCapturedCancel(PointerCancelEvent evt)
+    {
+        if (dragPartyIndex < 0) return;
+        if (!RosterPointerIdsMatch(evt.pointerId, dragPointerId)) return;
+        EndRosterDrag();
+    }
+
+    private void OnRosterDragPointerCaptureOut(PointerCaptureOutEvent evt)
+    {
+        if (dragPartyIndex < 0) return;
+        if (!RosterPointerIdsMatch(evt.pointerId, dragPointerId)) return;
+        EndRosterDrag();
+    }
+
+    private void OnRosterInteractionMove(PointerMoveEvent evt)
+    {
+        if (dragPartyIndex >= 0)
+        {
+            if (!RosterPointerIdsMatch(evt.pointerId, dragPointerId)) return;
+            PositionDragGhost(evt.position);
+            SetDragHoverSlot(PickSquadSlotIndexAtPanelPos(evt.position));
+            return;
+        }
+
+        if (pendingRosterPartyIndex < 0) return;
+        if (!RosterPointerIdsMatch(evt.pointerId, pendingRosterPointerId)) return;
+        float dist = Vector2.Distance(evt.position, pendingRosterStartPanelPos);
+        if (dist >= RosterDragThresholdPx)
+            CommitRosterDragFromPending(evt.position);
+    }
+
+    private void OnRosterInteractionUp(PointerUpEvent evt)
+    {
+        if (dragPartyIndex >= 0)
+        {
+            if (!RosterPointerIdsMatch(evt.pointerId, dragPointerId)) return;
+            int slot = PickSquadSlotIndexAtPanelPos(evt.position);
+            if (slot >= 0)
+            {
+                bool ok = PlayerParty.TryAssignExcursionSlot(slot, dragPartyIndex);
+                if (!ok)
+                    Debug.Log("Home Base: cannot assign to that excursion slot (slot rules).");
+            }
+
+            EndRosterDrag();
+            return;
+        }
+
+        if (pendingRosterPartyIndex >= 0)
+        {
+            if (RosterPointerIdsMatch(evt.pointerId, pendingRosterPointerId))
+            {
+                SelectRoster(pendingRosterPartyIndex);
+                pendingRosterPartyIndex = -1;
+                pendingRosterRow = null;
+                pendingRosterPointerId = -1;
+                UnregisterRosterInteractionHandlers();
+            }
+        }
+    }
+
+    private void UnregisterRosterInteractionHandlers()
+    {
+        if (uiTreeRoot == null) return;
+        uiTreeRoot.UnregisterCallback(rosterInteractionMoveHandler);
+        uiTreeRoot.UnregisterCallback(rosterInteractionUpHandler);
+    }
+
+    private int PickSquadSlotIndexAtPanelPos(Vector2 panelPosition)
+    {
+        if (uiTreeRoot?.panel == null) return -1;
+        var picked = uiTreeRoot.panel.Pick(panelPosition);
+        return FindSquadSlotIndexFromAncestor(picked);
+    }
+
+    private int FindSquadSlotIndexFromAncestor(VisualElement ve)
+    {
+        while (ve != null)
+        {
+            for (int i = 0; i < MaxSquadSlots; i++)
+            {
+                if (squadSlotRoots[i] != null && ve == squadSlotRoots[i])
+                    return i;
+            }
+            ve = ve.parent;
+        }
+        return -1;
+    }
+
+    private void SetDragHoverSlot(int slotIndex)
+    {
+        if (dragHoverSlot == slotIndex) return;
+        if (dragHoverSlot >= 0 && dragHoverSlot < MaxSquadSlots && squadSlotRoots[dragHoverSlot] != null)
+            squadSlotRoots[dragHoverSlot].RemoveFromClassList("home-base-squad-slot--drop-hover");
+        dragHoverSlot = slotIndex;
+        if (dragHoverSlot >= 0 && dragHoverSlot < MaxSquadSlots && squadSlotRoots[dragHoverSlot] != null)
+            squadSlotRoots[dragHoverSlot].AddToClassList("home-base-squad-slot--drop-hover");
+    }
+
+    private void EndRosterDrag()
+    {
+        if (dragPartyIndex < 0 && dragGhost == null)
+            return;
+
+        var row = dragSourceRow;
+        if (row != null && rosterDragCaptureOutHandler != null)
+            row.UnregisterCallback(rosterDragCaptureOutHandler);
+        if (row != null && rosterDragCapturedMoveHandler != null)
+            row.UnregisterCallback(rosterDragCapturedMoveHandler);
+        if (row != null && rosterDragCapturedUpHandler != null)
+            row.UnregisterCallback(rosterDragCapturedUpHandler);
+        if (row != null && rosterDragCapturedCancelHandler != null)
+            row.UnregisterCallback(rosterDragCapturedCancelHandler);
+
+        if (dragPointerCaptureElement != null && dragPointerId >= 0)
+        {
+            dragPointerCaptureElement.ReleasePointer(dragPointerId);
+            dragPointerCaptureElement = null;
+            dragPointerId = -1;
+        }
+
+        UnregisterRosterInteractionHandlers();
+
+        SetDragHoverSlot(-1);
+        if (row != null)
+            row.RemoveFromClassList("home-base-roster-row--dragging");
+        dragSourceRow = null;
+
+        if (dragGhost != null)
+        {
+            dragGhost.RemoveFromHierarchy();
+            dragGhost = null;
+        }
+
+        dragPartyIndex = -1;
+        RefreshAll();
+    }
+
+    private void ShowExcursionPickMenu(int slotIndex)
+    {
+        DismissPickMenu();
+        pickMenuSlot = slotIndex;
+
+        var party = PlayerParty.partyMembers;
+        if (party == null) return;
+
+        var candidates = new List<int>();
+        for (int i = 0; i < party.Count; i++)
+        {
+            if (PlayerParty.IsEligibleForExcursionDropdown(i) &&
+                PlayerParty.CanAssignExcursionSlot(party[i], slotIndex))
+                candidates.Add(i);
+        }
+
+        if (candidates.Count == 0)
+        {
+            Debug.Log("Home Base: no unassigned heroes available for this slot.");
+            pickMenuSlot = -1;
+            return;
+        }
+
+        pickMenuOverlay = new VisualElement();
+        pickMenuOverlay.style.position = Position.Absolute;
+        pickMenuOverlay.style.left = 0;
+        pickMenuOverlay.style.right = 0;
+        pickMenuOverlay.style.top = 0;
+        pickMenuOverlay.style.bottom = 0;
+        pickMenuOverlay.pickingMode = PickingMode.Position;
+        pickMenuOverlay.style.backgroundColor = new Color(0, 0, 0, 0.35f);
+
+        var panel = new VisualElement();
+        panel.AddToClassList("home-base-squad-pick-popup");
+        panel.style.position = Position.Absolute;
+        panel.style.backgroundColor = new StyleColor(new Color(0.12f, 0.14f, 0.18f, 0.98f));
+        panel.style.borderTopLeftRadius = panel.style.borderTopRightRadius =
+            panel.style.borderBottomLeftRadius = panel.style.borderBottomRightRadius = 6;
+        panel.style.borderLeftWidth = panel.style.borderRightWidth =
+            panel.style.borderTopWidth = panel.style.borderBottomWidth = 1;
+        panel.style.borderLeftColor = panel.style.borderRightColor =
+            panel.style.borderTopColor = panel.style.borderBottomColor =
+                new Color(0.4f, 0.45f, 0.55f, 0.6f);
+        panel.style.paddingLeft = panel.style.paddingRight = 8;
+        panel.style.paddingTop = panel.style.paddingBottom = 8;
+        panel.style.minWidth = 200;
+        panel.style.flexDirection = FlexDirection.Column;
+
+        var title = new Label("Assign to excursion");
+        title.style.unityFontStyleAndWeight = FontStyle.Bold;
+        title.style.marginBottom = 6;
+        title.style.color = new Color(0.95f, 0.96f, 0.98f);
+        panel.Add(title);
+
+        foreach (var pi in candidates)
+        {
+            int idx = pi;
+            var btn = new Button(() =>
+            {
+                PlayerParty.TryAssignExcursionSlot(slotIndex, idx);
+                DismissPickMenu();
+                RefreshAll();
+            })
+            {
+                text = party[pi].DisplayName()
+            };
+            btn.style.marginBottom = 4;
+            btn.AddToClassList("home-base-btn-secondary");
+            panel.Add(btn);
+        }
+
+        pickMenuOverlay.Add(panel);
+        uiTreeRoot.Add(pickMenuOverlay);
+
+        pickMenuOverlay.RegisterCallback<ClickEvent>(evt =>
+        {
+            if (evt.target == pickMenuOverlay)
+                DismissPickMenu();
+        });
+
+        if (squadSlotRoots[slotIndex] != null)
+        {
+            var slotWorld = squadSlotRoots[slotIndex].worldBound;
+            var rootWorld = uiTreeRoot.worldBound;
+            float lx = slotWorld.xMin - rootWorld.xMin;
+            float ty = slotWorld.yMax - rootWorld.yMin + 4f;
+            panel.style.left = lx;
+            panel.style.top = ty;
+        }
+    }
+
+    private void DismissPickMenu()
+    {
+        if (pickMenuOverlay != null)
+        {
+            pickMenuOverlay.RemoveFromHierarchy();
+            pickMenuOverlay = null;
+        }
+        pickMenuSlot = -1;
     }
 
     private void RefreshAssignments(List<CharacterSheet> party)
@@ -381,16 +833,19 @@ public class HomeBaseUI : MonoBehaviour
         assignmentsList.Clear();
         if (party == null) return;
 
-        for (int i = MaxSquadSlots; i < party.Count; i++)
+        for (int i = 0; i < party.Count; i++)
         {
-            var line = new Label($"{party[i].DisplayName()}: Workbench / barracks / altar (assign room — stub)");
+            GetWeeklyAssignmentGlyphAndDetail(i, out _, out string detail);
+            if (PlayerParty.IsOnExcursionSquad(i))
+                continue;
+            var line = new Label($"{party[i].DisplayName()}: {detail} (assign room — stub)");
             line.AddToClassList("home-base-assignment-line");
             assignmentsList.Add(line);
         }
 
-        if (party.Count <= MaxSquadSlots)
+        if (assignmentsList.childCount == 0)
         {
-            var line = new Label("All roster members are on the excursion squad. No base jobs this week.");
+            var line = new Label("No off-squad base jobs assigned (stub — hook workbench / barracks here).");
             line.AddToClassList("home-base-assignment-line");
             assignmentsList.Add(line);
         }

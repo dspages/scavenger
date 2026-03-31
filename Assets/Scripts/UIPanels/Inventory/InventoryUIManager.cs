@@ -166,9 +166,9 @@ public class InventoryUIManager
         }
 
         // Add stack count if > 1 and requested
-        if (includeStackCount && item.currentStack > 1)
+        if (includeStackCount && item.PeekStackSize() > 1)
         {
-            var stackLabel = new Label(item.currentStack.ToString());
+            var stackLabel = new Label(item.PeekStackSize().ToString());
             stackLabel.AddToClassList("stack-count");
             stackLabel.tooltip = item.GetDisplayName();
             slot.Add(stackLabel);

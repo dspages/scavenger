@@ -17,19 +17,6 @@ public class EquippableHandheld : EquippableItem
         Ranged        // Distance attacks
     }
 
-    public enum DamageType
-    {
-        Piercing,
-        Bludgeoning,
-        Slashing,
-        Fire,
-        Cold,
-        Acid,
-        Lightning,
-        Holy,
-        Dark
-    }
-
     public WeaponType weaponType = WeaponType.OneHanded;
     public RangeType rangeType = RangeType.Melee;
     public int damage = 1;
@@ -55,7 +42,8 @@ public class EquippableHandheld : EquippableItem
     // Ammo/consumable properties
     public bool isConsumable = false;        // Reduces stack when used
     public bool requiresAmmo = false;        // Needs separate ammo item
-    public string ammoType = "";             // Type of ammo required
+    /// <summary>Registry id of required ammo item; must match <see cref="ItemData.id"/> (e.g. musket_ball).</summary>
+    public string ammoType = "";
 
     public EquippableHandheld(string name, WeaponType type, int dmg, int actionPointCost, DamageType dmgType)
         : base(name, EquippableItem.EquipmentSlot.RightHand) // Default slot, will be overridden when equipped

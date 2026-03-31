@@ -12,6 +12,8 @@ public class ActionGroundAttack : ActionAttack
 
 	private AbilityData abilityData;
 
+	public override AbilityData GetAbilityDataForCosts() => abilityData;
+
 	public void ConfigureFromAbility(AbilityData data)
 	{
 		abilityData = data;
@@ -46,7 +48,7 @@ public class ActionGroundAttack : ActionAttack
 			if (occupant?.characterSheet != null)
 			{
 				var result = AttackResolver.Resolve(characterSheet, occupant.characterSheet, context);
-				CombatLog.Log(result.logMessage, result.hit ? result.damageType : (EquippableHandheld.DamageType?)null);
+				CombatLog.Log(result.logMessage, result.hit ? result.damageType : (DamageType?)null);
 
 				if (result.hit && popupTarget != null)
 					PopupTextController.CreateDamagePopup(result.damageDealt, result.critical, result.damageType, popupTarget);

@@ -48,19 +48,15 @@ public class ActionMove : Action
             else
             {
                 transform.position = targetPos;
-                
-                // Check for hidden enemies in the target tile
-                if (CheckForHiddenEnemy(tile))
-                {
-                    // Stop movement and refund remaining points
-                    HandleHiddenEnemyCollision(tile);
+                AccrueMovementCostForEnteredTile(tile);
+
+                if (TryInterruptMovementForHazard(tile))
                     return;
-                }
-                
+
                 // Update tile occupancy for every tile we enter (not just the final destination)
                 // This ensures vision updates appropriately as the unit moves through tiles
                 combatController.SetCurrentTile(tile);
-                
+
                 // Pop the completed tile from the path
                 path.Pop();
                 
@@ -93,22 +89,17 @@ public class ActionMove : Action
         return false;
     }
     
-    private void HandleHiddenEnemyCollision(Tile tile)
+    /// <summary>Mid-move interrupts (hidden unit, future ground hazards). Returns true if movement stopped.</summary>
+    protected virtual bool TryInterruptMovementForHazard(Tile tile)
     {
-        CombatController hiddenEnemy = tile.occupant;
-        
-        // Remove HIDDEN status effect using the CharacterSheet method
-        // This will automatically notify the VisionSystem through the CombatController
-        hiddenEnemy.characterSheet.RemoveStatusEffect(StatusEffect.EffectType.HIDDEN);
-        
-        // Clear the path and stop movement
-        path.Clear();
-        EndAction();
-        
-        // Display message
-        combatController.DisplayPopupDuringCombat("Hidden enemy revealed!");
-        
-        // Vision system will be notified automatically by the CharacterSheet method
+        if (CheckForHiddenEnemy(tile))
+        {
+            CombatController hiddenEnemy = tile.occupant;
+            hiddenEnemy.characterSheet.RemoveStatusEffect(StatusEffect.EffectType.HIDDEN);
+            InterruptMovementWithMessage("Hidden enemy revealed!");
+            return true;
+        }
+        return false;
     }
 
     override public void BeginAction(Tile targetTile)
@@ -125,11 +116,24 @@ public class ActionMove : Action
         Tile next = targetTile;
         while (next != null)
         {
-            // Only has a move cost if it isn't the origin tile.
-            if (next.searchParent) actionPointCost += next.GetMoveCost();
             path.Push(next);
             next = next.searchParent;
         }
+    }
+
+    /// <summary>Movement AP is accrued in <see cref="Move"/> per tile entered so mid-path interrupts only pay for tiles walked.</summary>
+    void AccrueMovementCostForEnteredTile(Tile tile)
+    {
+        if (tile != null && tile.searchParent)
+            actionPointCost += tile.GetMoveCost();
+    }
+
+    /// <summary>Hidden enemies, traps, etc.: stop moving and end the action; movement AP already reflects tiles walked.</summary>
+    protected void InterruptMovementWithMessage(string message)
+    {
+        path.Clear();
+        EndAction();
+        combatController.DisplayPopupDuringCombat(message);
     }
 
     protected Vector3 CalculateDirection(Vector3 target)

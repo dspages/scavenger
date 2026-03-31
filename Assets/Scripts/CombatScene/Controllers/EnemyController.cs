@@ -197,7 +197,7 @@ public class EnemyController : CombatController
              {
                  if (target == null) continue;
                  Tile tTile = target.GetCurrentTile();
-                 if (IsTileInRange(fromTile, atk.minRange, atk.maxRange, atk.RequiresLineOfSight, tTile.x, tTile.y))
+                 if (IsTileInRange(fromTile, atk.minRange, atk.maxRange, atk.RequiresLineOfSight, tTile.x, tTile.y, atk.TARGET_TYPE == Action.TargetType.RANGED))
                  {
                      // Check visibility (actual LOS for attack)
                      if (!IsTileVisibleByCurrentActor(tTile)) continue;
@@ -231,7 +231,11 @@ public class EnemyController : CombatController
     private bool TryExecuteAction(CandidateAction cand)
     {
         SelectActionSilent(cand.key, cand.className);
-        
+
+        if (cand.action is ActionAttack atk &&
+            !CombatActionAffordance.CanAffordFullAttackAction(this, GetEquippedWeaponForSelectedAction(), atk.GetAbilityDataForCosts()))
+            return false;
+
         // Now find actual best target (stopAtFirst=false)
         Tile bestTarget = GetTarget(cand.action, GetCurrentTile(), false);
         if (bestTarget != null)

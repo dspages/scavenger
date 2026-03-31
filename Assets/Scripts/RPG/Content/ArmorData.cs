@@ -6,14 +6,15 @@ public class ArmorData : ItemData
 
     public override InventoryItem CreateInstance()
     {
-        return new EquippableItem(displayName, slot)
+        var eq = new EquippableItem(displayName, slot)
         {
             description = description,
-            stackSize = stackSize,
             weight = weight,
             rarity = rarity,
             armorBonus = armorBonus,
             dodgeBonus = dodgeBonus,
         };
+        eq.ConfigureStacks(MaxStack, MaxStack);
+        return eq;
     }
 }

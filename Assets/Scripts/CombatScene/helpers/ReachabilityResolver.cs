@@ -74,11 +74,15 @@ public static class ReachabilityResolver
                 case Action.TargetType.RANGED:
                 case Action.TargetType.CHARGE:
                     potentialTargets = isPC ? tm.AllLivingEnemies() : tm.AllLivingPCs();
-                    tilesInRange = FilterTilesInRange(fromTile, atk.minRange, atk.maxRange, atk.RequiresLineOfSight, potentialTargets, manager, isVisibleByActor);
+                    tilesInRange = FilterTilesInRange(
+                        fromTile, atk.minRange, atk.maxRange, atk.RequiresLineOfSight, potentialTargets, manager, isVisibleByActor,
+                        interposedOccupantsBlockRanged: atk.TARGET_TYPE == Action.TargetType.RANGED);
                     break;
                 case Action.TargetType.SELF_OR_ALLY:
                     potentialTargets = isPC ? tm.AllLivingPCs() : tm.AllLivingEnemies();
-                    tilesInRange = FilterTilesInRange(fromTile, atk.minRange, atk.maxRange, atk.RequiresLineOfSight, potentialTargets, manager, isVisibleByActor);
+                    tilesInRange = FilterTilesInRange(
+                        fromTile, atk.minRange, atk.maxRange, atk.RequiresLineOfSight, potentialTargets, manager, isVisibleByActor,
+                        interposedOccupantsBlockRanged: false);
                     break;
             }
 
@@ -93,7 +97,9 @@ public static class ReachabilityResolver
         }
     }
 
-    public static bool IsTileInRange(Tile fromTile, int minRange, int maxRange, bool requiresLineOfSight, int x, int y, TileManager manager)
+    public static bool IsTileInRange(
+        Tile fromTile, int minRange, int maxRange, bool requiresLineOfSight, int x, int y, TileManager manager,
+        bool interposedOccupantsBlockRanged = false)
     {
         if (x < 0 || x >= Globals.COMBAT_WIDTH || y < 0 || y >= Globals.COMBAT_HEIGHT) return false;
 
@@ -102,20 +108,21 @@ public static class ReachabilityResolver
 
         Tile tile = manager.getTile(x, y);
         if (tile == null || tile == fromTile) return false;
-        if (!requiresLineOfSight || LineOfSightUtils.HasLineOfSight(fromTile, tile, manager)) return true;
-        return false;
+        if (!requiresLineOfSight) return true;
+        return LineOfSightUtils.HasLineOfSight(fromTile, tile, manager, interposedOccupantsBlockRanged);
     }
 
     public static HashSet<Tile> FilterTilesInRange(
         Tile fromTile, int minRange, int maxRange, bool requiresLineOfSight,
         List<CombatController> potentialTargets, TileManager manager,
-        Func<Tile, bool> isVisibleByActor)
+        Func<Tile, bool> isVisibleByActor,
+        bool interposedOccupantsBlockRanged = false)
     {
         var filtered = new HashSet<Tile>();
         foreach (var cc in potentialTargets)
         {
             Tile tile = cc.GetCurrentTile();
-            if (IsTileInRange(fromTile, minRange, maxRange, requiresLineOfSight, tile.x, tile.y, manager)
+            if (IsTileInRange(fromTile, minRange, maxRange, requiresLineOfSight, tile.x, tile.y, manager, interposedOccupantsBlockRanged)
                 && isVisibleByActor(tile))
             {
                 filtered.Add(tile);

@@ -21,8 +21,8 @@ public static class TooltipTextBuilder
             sb.AppendLine($"Rarity: {item.rarity}");
         if (item.weight != 0)
             sb.AppendLine($"Weight: {item.weight}");
-        if (item.stackSize > 1)
-            sb.AppendLine($"Stack: {item.currentStack}/{item.stackSize}");
+        if (item.MaxStack > 1)
+            sb.AppendLine($"Stack: {item.PeekStackSize()}/{item.MaxStack}");
 
         if (item is EquippableHandheld w)
         {

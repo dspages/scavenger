@@ -4,7 +4,7 @@ public struct AttackResult
     public bool critical;
     public bool defenderDied;
     public int damageDealt;
-    public EquippableHandheld.DamageType damageType;
+    public DamageType damageType;
     public float hitChance;
     public float critChance;
     public string attackerName;

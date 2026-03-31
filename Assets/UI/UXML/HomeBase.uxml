@@ -46,26 +46,51 @@
                 <ui:Label name="ExcursionTitleLabel" text="Excursion squad (max 4)" class="home-base-section-title" />
                 <ui:VisualElement name="SquadSlotsRow" class="home-base-squad-row">
                     <ui:VisualElement name="SquadSlot0" class="home-base-squad-slot home-base-squad-slot--pickable" picking-mode="position">
-                        <ui:Label name="SquadSlotLabel0" class="home-base-squad-slot-label" text="—" />
+                        <ui:Label name="SquadSlotIndex0" class="home-base-squad-slot-index" text="1" />
+                        <ui:Label name="SquadSlotLabel0" class="home-base-squad-slot-label" text="Empty" />
+                        <ui:Label name="SquadSlotHint0" class="home-base-squad-slot-hint" text="drop" />
+                        <ui:VisualElement class="home-base-squad-slot-actions">
+                            <ui:Button name="SquadSlotRemove0" class="home-base-squad-slot-btn" text="−" />
+                            <ui:Button name="SquadSlotPick0" class="home-base-squad-slot-btn" text="▼" />
+                        </ui:VisualElement>
                     </ui:VisualElement>
                     <ui:VisualElement name="SquadSlot1" class="home-base-squad-slot home-base-squad-slot--pickable" picking-mode="position">
-                        <ui:Label name="SquadSlotLabel1" class="home-base-squad-slot-label" text="—" />
+                        <ui:Label name="SquadSlotIndex1" class="home-base-squad-slot-index" text="2" />
+                        <ui:Label name="SquadSlotLabel1" class="home-base-squad-slot-label" text="Empty" />
+                        <ui:Label name="SquadSlotHint1" class="home-base-squad-slot-hint" text="drop" />
+                        <ui:VisualElement class="home-base-squad-slot-actions">
+                            <ui:Button name="SquadSlotRemove1" class="home-base-squad-slot-btn" text="−" />
+                            <ui:Button name="SquadSlotPick1" class="home-base-squad-slot-btn" text="▼" />
+                        </ui:VisualElement>
                     </ui:VisualElement>
                     <ui:VisualElement name="SquadSlot2" class="home-base-squad-slot home-base-squad-slot--pickable" picking-mode="position">
-                        <ui:Label name="SquadSlotLabel2" class="home-base-squad-slot-label" text="—" />
+                        <ui:Label name="SquadSlotIndex2" class="home-base-squad-slot-index" text="3" />
+                        <ui:Label name="SquadSlotLabel2" class="home-base-squad-slot-label" text="Empty" />
+                        <ui:Label name="SquadSlotHint2" class="home-base-squad-slot-hint" text="drop" />
+                        <ui:VisualElement class="home-base-squad-slot-actions">
+                            <ui:Button name="SquadSlotRemove2" class="home-base-squad-slot-btn" text="−" />
+                            <ui:Button name="SquadSlotPick2" class="home-base-squad-slot-btn" text="▼" />
+                        </ui:VisualElement>
                     </ui:VisualElement>
                     <ui:VisualElement name="SquadSlot3" class="home-base-squad-slot home-base-squad-slot--pickable" picking-mode="position">
-                        <ui:Label name="SquadSlotLabel3" class="home-base-squad-slot-label" text="—" />
+                        <ui:Label name="SquadSlotIndex3" class="home-base-squad-slot-index" text="4" />
+                        <ui:Label name="SquadSlotLabel3" class="home-base-squad-slot-label" text="Empty" />
+                        <ui:Label name="SquadSlotHint3" class="home-base-squad-slot-hint" text="drop" />
+                        <ui:VisualElement class="home-base-squad-slot-actions">
+                            <ui:Button name="SquadSlotRemove3" class="home-base-squad-slot-btn" text="−" />
+                            <ui:Button name="SquadSlotPick3" class="home-base-squad-slot-btn" text="▼" />
+                        </ui:VisualElement>
                     </ui:VisualElement>
                 </ui:VisualElement>
                 <ui:Button name="OpenPreparationButton" class="home-base-btn-secondary" text="Open preparation / loadout" />
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <ui:Label text="Roster" class="home-base-section-title" style="margin-top: 8px;" />
-        <ui:ScrollView name="RosterScroll" class="home-base-roster-scroll" mode="Horizontal">
+        <ui:Label text="Roster — full party (drag to excursion slots)" class="home-base-section-title" style="margin-top: 8px;" />
+        <ui:ScrollView name="RosterScroll" class="home-base-roster-scroll" mode="Vertical">
             <ui:VisualElement name="RosterChips" class="home-base-roster-chips" />
         </ui:ScrollView>
+        <ui:Label name="RosterLegendLabel" class="home-base-roster-legend" text="" />
 
         <ui:Label text="Base this week" class="home-base-section-title" />
         <ui:ScrollView name="AssignmentsScroll" class="home-base-assignments">

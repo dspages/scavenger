@@ -79,6 +79,7 @@
     border-width: 1px;
     border-color: rgba(249, 250, 251, 0.1);
     flex-direction: column;
+    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
 }
 
 .home-base-mission-card--selected {
@@ -118,46 +119,124 @@
 }
 
 .home-base-squad-slot {
-    width: 72px;
-    height: 88px;
+    width: 104px;
+    min-height: 118px;
     background-color: var(--color-surface-alt);
     border-radius: var(--radius-soft);
     border-width: 1px;
     border-color: rgba(249, 250, 251, 0.12);
-    align-items: center;
-    justify-content: center;
-    padding: var(--spacing-xs);
-    cursor: link;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 6px;
+    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
+    flex-direction: column;
+}
+
+.home-base-squad-slot--drop-hover {
+    border-color: var(--color-accent);
+    background-color: rgba(45, 212, 191, 0.08);
+}
+
+.home-base-squad-slot-index {
+    font-size: 9px;
+    color: var(--color-text-soft);
+    -unity-text-align: upper-left;
+    margin-bottom: 2px;
 }
 
 .home-base-squad-slot-label {
     font-size: var(--font-size-caption);
+    color: var(--color-text);
+    -unity-text-align: upper-center;
+    white-space: normal;
+    flex-grow: 1;
+    -unity-font-style: bold;
+}
+
+.home-base-squad-slot-hint {
+    font-size: 9px;
     color: var(--color-text-muted);
     -unity-text-align: middle-center;
-    white-space: normal;
+    margin-top: 2px;
+    margin-bottom: 4px;
+}
+
+.home-base-squad-slot-actions {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+}
+
+.home-base-squad-slot-btn {
+    min-width: 28px;
+    height: 24px;
+    padding: 0 4px;
+    font-size: 11px;
+    color: var(--color-text);
+    background-color: var(--color-surface);
+    border-radius: var(--radius-hard);
+    border-width: 1px;
+    border-color: rgba(249, 250, 251, 0.15);
+    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
+}
+
+.home-base-squad-slot-btn:hover {
+    border-color: var(--color-primary);
 }
 
 .home-base-roster-scroll {
-    max-height: 120px;
-    margin-bottom: var(--spacing-m);
+    max-height: 200px;
+    min-height: 80px;
+    margin-bottom: var(--spacing-s);
 }
 
 .home-base-roster-chips {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--spacing-s);
+    flex-direction: column;
+    align-items: stretch;
+    flex-grow: 1;
+    gap: 4px;
 }
 
 .home-base-roster-row {
     flex-direction: row;
     align-items: center;
     flex-shrink: 0;
-    gap: 10px;
+    gap: 8px;
+    padding: 6px 8px;
+    background-color: var(--color-surface-alt);
+    border-radius: var(--radius-soft);
+    border-width: 1px;
+    border-color: rgba(249, 250, 251, 0.08);
+    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
+}
+
+.home-base-roster-row--dragging {
+    opacity: 0.65;
+}
+
+.home-base-roster-row--selected {
+    border-color: rgba(250, 204, 21, 0.55);
+    background-color: rgba(250, 204, 21, 0.08);
+}
+
+.home-base-roster-job-icon {
+    width: 22px;
+    min-width: 22px;
+    font-size: 14px;
+    -unity-text-align: middle-center;
+    color: var(--color-accent);
 }
 
 .home-base-roster-deploy-toggle {
     flex-shrink: 0;
+}
+
+.home-base-roster-legend {
+    font-size: var(--font-size-caption);
+    color: var(--color-text-muted);
+    white-space: normal;
+    margin-bottom: var(--spacing-m);
 }
 
 .home-base-chip {
@@ -166,7 +245,7 @@
     border-radius: var(--radius-hard);
     font-size: var(--font-size-small);
     color: var(--color-text);
-    cursor: link;
+    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
 }
 
 .home-base-chip--in-squad {
@@ -218,6 +297,7 @@
     color: #f9fafb;
     background-color: var(--color-primary);
     border-radius: var(--radius-soft);
+    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
 }
 
 .home-base-btn-primary:hover {
@@ -235,6 +315,7 @@
     border-radius: var(--radius-soft);
     border-width: 1px;
     border-color: rgba(249, 250, 251, 0.12);
+    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
 }
 
 .home-base-btn-secondary:hover {
@@ -247,6 +328,7 @@
     color: var(--color-text-muted);
     font-size: var(--font-size-small);
     border-width: 0;
+    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
 }
 
 .home-base-btn-ghost:hover {
