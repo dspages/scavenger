@@ -1,5 +1,8 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <ui:VisualElement name="HudRoot" class="ui-transparent" style="position: absolute; left: 0px; right: 0px; top: 0px; bottom: 0px;">
+    <!-- Styles: CombatPanelUI also adds ThemeStyles + CombatMenuStyles at runtime. This link keeps editor/preview parity. -->
+    <!-- Hover cursors use runtime Resources/ScavengerCursors via UiToolkitScavengerCursors (see scavenger-ui-design skill). -->
+    <Style src="project://database/Assets/UI/UXML/CombatPanel.uss?fileID=7433441132597879392&amp;guid=b58b7ba659a95e24e99279871f76c2ed&amp;type=3#CombatPanel" />
+    <ui:VisualElement name="HudRoot" class="ui-transparent scavenger-combat-hud-root" style="position: absolute; left: 0px; right: 0px; top: 0px; bottom: 0px;">
         <ui:VisualElement name="CombatLogPanel" class="ui-blocker" style="position: absolute; left: 12px; bottom: 84px; width: 300px; height: 140px; background-color: rgba(15,15,15,0.75); border-radius: 4px; z-index: 50; picking-mode: position;">
             <ui:VisualElement name="CombatLogDragHandle" class="game-floating-panel__header">
                 <ui:Label name="CombatLogTitle" text="Combat Log" style="font-size: 9px; color: rgba(180,180,180,0.8); -unity-font-style: bold;" />

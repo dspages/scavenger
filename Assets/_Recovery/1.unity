@@ -255,7 +255,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e9f8a7b6c5d4e3f2a19080716253412a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  HomeBaseTemplate: {fileID: 9197481963319205126, guid: a1a2a3a4b5c6d7e8f9a0b1c2d3e4f5a6, type: 3}
+  HomeBaseTemplate: {fileID: 9197481963319205126, guid: ba90a30629204f8d8532fb698e4e35c7, type: 3}
   HomeBaseStyles: {fileID: 7433441132597879392, guid: b1b2b3b4c5d6e7f8a9b0c1d2e3f4a5b6, type: 3}
   ThemeStyles: {fileID: 7433441132597879392, guid: 7d1be2d38e920b04980cceed7a34cda8, type: 3}
   CombatLoadoutTemplate: {fileID: 0}

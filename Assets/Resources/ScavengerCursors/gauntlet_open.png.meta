@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: dfef7e6340cae3c4e8bb7f3a8cd54d89
+guid: c9a8f7e6d5c4b3a2918071625344356f
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 1574497776588965693
-    second: hand_point_0
+      213: -3128347227993443423
+    second: gauntlet_open_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -113,13 +113,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: hand_point_0
+      name: gauntlet_open_0
       rect:
         serializedVersion: 2
-        x: 1
-        y: 1
-        width: 30
-        height: 30
+        x: 0
+        y: 0
+        width: 32
+        height: 32
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -128,8 +128,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: d374a31c26db9d510800000000000000
-      internalID: 1574497776588965693
+      spriteID: 1a37f5555c0e594d0800000000000000
+      internalID: -3128347227993443423
       vertices: []
       indices: 
       edges: []
@@ -148,7 +148,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      hand_point_0: 1574497776588965693
+      gauntlet_open_0: -3128347227993443423
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

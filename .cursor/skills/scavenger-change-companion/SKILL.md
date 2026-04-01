@@ -1,15 +1,13 @@
 ---
 name: scavenger-change-companion
 description: >-
-  What to update alongside ordinary code changes: minimal regression tests (EditMode vs
-  PlayMode), light touches to skills or the player guide when facts drift, and when to
-  read reference.md for large refactors. Use after a feature or fix that is not a full
-  subsystem rewrite, or when the user asks to update tests and docs with a change.
+  After typical changes: what tests/docs to update, and when to treat work as “done”.
+  Use after a feature/fix that isn’t a subsystem rewrite.
 ---
 
 # Scavenger — change companion (ordinary changes)
 
-For **large or cross-cutting** refactors (architecture, save schema, repo-wide rules, human docs overhaul), read **[`reference.md`](reference.md)** first.
+For large/cross-cutting refactors, read **[`reference.md`](reference.md)** first.
 
 ## When to apply
 

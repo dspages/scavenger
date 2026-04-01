@@ -1,16 +1,13 @@
 ---
 name: scavenger-coding-principles
 description: >-
-  Scavenger-wide coding principles, common pitfalls, and implementation habits (DRY,
-  parameterization, readability). Use when writing or refactoring C# or UI code, adding
-  behavior similar to existing code, choosing between duplicating vs extending a helper,
-  or when the user asks for quality habits or code review–style guidance. For repo layout,
-  formatting policy, and where files belong, read scavenger-conventions.
+  Coding habits/pitfalls (DRY, parameterize, readability). Use while writing/refactoring
+  C#/UI code or when choosing reuse vs copy-paste. Repo layout/style: `scavenger-conventions`.
 ---
 
 # Scavenger — coding principles
 
-**How** to implement: judgment calls while you write. **Where** files go and **what** the repo expects structurally is **[`scavenger-conventions`](../scavenger-conventions/SKILL.md)**. **System boundaries and flows** are **[`scavenger-architecture`](../scavenger-architecture/SKILL.md)** (and its [`reference.md`](../scavenger-architecture/reference.md)). After edits, still follow **[`scavenger-post-change-verification`](../scavenger-post-change-verification/SKILL.md)** for self-review, console, and tests—do not duplicate that checklist here.
+Implementation habits while you write. Repo layout: **[`scavenger-conventions`](../scavenger-conventions/SKILL.md)**. System boundaries: **[`scavenger-architecture`](../scavenger-architecture/SKILL.md)**. After changes, follow **[`scavenger-post-change-verification`](../scavenger-post-change-verification/SKILL.md)**.
 
 ## How to extend this skill
 
@@ -25,14 +22,18 @@ Add new **`##` sections** with short bullets. Prefer links to `reference.md` in 
 
 ## Error handling and invariants
 
-*Reserved.* Add bullets here as the team agrees (e.g. fail-fast vs defensive guards, null contracts, Unity-specific null checks).
+- **Fail fast:** invalid state, broken contracts, or “this should never happen” paths should **surface immediately**—`Debug.Assert`, `UnityEngine.Assertions.Assert`, explicit `throw`, or **`Debug.LogError` / `LogError`** with enough context to fix. Do **not** swallow exceptions, return default values in response to garbage input, or continue in a corrupted state to “keep the game running.”
+- **Prefer loud over quiet:** avoid empty `catch`, broad `try/catch` that hides failures, and “best effort” branches that mask missing data or wiring. If something is optional by design, say so in code or a single clear log at the boundary—not scattered silent fallbacks.
+- **Invariants:** document and enforce non-negotiable assumptions (e.g. “party list non-null after `EnsureInitialized`”). When an invariant breaks, **stop or assert** rather than patching downstream with defensive coding.
+- **Guards vs band-aids:** real robustness (bounds, cycle detection for real edge cases) is fine; **defensive clutter** that only hides bugs is not—see [`scavenger-debugging-workflow`](../scavenger-debugging-workflow/SKILL.md) for root-cause discipline.
 
 ## Unity / C# pitfalls
 
-*Reserved.* Add bullets here (e.g. `Destroy` vs inactive objects, serialization rules, LINQ in hot paths)—keep each entry short and link to code or issues when useful.
+*Reserved.*
 
 ## Related
 
 - Repo layout and naming: [`scavenger-conventions`](../scavenger-conventions/SKILL.md)
 - Architecture map: [`scavenger-architecture`](../scavenger-architecture/SKILL.md)
+- Debugging and root-cause fixes: [`scavenger-debugging-workflow`](../scavenger-debugging-workflow/SKILL.md)
 - Post-change verification: [`scavenger-post-change-verification`](../scavenger-post-change-verification/SKILL.md)

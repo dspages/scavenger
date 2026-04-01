@@ -24,6 +24,7 @@ Companion to [`SKILL.md`](SKILL.md), which covers **structure** (panels, drag, t
 - **One visual language** — New screens should look like they belong next to Combat and Home Base: same surfaces, same accent discipline, same density.
 - **Readability first** — Muted text (`--color-text-muted`, `--color-text-soft`) for secondary copy; full `--color-text` for primary labels and body.
 - **Extend the theme** — If you need a new recurring color or size, add a **variable in `Theme.uss`** and utility classes there rather than scattering literals across UXML/USS.
+- **Cursors (UITK vs hardware)** — USS `cursor: url(...)` is fine for simple hover states, but when you set a cursor at runtime (e.g. `style.cursor = new StyleCursor(new Cursor { texture, hotspot })`) the texture must be imported as a **Cursor** (textureType 7), readable (`isReadable: 1`), and have no mip chain, or Unity will log “Invalid texture used for cursor” / “not CPU accessible” and silently ignore it.
 
 ## Home Base — weekly command (target UX)
 

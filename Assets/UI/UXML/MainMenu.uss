@@ -1,3 +1,5 @@
+/* Cursors: applied at runtime via UiToolkitScavengerCursors + Resources/ScavengerCursors. */
+
 .main-menu-root {
     /* Let the scene/background show through; root is just a centering flex container */
     background-color: transparent;
@@ -60,13 +62,17 @@
     align-items: center;
     justify-content: center;
     padding-top: 48px;
-    /* Diagnostic: gauntlet on the options overlay (backdrop + frame). Buttons keep .main-menu-button hand cursor. */
-    cursor: url("Assets/Art/cursors/gauntlet_open.png") 4 4;
 }
 
-.main-menu-options Slider,
+/* Toggle label text (Unity default can be too low-contrast on dark overlay) */
 .main-menu-options Toggle {
-    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
+    color: #f9fafb;
+}
+
+.main-menu-options Toggle Label,
+.main-menu-options Toggle .unity-toggle__label,
+.main-menu-options Toggle .unity-text-element {
+    color: #f9fafb;
 }
 
 .main-menu-button {
@@ -81,7 +87,6 @@
     color: #f9fafb;
     background-color: #1f2937;
     border-radius: var(--radius-soft);
-    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
     border-top-width: 1px;
     border-bottom-width: 1px;
     border-left-width: 1px;

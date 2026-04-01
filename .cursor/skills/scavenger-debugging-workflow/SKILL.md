@@ -1,11 +1,8 @@
 ---
 name: scavenger-debugging-workflow
 description: >-
-  Scavenger debugging and bug-fix discipline: prefer the intended codepath over
-  fallbacks and asset-reference hacks, fix root causes instead of symptoms, and use
-  safety guards only as real robustness—not as substitutes for real fixes. Use when
-  debugging, fixing bugs, investigating wrong behavior, or when the user wants fixes
-  without band-aids or defensive clutter.
+  Bug-fix discipline: keep the intended path working, find root cause, avoid permanent
+  fallbacks/defensive clutter. Use when debugging or fixing incorrect behavior.
 ---
 
 # Scavenger — debugging workflow
@@ -35,3 +32,4 @@ description: >-
 2. **Localize** the failure (data, logic, scene/UI wiring, timing).
 3. **Fix the cause** on the intended path; restore or add missing references/assets when that is the issue.
 4. **Verify** using [`scavenger-post-change-verification`](../scavenger-post-change-verification/SKILL.md) when the fix touches code that should be compiled or tested.
+5. **Never abandon work silently**: if you cannot complete a requested task, either (a) complete the parts you can, or (b) enter a clear debugging loop; if you are still blocked on a specific external issue, **escalate to the user** by naming the blocker, what you already tried, and (when possible) proposing a new skill or protocol that would let you handle this autonomously next time.

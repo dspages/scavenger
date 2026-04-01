@@ -1,10 +1,8 @@
 ---
 name: scavenger-data-persistence
 description: >-
-  Save/load and checkpoint design for Scavenger: JsonUtility save file, GameSaveData
-  and CharacterSaveData, item registry ids, and rules for extending persistence without
-  breaking games. Use when changing PlayerParty, save types, items, abilities, or any
-  code that must survive between sessions.
+  Save/checkpoint design: `JsonUtility` DTO rules, save types, item/ability ids, and
+  schema-change constraints. Use when changing anything that must survive between sessions.
 ---
 
 # Scavenger — data persistence and checkpoints

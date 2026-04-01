@@ -1,11 +1,8 @@
 ---
 name: scavenger-conventions
 description: >-
-  Project formatting, naming, tooling, and directory layout for Scavenger: where new scripts,
-  assets, and tests go, and what top-level folders are for. Use when adding files, choosing
-  namespaces or test placement, or matching existing style. Does not cover PR/branch workflow.
-  For implementation habits (DRY, pitfalls), read scavenger-coding-principles; for system
-  design and flows, read scavenger-architecture.
+  Repo conventions: folder layout, naming/formatting, tests locations. Use when adding
+  scripts/assets/tests or matching existing style.
 ---
 
 # Scavenger — project conventions
@@ -15,8 +12,8 @@ description: >-
 ## Formatting
 
 - Match **style of neighboring files** in the same directory (indentation, brace placement, blank lines).
-- Prefer **Unix line endings** (`LF`) where the editor allows; avoid mixing line endings in one file.
-- There is **no** committed `.editorconfig` at the repo root yet; IDEs use defaults. The team may add one later for shared C# rules—if present, follow it.
+- Prefer **LF** where possible; do not mix line endings within a file.
+- If the repo adds an `.editorconfig`, follow it.
 
 ## Naming
 

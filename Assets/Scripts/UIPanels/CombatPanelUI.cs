@@ -133,7 +133,7 @@ public class CombatPanelUI : MonoBehaviour
         // Create lightweight tooltip element once and add to root
         CreateHoverTooltip(visualTree);
 
-
+        RegisterCombatPanelInteractiveCursors(visualTree);
 
         // Add event listeners to the buttons
         if (endTurnButton != null)
@@ -166,6 +166,7 @@ public class CombatPanelUI : MonoBehaviour
         if (trashSlot != null)
         {
             trashSlot.RegisterCallback<PointerUpEvent>(OnTrashPointerUp);
+            UiToolkitScavengerCursors.RegisterDragAffordancePointerHover(trashSlot);
         }
 
         // Global listeners to track drag motion and drop (bind once)
@@ -358,6 +359,7 @@ public class CombatPanelUI : MonoBehaviour
             label.style.whiteSpace = WhiteSpace.Normal;
             label.tooltip = WrapTooltipText(ability.description, 60);
             AttachTooltipHandlers(label);
+            UiToolkitScavengerCursors.RegisterClickPointerHover(label);
             characterSkillsList.Add(label);
         }
 
@@ -370,6 +372,7 @@ public class CombatPanelUI : MonoBehaviour
             label.style.whiteSpace = WhiteSpace.Normal;
             label.tooltip = WrapTooltipText(t.Name, 60);
             AttachTooltipHandlers(label);
+            UiToolkitScavengerCursors.RegisterClickPointerHover(label);
             characterSkillsList.Add(label);
         }
 
@@ -1008,8 +1011,23 @@ public class CombatPanelUI : MonoBehaviour
             };
             btn.tooltip = tuple.label;
             AttachTooltipHandlers(btn);
+            UiToolkitScavengerCursors.RegisterClickPointerHover(btn);
             actionBar.Add(btn);
         }
+    }
+
+    private void RegisterCombatPanelInteractiveCursors(VisualElement visualTree)
+    {
+        if (endTurnButton != null) UiToolkitScavengerCursors.RegisterClickPointerHover(endTurnButton);
+        if (toggleInventoryButton != null) UiToolkitScavengerCursors.RegisterClickPointerHover(toggleInventoryButton);
+        if (inventoryTabButton != null) UiToolkitScavengerCursors.RegisterClickPointerHover(inventoryTabButton);
+        if (characterTabButton != null) UiToolkitScavengerCursors.RegisterClickPointerHover(characterTabButton);
+
+        var logDrag = visualTree.Q<VisualElement>("CombatLogDragHandle");
+        if (logDrag != null) UiToolkitScavengerCursors.RegisterGauntletPointerHover(logDrag);
+
+        var logMin = visualTree.Q<Button>("CombatLogMinimizeButton");
+        if (logMin != null) UiToolkitScavengerCursors.RegisterClickPointerHover(logMin);
     }
 
     private PlayerController GetActivePlayerController()

@@ -1,4 +1,5 @@
 /* Theme tokens come from Theme.uss applied in HomeBaseUI (ThemeStyles). */
+/* Cursors: applied at runtime via UiToolkitScavengerCursors + Resources/ScavengerCursors (USS url() is unreliable in players). */
 
 .home-base-root {
     flex-grow: 1;
@@ -79,7 +80,11 @@
     border-width: 1px;
     border-color: rgba(249, 250, 251, 0.1);
     flex-direction: column;
-    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
+}
+
+/* Pointer hits the card so click-hand cursor is uniform (UITK cursor does not inherit to children). */
+.home-base-mission-card Label {
+    picking-mode: ignore;
 }
 
 .home-base-mission-card--selected {
@@ -128,8 +133,12 @@
     align-items: stretch;
     justify-content: flex-start;
     padding: 6px;
-    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
     flex-direction: column;
+}
+
+/* Slot surface uses hand cursor (click); labels must not steal the hit-test. Buttons keep normal picking. */
+.home-base-squad-slot Label {
+    picking-mode: ignore;
 }
 
 .home-base-squad-slot--drop-hover {
@@ -178,7 +187,6 @@
     border-radius: var(--radius-hard);
     border-width: 1px;
     border-color: rgba(249, 250, 251, 0.15);
-    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
 }
 
 .home-base-squad-slot-btn:hover {
@@ -208,7 +216,6 @@
     border-radius: var(--radius-soft);
     border-width: 1px;
     border-color: rgba(249, 250, 251, 0.08);
-    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
 }
 
 .home-base-roster-row--dragging {
@@ -245,7 +252,6 @@
     border-radius: var(--radius-hard);
     font-size: var(--font-size-small);
     color: var(--color-text);
-    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
 }
 
 .home-base-chip--in-squad {
@@ -297,7 +303,6 @@
     color: #f9fafb;
     background-color: var(--color-primary);
     border-radius: var(--radius-soft);
-    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
 }
 
 .home-base-btn-primary:hover {
@@ -315,7 +320,6 @@
     border-radius: var(--radius-soft);
     border-width: 1px;
     border-color: rgba(249, 250, 251, 0.12);
-    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
 }
 
 .home-base-btn-secondary:hover {
@@ -328,7 +332,6 @@
     color: var(--color-text-muted);
     font-size: var(--font-size-small);
     border-width: 0;
-    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
 }
 
 .home-base-btn-ghost:hover {

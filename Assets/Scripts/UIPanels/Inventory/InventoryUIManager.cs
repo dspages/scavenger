@@ -45,6 +45,14 @@ public class InventoryUIManager
                     slotToElement[slot] = el;
             }
         }
+
+        foreach (var kvp in slotToElement)
+        {
+            var eqSlot = kvp.Key;
+            var el = kvp.Value;
+            UiToolkitScavengerCursors.RegisterDraggableItemSlotPointerHover(el,
+                () => currentCharacter != null && currentCharacter.GetEquippedItem(eqSlot) != null);
+        }
     }
 
     public void SetCurrentCharacter(CharacterSheet character)
@@ -77,7 +85,15 @@ public class InventoryUIManager
             slot.name = $"{inventorySlotNamePrefix}_{i}";
             
             attachHandlers?.Invoke(slot, i);
-            
+            int slotIndex = i;
+            UiToolkitScavengerCursors.RegisterDraggableItemSlotPointerHover(slot, () =>
+            {
+                var inv = ActiveBackpack;
+                if (inv == null) return false;
+                var item = inv.GetItem(slotIndex);
+                return item != null;
+            });
+
             itemGrid.Add(slot);
             inventorySlots.Add(slot);
         }
@@ -123,8 +139,8 @@ public class InventoryUIManager
         
         CreateItemVisual(slot, equippedItem, includeStackCount: false);
         
-        // Re-apply click blocking to this slot and its children
-        UIClickBlocker.MakeElementAndChildrenBlockClicks(slot);
+        // Block world clicks using the slot only; children use PickingMode.Ignore so the slot owns cursor + tooltips.
+        UIClickBlocker.MakeElementBlockClicks(slot);
     }
 
     private void CreateItemVisual(VisualElement slot, InventoryItem item, bool includeStackCount = false)
@@ -195,6 +211,26 @@ public class InventoryUIManager
                 slot.AddToClassList("rarity-common");
                 break;
         }
+
+        SetSlotContentPickingIgnore(slot);
+    }
+
+    /// <summary>
+    /// Children must not steal pointer hit-tests or UITK will show the default cursor over text/icons instead of the slot cursor.
+    /// </summary>
+    static void SetSlotContentPickingIgnore(VisualElement slot)
+    {
+        if (slot == null) return;
+        for (int i = 0; i < slot.childCount; i++)
+            SetSubtreePickingIgnore(slot[i]);
+    }
+
+    static void SetSubtreePickingIgnore(VisualElement ve)
+    {
+        if (ve == null) return;
+        ve.pickingMode = PickingMode.Ignore;
+        for (int i = 0; i < ve.childCount; i++)
+            SetSubtreePickingIgnore(ve[i]);
     }
 
     private static void ClearSlotItemFraming(VisualElement slot)

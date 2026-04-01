@@ -114,6 +114,12 @@ public sealed class HomeBaseLoadoutPresenter
                 if (characterTabButton != null) characterTabButton.clicked += () => SetInventoryTab(false);
                 SetInventoryTab(true);
 
+                if (showCharacterLoadoutButton != null)
+                    UiToolkitScavengerCursors.RegisterClickPointerHover(showCharacterLoadoutButton);
+                if (inventoryTabButton != null) UiToolkitScavengerCursors.RegisterClickPointerHover(inventoryTabButton);
+                if (characterTabButton != null) UiToolkitScavengerCursors.RegisterClickPointerHover(characterTabButton);
+                if (charTrash != null) UiToolkitScavengerCursors.RegisterDragAffordancePointerHover(charTrash);
+
                 UIClickBlocker.MakeElementAndChildrenBlockClicks(loadoutPanel);
             }
         }
@@ -140,7 +146,10 @@ public sealed class HomeBaseLoadoutPresenter
             stashInventoryUI.RefreshInventoryUI();
 
             if (stashTrash != null)
+            {
                 stashTrash.RegisterCallback<PointerUpEvent>(OnStashTrashPointerUp);
+                UiToolkitScavengerCursors.RegisterDragAffordancePointerHover(stashTrash);
+            }
         }
         else if (charInventoryUI != null)
         {
@@ -242,6 +251,7 @@ public sealed class HomeBaseLoadoutPresenter
         hideBtn.style.minWidth = 64;
         hideBtn.style.marginLeft = 8;
         hideBtn.tooltip = "Hide character loadout (shared stash stays open). Use Character loadout to show again.";
+        UiToolkitScavengerCursors.RegisterClickPointerHover(hideBtn);
         headerRow.Add(hideBtn);
     }
 
@@ -293,6 +303,7 @@ public sealed class HomeBaseLoadoutPresenter
             label.style.whiteSpace = WhiteSpace.Normal;
             label.tooltip = WrapTooltipText(ability.description, 60);
             AttachTooltipHandlers(label);
+            UiToolkitScavengerCursors.RegisterClickPointerHover(label);
             characterSkillsList.Add(label);
         }
 
@@ -304,6 +315,7 @@ public sealed class HomeBaseLoadoutPresenter
             label.style.whiteSpace = WhiteSpace.Normal;
             label.tooltip = WrapTooltipText(t.Name, 60);
             AttachTooltipHandlers(label);
+            UiToolkitScavengerCursors.RegisterClickPointerHover(label);
             characterSkillsList.Add(label);
         }
 

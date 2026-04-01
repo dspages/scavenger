@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -117,11 +118,26 @@ public class HomeBaseUI : MonoBehaviour
             return;
         }
 
+        // Same as MainMenuUI / CombatPanelUI: parameterless CloneTree() returns the template root.
         VisualElement tree = HomeBaseTemplate.CloneTree();
-        uiTreeRoot = tree;
+        tree.name = "HomeBaseUI_Root";
         tree.style.flexGrow = 1;
         tree.style.width = Length.Percent(100);
         tree.style.height = Length.Percent(100);
+        uiTreeRoot = tree;
+        var rootProbe = tree.Q<VisualElement>("HomeBaseRoot");
+        if (HomeBaseTemplate.importedWithErrors)
+        {
+            Debug.LogError(
+                "HomeBaseUI: VisualTreeAsset HomeBase.uxml was imported with errors. Open the Console (clear on play off) " +
+                "and fix UXML/USS issues, then reimport Assets/UI/UXML/HomeBase.uxml.");
+        }
+        if (tree.childCount == 0 && rootProbe == null)
+        {
+            Debug.LogError(
+                "HomeBaseUI: CloneTree() left the root empty. Reimport Assets/UI/UXML/HomeBase.uxml " +
+                "and confirm HomeBaseTemplate references that VisualTreeAsset.");
+        }
 
         if (ThemeStyles != null)
             tree.styleSheets.Add(ThemeStyles);
@@ -254,6 +270,48 @@ public class HomeBaseUI : MonoBehaviour
 
         PopulateStubMissions();
         RefreshAll();
+        RegisterHomeBaseInteractiveCursors();
+    }
+
+    /// <summary>
+    /// Hand: missions, buttons, excursion slot tiles (click / UI; drop feedback uses hover class while dragging from roster).
+    /// Gauntlet: roster rows only (drag source). Inventory gauntlets are handled in InventoryUIManager.
+    /// </summary>
+    private void RegisterHomeBaseInteractiveCursors()
+    {
+        if (uiTreeRoot == null) return;
+
+        if (confirmWeekButton != null) UiToolkitScavengerCursors.RegisterClickPointerHover(confirmWeekButton);
+
+        for (int i = 0; i < missionCards.Length; i++)
+        {
+            if (missionCards[i] != null)
+                UiToolkitScavengerCursors.RegisterClickPointerHover(missionCards[i]);
+        }
+
+        for (int i = 0; i < MaxSquadSlots; i++)
+        {
+            if (squadSlotRoots[i] != null)
+                UiToolkitScavengerCursors.RegisterClickPointerHover(squadSlotRoots[i]);
+            if (squadSlotRemoves[i] != null) UiToolkitScavengerCursors.RegisterClickPointerHover(squadSlotRemoves[i]);
+            if (squadSlotPicks[i] != null) UiToolkitScavengerCursors.RegisterClickPointerHover(squadSlotPicks[i]);
+        }
+
+        var openPrep = uiTreeRoot.Q<Button>("OpenPreparationButton");
+        if (openPrep != null) UiToolkitScavengerCursors.RegisterClickPointerHover(openPrep);
+        var closePrep = uiTreeRoot.Q<Button>("ClosePreparationButton");
+        if (closePrep != null) UiToolkitScavengerCursors.RegisterClickPointerHover(closePrep);
+        if (recruitButton != null) UiToolkitScavengerCursors.RegisterClickPointerHover(recruitButton);
+
+        var stashBtn = uiTreeRoot.Q<Button>("StashSummaryButton");
+        if (stashBtn != null) UiToolkitScavengerCursors.RegisterClickPointerHover(stashBtn);
+        var quickBtn = uiTreeRoot.Q<Button>("QuickStatusButton");
+        if (quickBtn != null) UiToolkitScavengerCursors.RegisterClickPointerHover(quickBtn);
+        var mainMenuBtn = uiTreeRoot.Q<Button>("MainMenuButton");
+        if (mainMenuBtn != null) UiToolkitScavengerCursors.RegisterClickPointerHover(mainMenuBtn);
+
+        var learnBtn = uiTreeRoot.Q<Button>("LearnSkillButton");
+        if (learnBtn != null) UiToolkitScavengerCursors.RegisterClickPointerHover(learnBtn);
     }
 
     private void Update()
@@ -483,6 +541,7 @@ public class HomeBaseUI : MonoBehaviour
             row.Add(nameLabel);
             row.Add(jobLabel);
             rosterChips.Add(row);
+            UiToolkitScavengerCursors.RegisterDragAffordancePointerHover(row);
         }
     }
 
@@ -794,6 +853,7 @@ public class HomeBaseUI : MonoBehaviour
             };
             btn.style.marginBottom = 4;
             btn.AddToClassList("home-base-btn-secondary");
+            UiToolkitScavengerCursors.RegisterClickPointerHover(btn);
             panel.Add(btn);
         }
 

@@ -1,8 +1,5 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-
 using UnityEngine.UIElements;
 
 public class MainMenuUI : MonoBehaviour
@@ -23,7 +20,6 @@ public class MainMenuUI : MonoBehaviour
 
     private void Start()
     {
-        // Load the UXML template and style sheet
         if (MainMenuTemplate == null)
         {
             Debug.LogError("MainMenuTemplate is not assigned in the Unity Editor.");
@@ -33,23 +29,18 @@ public class MainMenuUI : MonoBehaviour
         VisualElement visualTree = MainMenuTemplate.CloneTree();
 
         if (MainMenuStyles != null)
-        {
             visualTree.styleSheets.Add(MainMenuStyles);
-        }
 
-        // Get references to the UI elements
         newGameButton = visualTree.Q<Button>("NewGameButton");
         loadGameButton = visualTree.Q<Button>("LoadGameButton");
         optionsButton = visualTree.Q<Button>("OptionsButton");
         quitButton = visualTree.Q<Button>("QuitButton");
 
-        // Add event listeners to the buttons
         newGameButton.clicked += OnNewGameButtonClicked;
         loadGameButton.clicked += OnLoadGameButtonClicked;
         if (optionsButton != null) optionsButton.clicked += ToggleOptionsPanel;
         quitButton.clicked += OnQuitButtonClicked;
 
-        // Options controls
         optionsPanel = visualTree.Q<VisualElement>("OptionsPanel");
         tooltipDelaySlider = visualTree.Q<Slider>("TooltipDelaySlider");
         tooltipNeverHoverToggle = visualTree.Q<Toggle>("TooltipNeverHoverToggle");
@@ -82,12 +73,20 @@ public class MainMenuUI : MonoBehaviour
         UpdateTooltipDelayLabel();
         HideOptionsPanel();
 
-        // Add the UI elements to the root visual element
         VisualElement root = GetComponent<UIDocument>().rootVisualElement;
 
         if (root != null)
         {
             root.Add(visualTree);
+
+            UiToolkitScavengerCursors.RegisterClickPointerHover(newGameButton);
+            UiToolkitScavengerCursors.RegisterClickPointerHover(loadGameButton);
+            UiToolkitScavengerCursors.RegisterClickPointerHover(quitButton);
+            if (optionsButton != null) UiToolkitScavengerCursors.RegisterClickPointerHover(optionsButton);
+            if (optionsPanel != null) UiToolkitScavengerCursors.RegisterGauntletPointerHover(optionsPanel);
+            if (optionsCloseButton != null) UiToolkitScavengerCursors.RegisterClickPointerHover(optionsCloseButton);
+            if (tooltipDelaySlider != null) UiToolkitScavengerCursors.RegisterClickPointerHover(tooltipDelaySlider);
+            if (tooltipNeverHoverToggle != null) UiToolkitScavengerCursors.RegisterClickPointerHover(tooltipNeverHoverToggle);
         }
         else
         {
@@ -104,13 +103,11 @@ public class MainMenuUI : MonoBehaviour
 
     private void OnLoadGameButtonClicked()
     {
-        // Add code here to handle the load game button click
         Debug.Log("Load game button clicked");
     }
 
     private void OnQuitButtonClicked()
     {
-        // Add code here to handle the quit button click
         Application.Quit();
     }
 

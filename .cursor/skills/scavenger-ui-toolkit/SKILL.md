@@ -1,10 +1,8 @@
 ---
 name: scavenger-ui-toolkit
 description: >-
-  Unity UI Toolkit patterns for Scavenger: floating vs docked panels, shared chrome
-  and USS classes, drag handles and PanelDragController, and two-sided inventory
-  transfer UI. Use when adding or changing UXML/USS, combat or home-base panels,
-  floating tooltips, or stash/chest/corpse transfer flows.
+  UI Toolkit patterns: docked vs floating panels, shared USS chrome, dragging, and
+  two-sided transfer UI. Use for UXML/USS and panel/inventory UI work.
 ---
 
 # Scavenger — UI Toolkit (style and structure)

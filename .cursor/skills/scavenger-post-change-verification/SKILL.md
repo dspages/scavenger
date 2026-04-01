@@ -1,18 +1,13 @@
 ---
 name: scavenger-post-change-verification
 description: >-
-  Defines Scavenger's post-change verification: self-review and DRY pass on your own
-  diff, Unity Console check after C# edits, choosing EditMode vs PlayMode tests and
-  correct test folders, running or extending tests that cover the changed area, and
-  UnityMCP prerequisites and cleanup before and after running tests. Use after
-  nontrivial code changes, when validating fixes or checking for regressions, when the
-  user asks to verify changes or run tests safely, or after C# edits that need Unity
-  Console review.
+  After-change checklist: self-review/DRY, Unity Console, choose & run tests, UnityMCP
+  run_tests readiness and cleanup. Use after nontrivial changes or when asked to verify.
 ---
 
 # Scavenger — post-change verification
 
-Canonical checklist for verification after changes. For **what tests or docs to add** with a change, see **`scavenger-change-companion`**. For debugging see **`scavenger-debugging-workflow`**; for UI see **`scavenger-ui-toolkit`**; for code layout see **`scavenger-architecture`**; for repo folders and formatting see **`scavenger-conventions`**; for DRY and implementation habits see **`scavenger-coding-principles`**; for saves see **`scavenger-data-persistence`**. **`AGENTS.md`** at the repo root indexes which skill to open.
+Canonical verification checklist after changes. For “what tests/docs should I add?”, see **`scavenger-change-companion`**.
 
 ## When to apply
 

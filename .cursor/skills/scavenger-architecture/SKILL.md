@@ -1,17 +1,13 @@
 ---
 name: scavenger-architecture
 description: >-
-  High-level map of the Scavenger Unity project: scenes, script folders, four-layer
-  architecture (content, rules & state, controllers, UI), dependency direction,
-  tuning vs presentation, and anchor types for navigation. Use when orienting in
-  the codebase, planning where a feature belongs, or avoiding duplicate systems.
-  For subsystem detail, layered principles, cross-links to other skills, and
-  major-object roles, read reference.md in the same folder.
+  Project map: scenes, key folders, layer boundaries/ownership. Use to place features,
+  orient quickly, and avoid duplicate systems. Details in `reference.md`.
 ---
 
 # Scavenger — architecture (map)
 
-Read **[`reference.md`](reference.md)** for the **four-layer architecture**, expanded principles (dependency direction, single source of truth for combat numbers, `CharacterSheet` vs avatar, player/AI parity, observation vs coupling, tuning homes vs UI/controllers), a **related skills** table, roles of major types (`CharacterSheet`, `Action`, controllers, shared character/inventory UI), scene flows, **`PlayerParty` / excursion ownership**, **ability resource contract** (four-line model, workbench tension, symmetric sanity), and “if you change X, consider Y.” For **Home Base weekly command** wireframe (Chosen pairing, `CanAssign`), see **[`scavenger-ui-toolkit`](../scavenger-ui-toolkit/reference.md)**.
+Read **[`reference.md`](reference.md)** for: four-layer architecture, dependency direction, ownership/state rules, major type roles, scene flows, and the ability resource contract. For the Home Base weekly command wireframe, see **[`scavenger-ui-toolkit/reference.md`](../scavenger-ui-toolkit/reference.md)**.
 
 ## Scenes
 

@@ -1,3 +1,4 @@
+/* Cursors: applied at runtime via UiToolkitScavengerCursors + Resources/ScavengerCursors (USS url() is unreliable in players). */
 VisualElement {}
 
 .hud-bar {
@@ -21,7 +22,6 @@ VisualElement {}
     padding-left: 10px;
     padding-right: 10px;
     margin-top: 4px;
-    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
 }
 
 .action-btn--selected {
@@ -39,14 +39,12 @@ VisualElement {}
     background-color: var(--color-primary);
     color: #0f172a;
     border-radius: 6px;
-    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
 }
 
 .secondary {
     background-color: var(--color-surface-alt);
     color: var(--color-text);
     border-radius: 6px;
-    cursor: url("Assets/Art/cursors/hand_point.png") 4 4;
 }
 
 .panel {
@@ -126,6 +124,21 @@ VisualElement {}
     justify-content: center;
 }
 
+/* Slot root registers gauntlet cursor; children must not steal hit-tests (see UiToolkitScavengerCursors). */
+.inventory-slot Label,
+.inventory-slot .slot-icon,
+.inventory-slot .weapon-type-label,
+.inventory-slot .stack-count {
+    picking-mode: ignore;
+}
+
+.equipment-slot Label,
+.equipment-slot .slot-icon,
+.equipment-slot .weapon-type-label,
+.equipment-slot .stack-count {
+    picking-mode: ignore;
+}
+
 .inventory-slot:hover {
     border-color: rgba(156, 163, 175, 0.55);
     background-color: rgba(75, 85, 99, 0.5);
@@ -202,7 +215,6 @@ VisualElement {}
     background-color: rgba(60, 60, 60, 0.9);
     border-top-left-radius: 4px;
     border-top-right-radius: 4px;
-    cursor: url("Assets/Art/cursors/gauntlet_open.png") 4 4;
 }
 
 .game-floating-panel__title-row {

@@ -1,6 +1,6 @@
-<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <Style src="project://database/Assets/UI/UXML/HomeBase.uss?fileID=7433441132597879392&amp;guid=b1b2b3b4c5d6e7f8a9b0c1d2e3f4a5b6&amp;type=3#HomeBase" />
-    <ui:VisualElement name="HomeBaseRoot" class="home-base-root">
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="UnityEngine.UIElements" noNamespaceSchemaLocation="../UIElementsSchema/UIElements.xsd" schemaLocation="UnityEngine.UIElements ../UIElementsSchema/UnityEngine.UIElements.xsd" editor-extension-mode="False">
+    <!-- No inline Style: import-time USS refs can yield an empty VisualTreeAsset at runtime; HomeBaseUI adds ThemeStyles + HomeBaseStyles. Cursors: UiToolkitScavengerCursors (scavenger-ui-design). -->
+    <ui:VisualElement name="HomeBaseRoot" class="home-base-root scavenger-home-base-root">
         <ui:VisualElement name="HomeBaseHeader" class="home-base-header">
             <ui:VisualElement class="home-base-header-stats">
                 <ui:VisualElement style="flex-direction: row; align-items: center; gap: 8px;">
@@ -20,6 +20,7 @@
         </ui:VisualElement>
 
         <ui:VisualElement class="home-base-main-row">
+            <!-- Mission selection: hand cursor on each MissionCard (click to select). Labels use picking-mode ignore so the card owns hover. -->
             <ui:VisualElement class="home-base-column">
                 <ui:Label text="Choose mission (1)" class="home-base-section-title" />
                 <ui:VisualElement name="MissionCardsRow" class="home-base-mission-row">
@@ -42,6 +43,7 @@
                 <ui:Label name="MissionDetailLabel" class="home-base-detail" text="Select a mission." />
             </ui:VisualElement>
 
+            <!-- Excursion squad: hand on slot tiles (click/UI); drop highlight while dragging uses CSS on squad slots (BEM drop-hover modifier). Roster rows: gauntlet (drag source). -->
             <ui:VisualElement class="home-base-column">
                 <ui:Label name="ExcursionTitleLabel" text="Excursion squad (max 4)" class="home-base-section-title" />
                 <ui:VisualElement name="SquadSlotsRow" class="home-base-squad-row">
