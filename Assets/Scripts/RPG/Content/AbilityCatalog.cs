@@ -22,6 +22,10 @@ public static class AbilityCatalog
         maxRange = 6,
         radius = 2,
         actionPointCost = 20,
+        // Arcane spell: mana crystals + sanity
+        manaCrystalCost = 4,
+        sanityCost = 4,
+        cooldown = 2,
     };
 
     public static readonly AbilityData Stealth = new AbilityData
@@ -32,6 +36,7 @@ public static class AbilityCatalog
         archetype = AbilityData.Archetype.SelfCast,
         statusEffect = StatusEffect.EffectType.HIDDEN,
         statusDuration = 3,
+        cooldown = 3,
     };
 
     public static readonly AbilityData Bulwark = new AbilityData
@@ -43,6 +48,7 @@ public static class AbilityCatalog
         statusEffect = StatusEffect.EffectType.BULWARK,
         statusDuration = 3,
         statusPowerLevel = 3,
+        cooldown = 3,
     };
 
     public static readonly AbilityData[] All = new AbilityData[]

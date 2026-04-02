@@ -265,6 +265,8 @@ public abstract class ActionAttack : ActionMove
             return false;
         }
         CombatItemSpend.ApplySanityCost(ability, sheet);
+        if (ability != null && ability.cooldown > 0 && !string.IsNullOrEmpty(ability.id))
+            sheet.PutAbilityOnCooldown(ability.id, ability.cooldown);
         return true;
     }
 

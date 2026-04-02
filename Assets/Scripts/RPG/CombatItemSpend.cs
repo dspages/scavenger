@@ -36,6 +36,23 @@ public static class CombatItemSpend
         return false;
     }
 
+    /// <summary>Total stack count across inventory slots for a registry item id. Returns 0 if none.</summary>
+    public static int CountStackInInventory(CharacterSheet sheet, string registryId)
+    {
+        if (sheet == null || string.IsNullOrEmpty(registryId)) return 0;
+        var data = ContentRegistry.GetItemData(registryId);
+        if (data == null) return 0;
+        string matchName = data.displayName;
+        int total = 0;
+        for (int i = 0; i < Inventory.MaxSlots; i++)
+        {
+            var item = sheet.inventory.GetItem(i);
+            if (item != null && item.itemName == matchName)
+                total += Mathf.Max(0, item.PeekStackSize());
+        }
+        return total;
+    }
+
     /// <summary>Removes stack from first inventory slot that matches the registry item. Returns false if not enough.</summary>
     public static bool TryConsumeStackByRegistryId(CharacterSheet sheet, string registryId, int amount)
     {

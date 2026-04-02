@@ -24,6 +24,7 @@ Canonical verification checklist after changes. For “what tests/docs should I 
 
 ## Step 2 — Unity Console (after C# changes)
 
+- If **Unity MCP is down or tools fail**, **tell the user loudly** (do not act like verification passed). They need to start/reconnect the Unity MCP server in Cursor.
 - Use UnityMCP **`read_console`** and/or **`validate_script`** on touched files.
 - Address **errors and warnings** tied to the edits by fixing root causes (API usage, invariants, dead code, types)—not by broad `#pragma warning disable` or project-wide suppression.
 - Narrow suppressions only when unavoidable (third-party/generated, documented platform limits), smallest scope, with a short comment.

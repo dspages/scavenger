@@ -33,6 +33,14 @@ public class ActionMeleeAttack : ActionAttack
     public override bool TargetsEnemiesOnly { get { return true; } }
     public override bool CanTargetEmptyTiles { get { return false; } }
 
+    public override AbilityData GetAbilityDataForCosts() => abilityData;
+
+    public override bool IsCoolingDown()
+    {
+        return abilityData != null && characterSheet != null &&
+               characterSheet.GetAbilityCooldownRemaining(abilityData.id) > 0;
+    }
+
     protected override void PerformAttack(Tile targetTile)
     {
         var enemy = targetTile.occupant;

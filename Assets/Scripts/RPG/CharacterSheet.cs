@@ -90,6 +90,9 @@ public partial class CharacterSheet
     private readonly List<System.Type> knownSpecialActionTypes = new List<System.Type>();
     private readonly List<AbilityData> knownAbilities = new List<AbilityData>();
 
+    // Per-ability cooldowns (remaining turns). Key = AbilityData.id.
+    private readonly Dictionary<string, int> abilityCooldownRemaining = new Dictionary<string, int>();
+
     public CharacterSheet(string name, CharacterClass characterClass, bool assignDefaults = true)
     {
         this.characterClass = characterClass;
@@ -177,6 +180,7 @@ public partial class CharacterSheet
     // Returns true if the unit is still alive.
     public bool BeginTurn()
     {
+        TickAbilityCooldowns();
         SetActionPoints(MoveSpeed());
         foreach (StatusEffect effect in statusEffects)
         {
@@ -186,6 +190,31 @@ public partial class CharacterSheet
         }
         statusEffects.RemoveAll(e => e.expired);
         return true;
+    }
+
+    private void TickAbilityCooldowns()
+    {
+        if (abilityCooldownRemaining.Count == 0) return;
+        var keys = abilityCooldownRemaining.Keys.ToArray();
+        foreach (var k in keys)
+        {
+            int v = abilityCooldownRemaining[k];
+            v = Mathf.Max(0, v - 1);
+            if (v <= 0) abilityCooldownRemaining.Remove(k);
+            else abilityCooldownRemaining[k] = v;
+        }
+    }
+
+    public int GetAbilityCooldownRemaining(string abilityId)
+    {
+        if (string.IsNullOrEmpty(abilityId)) return 0;
+        return abilityCooldownRemaining.TryGetValue(abilityId, out int v) ? v : 0;
+    }
+
+    public void PutAbilityOnCooldown(string abilityId, int turns)
+    {
+        if (string.IsNullOrEmpty(abilityId) || turns <= 0) return;
+        abilityCooldownRemaining[abilityId] = Mathf.Max(turns, GetAbilityCooldownRemaining(abilityId));
     }
     
     public void SetActionPoints(int newValue)

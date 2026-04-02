@@ -30,6 +30,12 @@ public class ActionRangedAttack : ActionAttack
 
     public override AbilityData GetAbilityDataForCosts() => abilityData;
 
+    public override bool IsCoolingDown()
+    {
+        return abilityData != null && characterSheet != null &&
+               characterSheet.GetAbilityCooldownRemaining(abilityData.id) > 0;
+    }
+
     public override TargetType TARGET_TYPE { get { return TargetType.RANGED; } }
     public override bool RequiresLineOfSight { get { return true; } }
     public override bool TargetsEnemiesOnly { get { return true; } }

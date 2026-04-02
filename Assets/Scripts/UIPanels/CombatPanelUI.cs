@@ -863,7 +863,7 @@ public class CombatPanelUI : MonoBehaviour
         // Action buttons store a payload in userData
         if (element.userData is ActionTooltipPayload atp)
         {
-            return (atp.compact, atp.detailed);
+            return (atp.compact, BuildActionTooltip(atp.key, atp.className));
         }
 
         // Inventory slots by name
@@ -902,7 +902,8 @@ public class CombatPanelUI : MonoBehaviour
     private sealed class ActionTooltipPayload
     {
         public string compact;
-        public string detailed;
+        public string key;
+        public string className;
     }
 
     private void PositionTooltip(Vector2 panelPosition)
@@ -1003,11 +1004,11 @@ public class CombatPanelUI : MonoBehaviour
             // Ensure button is clickable even inside a ui-blocker container
             btn.pickingMode = PickingMode.Position;
             // Tooltip: compact on hover, details after delay/right-click
-            var detailed = BuildActionTooltip(key, cls);
             btn.userData = new ActionTooltipPayload
             {
                 compact = tuple.label,
-                detailed = detailed
+                key = key,
+                className = cls
             };
             btn.tooltip = tuple.label;
             AttachTooltipHandlers(btn);
@@ -1097,6 +1098,16 @@ public class CombatPanelUI : MonoBehaviour
             }
         }
 
+        AbilityData abilityForCosts = null;
+        if (!string.IsNullOrEmpty(key) && key.StartsWith("ability:") && currentCharacter != null)
+        {
+            string id = key.Substring("ability:".Length);
+            foreach (var a in currentCharacter.GetKnownAbilities())
+            {
+                if (a != null && a.id == id) { abilityForCosts = a; break; }
+            }
+        }
+
         // If this corresponds to a hand-held item action, combine item description with action cost
         bool isRight = key != null && key.EndsWith(":RightHand");
         bool isLeft = key != null && key.EndsWith(":LeftHand");
@@ -1111,12 +1122,59 @@ public class CombatPanelUI : MonoBehaviour
                 {
                     tooltip += $"Action Cost: {action.BASE_ACTION_COST} AP\n";
                 }
+                if (item.requiresAmmo && !string.IsNullOrEmpty(item.ammoType))
+                {
+                    int ammoHave = CombatItemSpend.CountStackInInventory(currentCharacter, item.ammoType);
+                    tooltip += $"Ammo: {ammoHave} (spend 1)\n";
+                }
+                if (item.isConsumable)
+                {
+                    tooltip += $"Uses remaining: {item.PeekStackSize()} (spend 1)\n";
+                }
                 if (!string.IsNullOrEmpty(item.description))
                 {
                     tooltip += item.description;
                 }
                 return tooltip;
             }
+        }
+
+        // Data-driven abilities: show inventory + sanity costs (no separate HUD bars; inventory is the source of truth).
+        if (abilityForCosts != null && currentCharacter != null)
+        {
+            var sb = new System.Text.StringBuilder(128);
+            if (action != null && action.BASE_ACTION_COST > 0)
+                sb.Append($"Action Cost: {action.BASE_ACTION_COST} AP\n");
+
+            if (abilityForCosts.sanityCost > 0)
+                sb.Append($"Sanity: {currentCharacter.currentSanity} (spend {abilityForCosts.sanityCost})\n");
+
+            if (abilityForCosts.manaCrystalCost > 0)
+            {
+                int have = CombatItemSpend.CountStackInInventory(currentCharacter, CombatActionAffordance.ManaCrystalRegistryId);
+                sb.Append($"Mana crystals: {have} (spend {abilityForCosts.manaCrystalCost})\n");
+            }
+            if (abilityForCosts.techComponentsCost > 0)
+            {
+                int have = CombatItemSpend.CountStackInInventory(currentCharacter, CombatActionAffordance.TechComponentRegistryId);
+                sb.Append($"Tech components: {have} (spend {abilityForCosts.techComponentsCost})\n");
+            }
+            if (abilityForCosts.extraItemCosts != null)
+            {
+                foreach (var c in abilityForCosts.extraItemCosts)
+                {
+                    if (c.amount <= 0 || string.IsNullOrEmpty(c.registryId)) continue;
+                    int have = CombatItemSpend.CountStackInInventory(currentCharacter, c.registryId);
+                    sb.Append($"{c.registryId}: {have} (spend {c.amount})\n");
+                }
+            }
+            if (abilityForCosts.cooldown > 0)
+                sb.Append($"Cooldown: {abilityForCosts.cooldown} turns\n");
+
+            if (!string.IsNullOrEmpty(abilityForCosts.description))
+                sb.Append(abilityForCosts.description);
+
+            return sb.ToString().TrimEnd('\n');
         }
 
         // For special abilities, use the action's Description() method

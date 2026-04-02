@@ -1,4 +1,4 @@
-﻿﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -81,10 +81,33 @@ public partial class CombatController
             if (displayReason) characterSheet.DisplayPopup("Not enough AP");
             return false;
         }
-        if (characterSheet.currentMana < action.MANA_COST)
+        // Legacy mana pool is no longer a hard gate. Ability and attack costs are now:
+        // - weapon ammo / consumable weapon stacks
+        // - ability inventory costs (extra items, mana crystals, tech components)
+        // - sanity (warning only; may go negative by design)
+        if (action is ActionAttack atk)
         {
-            if (displayReason) characterSheet.DisplayPopup("Not enough mana");
-            return false;
+            var weapon = GetEquippedWeaponForSelectedAction();
+            var ability = atk.GetAbilityDataForCosts();
+
+            if (!CombatActionAffordance.CanAffordFullAttackAction(this, weapon, ability))
+            {
+                if (displayReason)
+                {
+                    // Prefer a specific message when we can infer it cheaply.
+                    if (weapon != null && weapon.requiresAmmo && !string.IsNullOrEmpty(weapon.ammoType) &&
+                        !CombatActionAffordance.CanAffordWeaponAttackCosts(this, weapon, ability))
+                        characterSheet.DisplayPopup("Not enough ammunition");
+                    else if (!CombatActionAffordance.CanAffordAbilityHardInventoryCosts(ability, characterSheet))
+                        characterSheet.DisplayPopup("Not enough materials");
+                    else
+                        characterSheet.DisplayPopup("Cannot afford");
+                }
+                return false;
+            }
+
+            if (displayReason && CombatActionAffordance.ShouldWarnSanityRisk(ability, characterSheet))
+                characterSheet.DisplayPopup("Warning: sanity will go negative");
         }
         return true;
     }

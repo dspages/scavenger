@@ -193,10 +193,18 @@
     border-color: var(--color-primary);
 }
 
+.home-base-roster-panel {
+    align-self: flex-start;
+    width: 380px;
+    max-width: 420px;
+    min-width: 280px;
+}
+
 .home-base-roster-scroll {
     max-height: 200px;
     min-height: 80px;
     margin-bottom: var(--spacing-s);
+    width: 100%;
 }
 
 .home-base-roster-chips {

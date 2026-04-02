@@ -14,6 +14,12 @@ public class ActionGroundAttack : ActionAttack
 
 	public override AbilityData GetAbilityDataForCosts() => abilityData;
 
+	public override bool IsCoolingDown()
+	{
+		return abilityData != null && characterSheet != null &&
+		       characterSheet.GetAbilityCooldownRemaining(abilityData.id) > 0;
+	}
+
 	public void ConfigureFromAbility(AbilityData data)
 	{
 		abilityData = data;

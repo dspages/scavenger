@@ -177,7 +177,10 @@ public class ActionSelector
     {
         selectedActionKey = key;
         if (!ConfigureFromEquippedItem())
-            InitializeSpellAction();
+        {
+            if (!ConfigureFromAbilityKeyIfNeeded(key))
+                InitializeSpellAction();
+        }
     }
 
     private bool ConfigureFromEquippedItem()
@@ -205,5 +208,27 @@ public class ActionSelector
     private void InitializeSpellAction()
     {
         selectedAction?.ConfigureAction();
+    }
+
+    private bool ConfigureFromAbilityKeyIfNeeded(string key)
+    {
+        if (string.IsNullOrEmpty(key) || !key.StartsWith("ability:", StringComparison.Ordinal))
+            return false;
+        var sheet = getSheet();
+        if (sheet == null || selectedAction == null) return false;
+        string id = key.Substring("ability:".Length);
+        var data = ContentRegistry.GetAbilityData(id);
+        if (data == null) return false;
+
+        switch (selectedAction)
+        {
+            case ActionMeleeAttack a: a.ConfigureFromAbility(data); return true;
+            case ActionAllyBuff a: a.ConfigureFromAbility(data); return true;
+            case ActionRangedAttack a: a.ConfigureFromAbility(data); return true;
+            case ActionGroundAttack a: a.ConfigureFromAbility(data); return true;
+            case ActionSelfCast a: a.ConfigureFromAbility(data); return true;
+        }
+
+        return false;
     }
 }

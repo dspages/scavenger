@@ -27,6 +27,12 @@ public class ActionSelfCast : Action
         return desc;
     }
 
+    public override bool IsCoolingDown()
+    {
+        return abilityData != null && characterSheet != null &&
+               characterSheet.GetAbilityCooldownRemaining(abilityData.id) > 0;
+    }
+
     virtual protected void ApplySelfStatusEffect()
     {
         if (abilityData != null && abilityData.statusDuration > 0)
@@ -42,6 +48,19 @@ public class ActionSelfCast : Action
         if (currentPhase == Phase.NONE)
         {
             currentPhase = Phase.CASTING;
+
+            if (abilityData != null)
+            {
+                if (!CombatItemSpend.TrySpendAbilityHardCosts(abilityData, characterSheet))
+                {
+                    EndAction();
+                    return;
+                }
+                CombatItemSpend.ApplySanityCost(abilityData, characterSheet);
+                if (abilityData.cooldown > 0 && !string.IsNullOrEmpty(abilityData.id))
+                    characterSheet.PutAbilityOnCooldown(abilityData.id, abilityData.cooldown);
+            }
+
             ApplySelfStatusEffect();
             StartCoroutine(EndActionAfterDelay(1.0f));
         }
