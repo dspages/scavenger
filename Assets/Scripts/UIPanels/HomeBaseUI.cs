@@ -23,7 +23,6 @@ public class HomeBaseUI : MonoBehaviour
     public StyleSheet CombatLoadoutStyles;
 
     private const int MaxSquadSlots = 4;
-    private const int MaxRosterCapacity = 8;
 
     private VisualElement uiTreeRoot;
     private VisualElement preparationOverlay;
@@ -71,6 +70,9 @@ public class HomeBaseUI : MonoBehaviour
     private VisualElement pickMenuOverlay;
     private int pickMenuSlot = -1;
 
+    private VisualElement recruitModalOverlay;
+    private VisualElement recruitExamineOverlay;
+
     private EventCallback<PointerMoveEvent> rosterInteractionMoveHandler;
     private EventCallback<PointerUpEvent> rosterInteractionUpHandler;
     private EventCallback<PointerCaptureOutEvent> rosterDragCaptureOutHandler;
@@ -87,7 +89,7 @@ public class HomeBaseUI : MonoBehaviour
 
     private static readonly (string name, string tag, string reward, string detail)[] StubMissions =
     {
-        ("Bog sortie", "Morale decay biome", "Salvage, chems", "Infested wetlands; slow passive morale drain. Good for reagent farming."),
+        ("Bog sortie", "Sanity decay biome", "Salvage, chems", "Infested wetlands; slow passive sanity drain. Good for reagent farming."),
         ("Convoy escort", "Escort objective", "Credits + rep", "Protect the truck across the map. Failure if the convoy is destroyed."),
         ("Ruins breach", "Heavy loot", "Relics, risk", "Dense enemy clusters; no decay. Bring explosives and med kits."),
     };
@@ -106,11 +108,13 @@ public class HomeBaseUI : MonoBehaviour
         if (dragPointerCaptureElement != null && dragPointerId >= 0)
             dragPointerCaptureElement.ReleasePointer(dragPointerId);
         dragGhost?.RemoveFromHierarchy();
+        HideRecruitModal();
     }
 
     private void Start()
     {
         PlayerParty.EnsureInitialized();
+        RecruitPool.EnsureFreshForCurrentWeek();
 
         if (HomeBaseTemplate == null)
         {
@@ -227,7 +231,7 @@ public class HomeBaseUI : MonoBehaviour
         if (stashBtn != null) stashBtn.clicked += ShowPreparation;
 
         var quickBtn = tree.Q<Button>("QuickStatusButton");
-        if (quickBtn != null) quickBtn.clicked += () => Debug.Log("Morale / heal quick actions (stub)");
+        if (quickBtn != null) quickBtn.clicked += () => Debug.Log("Sanity / heal quick actions (stub)");
 
         var mainMenuBtn = tree.Q<Button>("MainMenuButton");
         if (mainMenuBtn != null) mainMenuBtn.clicked += () => SceneManager.LoadScene(SceneNames.MainMenu);
@@ -444,10 +448,10 @@ public class HomeBaseUI : MonoBehaviour
         var party = PlayerParty.partyMembers;
         int n = party != null ? party.Count : 0;
         if (rosterCountLabel != null)
-            rosterCountLabel.text = $"{n} / {MaxRosterCapacity}";
+            rosterCountLabel.text = $"{n} / {PlayerParty.MaxRosterMembers}";
 
         if (recruitButton != null)
-            recruitButton.SetEnabled(n < MaxRosterCapacity);
+            recruitButton.SetEnabled(true);
 
         if (party != null && party.Count > 0)
             selectedRosterIndex = Mathf.Clamp(selectedRosterIndex, 0, party.Count - 1);
@@ -935,7 +939,215 @@ public class HomeBaseUI : MonoBehaviour
 
     private void OnRecruitClicked()
     {
-        Debug.Log("Recruit hero (stub — hook barracks / roster capacity later).");
+        DismissPickMenu();
+        RecruitPool.EnsureFreshForCurrentWeek();
+        ShowRecruitModal();
+    }
+
+    private void ShowRecruitModal()
+    {
+        HideRecruitExamine();
+        if (recruitModalOverlay != null)
+        {
+            recruitModalOverlay.RemoveFromHierarchy();
+            recruitModalOverlay = null;
+        }
+
+        if (uiTreeRoot == null) return;
+
+        recruitModalOverlay = new VisualElement();
+        recruitModalOverlay.AddToClassList("home-base-preparation-overlay");
+        recruitModalOverlay.pickingMode = PickingMode.Position;
+
+        var panel = new VisualElement();
+        panel.AddToClassList("home-base-preparation-panel");
+        panel.style.maxWidth = 520;
+
+        var title = new Label("Recruits this week");
+        title.AddToClassList("home-base-prep-title");
+        title.style.marginBottom = 8;
+        panel.Add(title);
+
+        var offers = RecruitPool.OfferedRecruits;
+        var party = PlayerParty.partyMembers;
+        int rosterCount = party != null ? party.Count : 0;
+        bool rosterHasRoom = rosterCount < PlayerParty.MaxRosterMembers;
+
+        if (offers == null || offers.Count == 0)
+        {
+            var empty = new Label("No recruits are available right now. New offers arrive at the start of each week.");
+            empty.AddToClassList("home-base-detail");
+            empty.style.whiteSpace = WhiteSpace.Normal;
+            empty.style.marginBottom = 12;
+            panel.Add(empty);
+        }
+        else
+        {
+            for (int i = 0; i < offers.Count; i++)
+            {
+                int idx = i;
+                var sheet = offers[i];
+                var row = new VisualElement();
+                row.style.flexDirection = FlexDirection.Row;
+                row.style.alignItems = Align.Center;
+                row.style.flexWrap = Wrap.Wrap;
+                row.style.marginBottom = 10;
+                row.style.paddingTop = 8;
+                row.style.paddingBottom = 8;
+                row.style.paddingLeft = 10;
+                row.style.paddingRight = 10;
+                row.style.backgroundColor = new Color(0.12f, 0.14f, 0.18f, 0.85f);
+                row.style.borderTopLeftRadius = row.style.borderTopRightRadius =
+                    row.style.borderBottomLeftRadius = row.style.borderBottomRightRadius = 6;
+
+                var label = new Label(sheet != null ? CharacterSheet.RecruitListLabel(sheet) : "—");
+                label.style.flexGrow = 1;
+                label.style.marginRight = 8;
+                label.style.minWidth = 160;
+                label.style.color = new Color(0.95f, 0.96f, 0.98f);
+                row.Add(label);
+
+                var examineBtn = new Button(() => ShowRecruitExamine(sheet)) { text = "Examine" };
+                examineBtn.AddToClassList("home-base-btn-secondary");
+                examineBtn.style.marginRight = 6;
+                UiToolkitScavengerCursors.RegisterClickPointerHover(examineBtn);
+                row.Add(examineBtn);
+
+                var addBtn = new Button(() => OnRecruitAddFromPool(idx))
+                {
+                    text = "Add to party",
+                };
+                addBtn.AddToClassList("home-base-btn-primary");
+                addBtn.SetEnabled(rosterHasRoom && sheet != null);
+                if (!rosterHasRoom)
+                    addBtn.tooltip = "Roster is full.";
+                UiToolkitScavengerCursors.RegisterClickPointerHover(addBtn);
+                row.Add(addBtn);
+
+                panel.Add(row);
+            }
+        }
+
+        var closeBtn = new Button(HideRecruitModal) { text = "Close" };
+        closeBtn.AddToClassList("home-base-btn-secondary");
+        closeBtn.style.alignSelf = Align.FlexStart;
+        closeBtn.style.marginTop = 8;
+        UiToolkitScavengerCursors.RegisterClickPointerHover(closeBtn);
+        panel.Add(closeBtn);
+
+        recruitModalOverlay.Add(panel);
+        uiTreeRoot.Add(recruitModalOverlay);
+
+        recruitModalOverlay.RegisterCallback<ClickEvent>(evt =>
+        {
+            if (evt.target == recruitModalOverlay)
+                HideRecruitModal();
+        });
+    }
+
+    private void OnRecruitAddFromPool(int poolIndex)
+    {
+        if (!RecruitPool.TryHireFromPool(poolIndex, out string fail))
+        {
+            Debug.Log($"Recruit: {fail}");
+            RefreshAll();
+            return;
+        }
+
+        var party = PlayerParty.partyMembers;
+        if (party != null && party.Count > 0)
+            selectedRosterIndex = party.Count - 1;
+
+        RefreshAll();
+        ShowRecruitModal();
+    }
+
+    private void HideRecruitModal()
+    {
+        HideRecruitExamine();
+        if (recruitModalOverlay != null)
+        {
+            recruitModalOverlay.RemoveFromHierarchy();
+            recruitModalOverlay = null;
+        }
+    }
+
+    private void ShowRecruitExamine(CharacterSheet sheet)
+    {
+        HideRecruitExamine();
+        if (sheet == null || uiTreeRoot == null) return;
+
+        recruitExamineOverlay = new VisualElement();
+        recruitExamineOverlay.style.position = Position.Absolute;
+        recruitExamineOverlay.style.left = 0;
+        recruitExamineOverlay.style.right = 0;
+        recruitExamineOverlay.style.top = 0;
+        recruitExamineOverlay.style.bottom = 0;
+        recruitExamineOverlay.style.backgroundColor = new Color(0, 0, 0, 0.5f);
+        recruitExamineOverlay.pickingMode = PickingMode.Position;
+
+        var panel = new VisualElement();
+        panel.style.position = Position.Absolute;
+        panel.style.width = new Length(92, LengthUnit.Percent);
+        panel.style.maxWidth = 480;
+        panel.style.maxHeight = new Length(85, LengthUnit.Percent);
+        panel.style.left = new Length(4, LengthUnit.Percent);
+        panel.style.top = new Length(7.5f, LengthUnit.Percent);
+        panel.style.backgroundColor = new Color(0.1f, 0.12f, 0.16f, 0.98f);
+        panel.style.borderTopLeftRadius = panel.style.borderTopRightRadius =
+            panel.style.borderBottomLeftRadius = panel.style.borderBottomRightRadius = 8;
+        panel.style.paddingLeft = panel.style.paddingRight = 12;
+        panel.style.paddingTop = panel.style.paddingBottom = 12;
+        panel.style.flexDirection = FlexDirection.Column;
+
+        if (ThemeStyles != null)
+            panel.styleSheets.Add(ThemeStyles);
+        if (HomeBaseStyles != null)
+            panel.styleSheets.Add(HomeBaseStyles);
+
+        var headerRow = new VisualElement();
+        headerRow.style.flexDirection = FlexDirection.Row;
+        headerRow.style.justifyContent = Justify.SpaceBetween;
+        headerRow.style.alignItems = Align.Center;
+        headerRow.style.marginBottom = 8;
+
+        var hdr = new Label(CharacterSheet.RecruitListLabel(sheet));
+        hdr.AddToClassList("home-base-prep-title");
+        hdr.style.fontSize = 16;
+        headerRow.Add(hdr);
+
+        var backBtn = new Button(HideRecruitExamine) { text = "Back" };
+        backBtn.AddToClassList("home-base-btn-secondary");
+        UiToolkitScavengerCursors.RegisterClickPointerHover(backBtn);
+        headerRow.Add(backBtn);
+        panel.Add(headerRow);
+
+        var scroll = new ScrollView(ScrollViewMode.Vertical);
+        scroll.style.flexGrow = 1;
+        scroll.style.minHeight = 120;
+        var statsRoot = new VisualElement();
+        statsRoot.style.flexDirection = FlexDirection.Column;
+        DerivedStatsView.Refresh(statsRoot, sheet, compact: false);
+        scroll.Add(statsRoot);
+        panel.Add(scroll);
+
+        recruitExamineOverlay.Add(panel);
+        uiTreeRoot.Add(recruitExamineOverlay);
+
+        recruitExamineOverlay.RegisterCallback<ClickEvent>(evt =>
+        {
+            if (evt.target == recruitExamineOverlay)
+                HideRecruitExamine();
+        });
+    }
+
+    private void HideRecruitExamine()
+    {
+        if (recruitExamineOverlay != null)
+        {
+            recruitExamineOverlay.RemoveFromHierarchy();
+            recruitExamineOverlay = null;
+        }
     }
 
     private void OnConfirmWeekClicked()

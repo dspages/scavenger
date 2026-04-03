@@ -22,6 +22,11 @@ public class CombatPanelUI : MonoBehaviour
     private VisualElement characterStatsBlockContainer;
     private VisualElement characterSkillsList;
 
+    private VisualElement sanityBar;
+    private VisualElement sanityFill;
+    private VisualElement sanityMissing;
+    private Label sanityLabel;
+
     private Button inventoryTabButton;
     private Button characterTabButton;
     private VisualElement inventoryTab;
@@ -93,6 +98,10 @@ public class CombatPanelUI : MonoBehaviour
         trashSlot = visualTree.Q<VisualElement>("Trash");
         actionBar = visualTree.Q<VisualElement>("ActionBar");
         actionPointsLabel = visualTree.Q<Label>("ActionPointsLabel");
+        sanityBar = visualTree.Q<VisualElement>("SanityBar");
+        sanityFill = visualTree.Q<VisualElement>("SanityFill");
+        sanityMissing = visualTree.Q<VisualElement>("SanityMissing");
+        sanityLabel = visualTree.Q<Label>("SanityLabel");
 
         // Initialize inventory UI manager (equipment slots are found by name under equipmentPanel)
         inventoryUI = new InventoryUIManager(inventoryPanel, itemGrid, equipmentPanel);
@@ -273,6 +282,7 @@ public class CombatPanelUI : MonoBehaviour
 
 		// Update current character and refresh inventory if needed
 		UpdateCurrentCharacter();
+        RefreshSanityBar();
 
 		// Toggle enemy move label
 		if (enemyMoveLabel != null)
@@ -329,8 +339,41 @@ public class CombatPanelUI : MonoBehaviour
                 AttachEquipmentDragTargets();
                 RefreshActionBar();
                 UpdateActionPointsDisplay();
+                RefreshSanityBar();
             }
         }
+    }
+
+    private void RefreshSanityBar()
+    {
+        if (sanityBar == null || sanityFill == null || sanityMissing == null || sanityLabel == null)
+            return;
+
+        if (currentCharacter == null)
+        {
+            sanityBar.style.display = DisplayStyle.None;
+            return;
+        }
+
+        sanityBar.style.display = DisplayStyle.Flex;
+
+        int max = Mathf.Max(1, currentCharacter.MaxSanity());
+        int s = currentCharacter.currentSanity;
+
+        float clampedPositive = Mathf.Clamp01((float)Mathf.Max(0, s) / max);
+        float negativeFrac = Mathf.Clamp01((float)Mathf.Max(0, -s) / max);
+
+        // Yellow shows remaining sanity from 0..max
+        sanityFill.style.width = Length.Percent(clampedPositive * 100f);
+
+        // Black shows missing-from-max when sanity is >= 0, and then vanishes as sanity goes negative toward -max.
+        float blackWidth = s >= 0
+            ? 1f - clampedPositive
+            : 1f - negativeFrac;
+        blackWidth = Mathf.Clamp01(blackWidth);
+        sanityMissing.style.width = Length.Percent(blackWidth * 100f);
+
+        sanityLabel.text = $"SAN {s}/{max}";
     }
 
     private void RefreshStatsBlock()

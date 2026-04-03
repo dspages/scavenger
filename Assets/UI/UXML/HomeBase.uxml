@@ -13,7 +13,7 @@
                 </ui:VisualElement>
                 <ui:VisualElement style="flex-direction: row; align-items: center; gap: 8px;">
                     <ui:Label text="Roster" class="home-base-stat-label" />
-                    <ui:Label name="RosterCountLabel" text="0 / 8" class="home-base-stat-value" />
+                    <ui:Label name="RosterCountLabel" text="0 / 6" class="home-base-stat-value" />
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:Button name="ConfirmWeekButton" class="home-base-btn-primary" text="Confirm week" />
@@ -104,7 +104,7 @@
         <ui:VisualElement class="home-base-footer">
             <ui:Button name="RecruitButton" class="home-base-btn-secondary" text="Recruit" />
             <ui:Button name="StashSummaryButton" class="home-base-btn-secondary" text="Stash summary" />
-            <ui:Button name="QuickStatusButton" class="home-base-btn-secondary" text="Morale / heal (stub)" />
+            <ui:Button name="QuickStatusButton" class="home-base-btn-secondary" text="Sanity / heal (stub)" />
             <ui:Button name="MainMenuButton" class="home-base-btn-ghost" text="Main menu" style="margin-left: auto;" />
         </ui:VisualElement>
 

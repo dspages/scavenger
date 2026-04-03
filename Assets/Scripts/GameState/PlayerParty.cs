@@ -4,6 +4,8 @@ using UnityEngine;
 public static class PlayerParty
 {
     public const int MaxExcursionSquad = 4;
+    /// <summary>Maximum party size at Home Base (recruits, roster UI).</summary>
+    public const int MaxRosterMembers = 6;
 
     public static List<CharacterSheet> partyMembers;
 

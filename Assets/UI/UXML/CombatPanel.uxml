@@ -18,6 +18,11 @@
                     <ui:VisualElement name="ActionPointsIndicator" class="action-points-indicator ui-blocker" style="margin-right: 16px; align-items: center; justify-content: center;">
                         <ui:Label name="ActionPointsLabel" text="AP: 12" class="action-points-text" />
                     </ui:VisualElement>
+                    <ui:VisualElement name="SanityBar" class="sanity-bar ui-blocker" tooltip="Sanity">
+                        <ui:VisualElement name="SanityFill" class="sanity-bar__fill" />
+                        <ui:VisualElement name="SanityMissing" class="sanity-bar__missing" />
+                        <ui:Label name="SanityLabel" text="SAN 0/0" class="sanity-bar__label" />
+                    </ui:VisualElement>
                     <ui:VisualElement name="ActionBar" class="action-bar ui-blocker" style="flex-direction: row; align-items: center;">
                     </ui:VisualElement>
                 </ui:VisualElement>

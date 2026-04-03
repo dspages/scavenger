@@ -204,6 +204,49 @@ VisualElement {}
     -unity-text-align: middle-center;
 }
 
+.sanity-bar {
+    width: 180px;
+    height: 40px;
+    margin-right: 16px;
+    border-radius: 8px;
+    border-width: 1px;
+    border-color: rgba(156, 163, 175, 0.35);
+    background-color: rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+    justify-content: center;
+}
+
+.sanity-bar__fill {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    background-color: rgba(250, 204, 21, 0.85); /* yellow */
+}
+
+.sanity-bar__missing {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 0%;
+    background-color: rgba(0, 0, 0, 0.85);
+}
+
+.sanity-bar__label {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    -unity-text-align: middle-center;
+    color: rgba(248, 250, 252, 0.92);
+    font-size: 11px;
+    -unity-font-style: bold;
+    picking-mode: ignore;
+}
+
 /* Shared panel chrome: floating drag headers + docked title rows (see PanelDragController, AGENTS.md) */
 .game-floating-panel__header {
     height: 18px;

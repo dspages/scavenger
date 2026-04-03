@@ -5,6 +5,8 @@ using System.Collections.Generic;
 public class GameSaveData
 {
     public List<CharacterSaveData> party = new List<CharacterSaveData>();
+    public int recruitPoolWeek;
+    public List<CharacterSaveData> recruitPoolOffers = new List<CharacterSaveData>();
 
     public static GameSaveData FromCurrentState()
     {
@@ -16,6 +18,14 @@ public class GameSaveData
                 save.party.Add(CharacterSaveData.FromSheet(sheet));
             }
         }
+
+        save.recruitPoolWeek = RecruitPool.LastRefreshedWeek;
+        save.recruitPoolOffers = new List<CharacterSaveData>();
+        foreach (var sheet in RecruitPool.OfferedRecruits)
+        {
+            save.recruitPoolOffers.Add(CharacterSaveData.FromSheet(sheet));
+        }
+
         return save;
     }
 
@@ -26,6 +36,8 @@ public class GameSaveData
         {
             PlayerParty.partyMembers.Add(cd.ToSheet());
         }
+
+        RecruitPool.RestoreFromSave(recruitPoolWeek, recruitPoolOffers ?? new List<CharacterSaveData>());
     }
 }
 
@@ -33,6 +45,7 @@ public class GameSaveData
 public class CharacterSaveData
 {
     public string firstName;
+    public string species = "human";
     /// <summary>Resources path for portrait; optional. Class default used when empty.</summary>
     public string portraitResourcePath;
     public CharacterSheet.CharacterClass characterClass;
@@ -61,6 +74,7 @@ public class CharacterSaveData
         var data = new CharacterSaveData
         {
             firstName = sheet.firstName,
+            species = sheet.species,
             portraitResourcePath = sheet.portraitResourcePath,
             characterClass = sheet.characterClass,
             level = sheet.level,
@@ -104,6 +118,7 @@ public class CharacterSaveData
     {
         var sheet = new CharacterSheet(firstName, characterClass, assignDefaults: false);
         sheet.portraitResourcePath = portraitResourcePath ?? "";
+        sheet.species = string.IsNullOrEmpty(species) ? "human" : species;
 
         sheet.level = level;
         sheet.xp = xp;

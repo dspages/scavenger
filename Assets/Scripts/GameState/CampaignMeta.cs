@@ -10,11 +10,13 @@ public static class CampaignMeta
     public static void AdvanceWeekAfterMission()
     {
         CurrentWeek++;
+        RecruitPool.RefreshPoolForNewWeek();
     }
 
     public static void ResetNewCampaign()
     {
         CurrentWeek = 1;
         Gold = 840;
+        RecruitPool.ResetForNewCampaign();
     }
 }

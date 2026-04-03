@@ -32,8 +32,8 @@ flowchart TD
 1. **Title** → player chooses **New game** (or load).
 2. **Pregame menu:** difficulty and global options (brief; not character creation unless you add it later).
 3. **First mission:** load **combat scene** directly (or via a one-line staging screen).
-4. **Mission end — victory or failure:** use **modal panels** (not thin banners). Each summarizes **casualties** (dead, wounded, retreated, morale/affliction changes), **objectives completed vs failed** (and optional bonus goals), **loot** and **experience** where applicable. Primary action: **[ Continue to base ]** → loads **`HomeBase`** scene (`Assets/Scenes/HomeBase.unity`). Same shell for both outcomes; copy and accent (title, icon) differ so “clear win” vs “costly win” vs “failed but survived” read correctly.
-5. **Not a full wipe:** **not necessarily game over.** After the modal, the run continues with **survivors** from the mission (including **manual / morale retreat**) **plus** everyone who stayed in town. The modal is the beat where the player **absorbs** losses and objective state before returning to base management—not a separate town-only summary.
+4. **Mission end — victory or failure:** use **modal panels** (not thin banners). Each summarizes **casualties** (dead, wounded, retreated, sanity/affliction changes), **objectives completed vs failed** (and optional bonus goals), **loot** and **experience** where applicable. Primary action: **[ Continue to base ]** → loads **`HomeBase`** scene (`Assets/Scenes/HomeBase.unity`). Same shell for both outcomes; copy and accent (title, icon) differ so “clear win” vs “costly win” vs “failed but survived” read correctly.
+5. **Not a full wipe:** **not necessarily game over.** After the modal, the run continues with **survivors** from the mission (including **manual / sanity retreat**) **plus** everyone who stayed in town. The modal is the beat where the player **absorbs** losses and objective state before returning to base management—not a separate town-only summary.
 6. **Home base scene (`HomeBase.unity`):** weekly **roster**, **base assignments**, **mission pick (~3)**, **loadout / stash** (same prep UI as combat). **Confirm week** → load **combat scene** for the chosen mission.
 7. Loop **HomeBase ↔ Combat** for the campaign.
 
@@ -46,7 +46,7 @@ flowchart TD
 ### Retreat (two paths)
 
 - **Manual retreat:** player moves a unit to a **map edge** (or uses a **Retreat** command) to **extract that character** from the fight; they count as **survivors** for post-battle continuation and keep carried inventory state you define.
-- **Morale collapse (if implemented):** at **0 morale**, automatic pathing to edge and exit (as in morale brainstorm)—**distinct** from voluntary retreat so UI can explain stakes.
+- **Sanity collapse (if implemented):** at **0 sanity**, automatic pathing to edge and exit (as in sanity brainstorm)—**distinct** from voluntary retreat so UI can explain stakes.
 
 ---
 
@@ -87,7 +87,7 @@ Low-fidelity **ASCII layouts** (use a monospace font / raw view if boxes look mi
 +------------------------------------------------------------------------------+
 |  +-----------------------------+  +----------------------------------------+ |
 |  | STASH (shared)              |  | SELECTED HERO -- same as combat panel   | |
-|  | [grid of stash slots]       |  | Portrait, HP/morale, stats, equipment  | |
+|  | [grid of stash slots]       |  | Portrait, HP/sanity, stats, equipment  | |
 |  |                             |  | [grid: hero inventory + equip slots]   | |
 |  |  drag item ----------------------->  hero  |  <--------------------------  | |
 |  +-----------------------------+  +----------------------------------------+ |
@@ -141,7 +141,9 @@ Overlay **modal panel** on combat scene (or full-screen dimmed backdrop). **Do n
 ## Current codebase anchors
 
 - **AP** refill per turn from speed (`MoveSpeed()` in [`CharacterSheet`](Assets/Scripts/RPG/CharacterSheet.cs)); multiple actions per turn are expected.
-- **Mana pool** (`currentMana`, `MaxMana()` from willpower) + [`ActionValidator`](Assets/Scripts/CombatScene/helpers/ActionValidator.cs) checks exist, but **`MANA_COST` is not wired from [`AbilityData.manaCost`](Assets/Scripts/RPG/Content/AbilityData.cs)** and **mana is not spent on resolve** yet—implement one unified “pay costs” path when you build this for real.
+- **Ability resource gating/commit** is implemented via inventory costs + a soft sanity cost:
+  - Hard costs consume inventory stacks in [`CombatItemSpend`](Assets/Scripts/RPG/CombatItemSpend.cs) using [`AbilityData.manaCrystalCost`](Assets/Scripts/RPG/Content/AbilityData.cs) and [`AbilityData.techComponentsCost`](Assets/Scripts/RPG/Content/AbilityData.cs) (plus `extraItemCosts`).
+  - Sanity is applied as a soft resource with [`CombatItemSpend.ApplySanityCost`](Assets/Scripts/RPG/CombatItemSpend.cs) and only warned about (not blocked) in [`CombatActionAffordance.ShouldWarnSanityRisk`](Assets/Scripts/RPG/CombatActionAffordance.cs) / [`ActionValidator`](Assets/Scripts/CombatScene/helpers/ActionValidator.cs). Sanity can go negative by design.
 - **Inventory** supports stackable items with [`weight`](Assets/Scripts/RPG/Inventory/InventoryItem.cs); carry limits vs strength are not fully enforced end-to-end yet.
 
 ---
@@ -165,11 +167,11 @@ Abilities are tagged with a **resource theme**. Most classes use **one theme**; 
 ### 3. Physical (martial techniques)
 
 - **Fuel (option A — stamina):** **Stamina** — a **per-character resource** for the battle (or per-encounter refresh rule), **scaled by willpower** (pool size and/or regen per turn).
-- **Fuel (option B — morale):** See **[Morale (refined brainstorm)](#morale-refined-brainstorm)** below: shared pool, mission/map-dependent pressure, mental damage as main threat.
+- **Fuel (option B — sanity):** See **[Sanity (refined brainstorm)](#sanity-refined-brainstorm)** below: shared pool, mission/map-dependent pressure, mental damage as main threat.
 - **No inventory weight** for the fuel itself (unless you later add “adrenal kits” as optional boosts).
 - **Feel:** Competes with weapons on the same “body” budget; spend makes **when** to use a technique vs a plain attack a real choice as the fight evolves.
 
-**Willpower’s dual role (stamina branch):** It both **shrinks magic costs** and **feeds the physical stamina pool**. That’s coherent if you frame willpower as focus/endurance; if builds feel too samey, later split into two stats or gate one theme behind a different stat. **Morale branch** can use a different max-pool scaling (e.g. willpower + class) so magic efficiency and morale tankiness don’t have to stack identically.
+**Willpower’s dual role (stamina branch):** It both **shrinks magic costs** and **feeds the physical stamina pool**. That’s coherent if you frame willpower as focus/endurance; if builds feel too samey, later split into two stats or gate one theme behind a different stat. **Sanity branch** can use a different max-pool scaling (e.g. willpower + class) so magic efficiency and sanity tankiness don’t have to stack identically.
 
 ---
 
@@ -177,9 +179,10 @@ Abilities are tagged with a **resource theme**. Most classes use **one theme**; 
 
 | Theme   | Scarcity shape        | Loadout pressure      | Typical lever vs weapons      |
 |---------|------------------------|------------------------|-------------------------------|
-| Magic   | Finite carried crystals | Weight + gold/rarity   | High impact per cast          |
+| Divine  | Finite carried crystals | Weight + gold/rarity   | High impact per cast          |
 | Gadget  | Finite components      | **Weight** (heavy stacks) | Volume / utility            |
-| Physical| Stamina *or* Morale    | None (stat-based); Morale adds map/mission rules | Techniques vs plain attacks; Morale adds psychology / tempo |
+| Arcane | Sanity    | None (stat-based); Sanity adds map/mission rules | Techniques vs plain attacks; Sanity adds psychology / tempo |
+| Physical | Cooldown only      | Some may require specific gear | Cooldowns           |
 
 **Cross-theme pacing:** Optional **per-ability cooldowns** and/or **per-battle caps** on the biggest effects can reinforce *situational* peaks (e.g. holding AoE for a clump) rather than one universal answer—especially relevant because **multi-AP turns** allow chaining several actions in one round. Use them when they add meaningful **“now vs later”** or **“this fight vs next”** tradeoffs, not as a blanket anti-repeat rule.
 
@@ -200,32 +203,32 @@ Abilities are tagged with a **resource theme**. Most classes use **one theme**; 
 
 ---
 
-## Morale (refined brainstorm)
+## Sanity (refined brainstorm)
 
 **Intent:** Optional **replacement or parallel layer** for martial “fuel” and/or a **global combat psychology** meter for both PCs and enemies. Supports **situational** pressure without a universal hidden timer on every map.
 
 ### Map- and mission-dependent passive decay
 
-- **Passive morale decay applies only on certain map / mission types** (e.g. cursed forest, radioactive wasteland, infested bog). Other themes have **different** hazards (environmental damage, vision, spawn pressure, etc.) so choosing among **~3 offered missions** is a real **risk/reward** choice—not just difficulty tier.
+- **Passive sanity decay applies only on certain map / mission types** (e.g. cursed forest, radioactive wasteland, infested bog). Other themes have **different** hazards (environmental damage, vision, spawn pressure, etc.) so choosing among **~3 offered missions** is a real **risk/reward** choice—not just difficulty tier.
 - **Decay magnitude stays small** relative to fight-defining events; it nudges tempo on those maps rather than dominating every turn.
 
-### Sources of morale change (priority order)
+### Sources of sanity change (priority order)
 
-1. **Largest drops:** **Mental / morale-targeting** attacks and effects (enemy abilities, fear, domination-adjacent debuffs, etc.).
+1. **Largest drops:** **Mental / sanity-targeting** attacks and effects (enemy abilities, fear, domination-adjacent debuffs, etc.).
 2. **Secondary drops:** **Taking damage**, **ally death** (and similar narrative beats you want to weight).
-3. **Small costs:** **Martial / physical abilities** pay a **minor** morale cost so techniques are a slight trade vs basic weapon swings—not the main drain.
+3. **Small costs:** **Martial / physical abilities** pay a **minor** sanity cost so techniques are a slight trade vs basic weapon swings—not the main drain.
 4. **Gains:** **Downing foes**, **finding loot** (or objective milestones), plus **active recovery** (e.g. spend AP with cooldown; ally “rally” with AP + cooldown) as discussed in earlier brainstorming.
 
-### Other knobs (carry over from prior morale discussion as needed)
+### Other knobs (carry over from prior sanity discussion as needed)
 
-- **Below half max morale:** apply a **random psychiatric / stress affliction** (Darkest Dungeon–style: fear, paranoia, abusive, selfish, etc.—exact list is content). **Not** a single fixed debuff; random choice increases variety and replay tension. **Recovery** can tie to base facilities (barracks, prayer altar), time between missions, or specific cures—define whether afflictions persist across missions or clear on return.
-- **Zero morale:** **forced retreat** to map edge and exit (see **Retreat** in [Game loop](#game-loop-scenes--flow))—tune so this follows from **big swings** (mental hits, casualties) more than from passive nibbling on decay maps. **Player-initiated retreat** uses the same extraction idea but is chosen, not automatic.
-- **Enemy morale** can be attacked as a **tactic** on builds that invest in it; bosses/elites may need **resistance floors** so the axis stays optional, not mandatory.
+- **Below half max sanity:** apply a **random psychiatric / stress affliction** (Darkest Dungeon–style: fear, paranoia, abusive, selfish, etc.—exact list is content). **Not** a single fixed debuff; random choice increases variety and replay tension. **Recovery** can tie to base facilities (barracks, prayer altar), time between missions, or specific cures—define whether afflictions persist across missions or clear on return.
+- **Zero sanity:** **forced retreat** to map edge and exit (see **Retreat** in [Game loop](#game-loop-scenes--flow))—tune so this follows from **big swings** (mental hits, casualties) more than from passive nibbling on decay maps. **Player-initiated retreat** uses the same extraction idea but is chosen, not automatic.
+- **Enemy sanity** can be attacked as a **tactic** on builds that invest in it; bosses/elites may need **resistance floors** so the axis stays optional, not mandatory.
 
 ### Design fit
 
 - **Aligns with design intent:** Different **mission types** change which constraints bind (decay maps vs clean battlefields vs economic hazards), so the “right” approach **varies by situation**.
-- **Content cost:** Each map theme needs **defined rules** (morale decay yes/no, rates, other modifiers). Mission picker UI must surface **theme consequences** clearly so choices are informed.
+- **Content cost:** Each map theme needs **defined rules** (sanity decay yes/no, rates, other modifiers). Mission picker UI must surface **theme consequences** clearly so choices are informed.
 
 ---
 
@@ -248,11 +251,11 @@ Abilities are tagged with a **resource theme**. Most classes use **one theme**; 
 | Room | Role (brainstorm) |
 |------|-------------------|
 | **Equipment stash** | Stores **items not taken** on the mission; central pool for re-equip between excursions. |
-| **Hero barracks** | **Slow** passive **HP + morale** recovery between missions for heroes resting there (or global if barracks is “idle default”). |
+| **Hero barracks** | **Slow** passive **HP + sanity** recovery between missions for heroes resting there (or global if barracks is “idle default”). |
 | **Workbench** | **Tech / gadget** line: upgrade or **combine** tech items (recipes, costs TBD). |
 | **Enchanting foyer** | **Magic** line: upgrade or **combine** magic items. |
 | **Infirmary** | **Faster HP** healing than barracks (assign hero or consume charges?). |
-| **Prayer altar** | **Faster morale** healing and/or **affliction** mitigation (pairs with random sub-50% morale ailments). |
+| **Prayer altar** | **Faster sanity** healing and/or **affliction** mitigation (pairs with random sub-50% sanity ailments). |
 | *(future)* | More rooms expand the same pattern: **assign hero → progress or buff**. |
 
 ### Recruitment
@@ -261,7 +264,7 @@ Abilities are tagged with a **resource theme**. Most classes use **one theme**; 
 
 ### UI scope (single meta screen or wizard)
 
-1. **Mission select:** Show ~3 missions with **visible hazards** (morale decay biome, other modifiers, rewards sketch).
+1. **Mission select:** Show ~3 missions with **visible hazards** (sanity decay biome, other modifiers, rewards sketch).
 2. **Squad picker:** Drag or slot heroes into **excursion** (up to mission limit); remainder available for base.
 3. **Base assignment:** For each non-excursion hero, pick **room task** (build X, use workbench, rest in infirmary, etc.)—must respect **room capacity** (one hero per station per week, or parallel queues—decide in implementation).
 4. **Loadout / stash:** Open **preparation** UI: pick **one excursion member** (or cycle roster), move items **between that hero’s inventory and stash** (and equipment slots as today). Same UX as combat inventory.
@@ -292,10 +295,64 @@ Rules of thumb: **desktop-first** layout (stacks on narrow view); **Confirm week
 
 ### Links to combat systems
 
-- **Morale** recovery and **affliction** removal at base reduce pure RNG feel if missions go badly.
+- **Sanity** recovery and **affliction** removal at base reduce pure RNG feel if missions go badly.
 - **Magic vs gadget** split matches **enchanting foyer vs workbench**—reinforces theme fantasy in the meta loop.
 
 ---
+
+## Implementation Progress
+
+This project has the *core cost + validation plumbing* in place for the “sanity” bar (arcane-style spend), plus partial meta/UI scaffolding. The campaign loop details (mission/map decay, afflictions, post-mission result modals, etc.) are still mostly conceptual/stubbed.
+
+### Completed
+
+- Ability costs are committed in one place during action execution:
+  - Hard costs: extra inventory items + `manaCrystalCost` + `techComponentsCost`
+  - Soft costs: `sanityCost` (warning-only for affordability, may go negative by design)
+  - Anchors: `Assets/Scripts/RPG/CombatItemSpend.cs`, `Assets/Scripts/CombatScene/Actions/ActionAttack.cs`, `Assets/Scripts/CombatScene/Actions/ActionSelfCast.cs`
+
+### Partially implemented
+
+- Ability affordability / AI awareness exists, but as a “soft gate” for sanity (no hard block for sanity going negative).
+  - Anchors: `Assets/Scripts/RPG/CombatActionAffordance.cs`, `Assets/Scripts/CombatScene/helpers/ActionValidator.cs`, `Assets/Scripts/CombatScene/Controllers/EnemyController.cs`
+
+- Combat UI communicates ability costs via tooltips, but there are no dedicated per-theme secondary HUD bars yet.
+  - Anchors: `Assets/Scripts/UIPanels/CombatPanelUI.cs`
+
+- Shared prep loadout UI exists (combat panel subtree cloned/reused inside Home Base), but the exact “extract a shared CharacterLoadoutView type” refactor is not fully realized.
+  - Anchors: `Assets/Scripts/UIPanels/HomeBaseLoadoutPresenter.cs`, `Assets/Scripts/UIPanels/CombatPanelUI.cs`
+
+### Not implemented yet
+
+- Map/mission-dependent sanity decay pressure, sanity-threshold affliction rolls, and “forced retreat at 0 sanity” are not hooked into the current combat pipeline.
+  - Current sanity is used for ability cost/affordance, not for a decay/affliction system.
+  - Anchors (contrast): `Assets/Scripts/RPG/CharacterSheet.cs`, `Assets/Scripts/RPG/CombatItemSpend.cs`
+
+- Full meta-game loop resolution (weekly mission selection outcomes, casualties/objectives/loot/XP modals, and then survivor merge) is not implemented yet.
+  - Anchors: `Assets/Scripts/UIPanels/HomeBaseUI.cs` (week confirm goes to combat), `Assets/Scripts/GameState/PlayerParty.cs` (weekly base-job scaffolding)
+
+### Mapping to “Implementation todos (when executing)” (status + anchors)
+
+1. `Partial` — costs exist on `AbilityData` but there is no explicit `Magic | Gadget | Physical` theme enum yet; cost fields are present as `sanityCost`, `manaCrystalCost`, `techComponentsCost`.
+   - `Assets/Scripts/RPG/Content/AbilityData.cs`
+2. `Completed` — unified cost commit path during action execution; sanity cost applied as part of action start.
+   - `Assets/Scripts/RPG/CombatItemSpend.cs`, `Assets/Scripts/CombatScene/Actions/ActionAttack.cs`
+3. `Not implemented yet` — no explicit “combat-start snapshot/lock” layer for carried consumables found; cost spend reads from the character’s live inventory when the action begins.
+   - `Assets/Scripts/RPG/CombatItemSpend.cs`
+4. `Partial` — tooltips show sanity/mana/tech costs; no dedicated stamina/second-bar HUD yet.
+   - `Assets/Scripts/UIPanels/CombatPanelUI.cs`
+5. `Partial` — enemy action selection checks affordability for execution, but sanity remains a warning-only/soft resource.
+   - `Assets/Scripts/RPG/CombatActionAffordance.cs`, `Assets/Scripts/CombatScene/Controllers/EnemyController.cs`
+6. `Not implemented yet` — sanity decay/afflictions/forced retreat at 0 sanity not wired; only `sanityCost` spend exists today.
+   - `Assets/Scripts/RPG/CharacterSheet.cs`, `Assets/Scripts/RPG/CombatItemSpend.cs`
+7. `Partial` — Home Base week/roster/slots exist with stub weekly base jobs; “weekly resolution” is not a full outcome-driven campaign loop yet.
+   - `Assets/Scripts/UIPanels/HomeBaseUI.cs`, `Assets/Scripts/GameState/PlayerParty.cs`
+8. `Partial` — loadout/stash UI reuse exists via Home Base presenter cloning combat panel subtree; a clean extracted shared presenter is still incomplete.
+   - `Assets/Scripts/UIPanels/HomeBaseLoadoutPresenter.cs`, `Assets/Scripts/UIPanels/Inventory/InventoryUIManager.cs`
+9. `Not implemented yet` — learn/teach-item flow appears stubbed.
+   - `Assets/Scripts/UIPanels/HomeBaseUI.cs`
+10. `Partial` — Home Base -> Combat scene transition exists; mission result modals, retreat/exit outcomes, and post-battle survivor merge are not implemented yet.
+   - `Assets/Scripts/UIPanels/HomeBaseUI.cs`, `Assets/Scripts/UIPanels/MainMenuUI.cs`, `Assets/Scripts/GameState/SceneNames.cs`
 
 ## Implementation todos (when executing)
 
@@ -304,11 +361,11 @@ Rules of thumb: **desktop-first** layout (stacks on narrow view); **Confirm week
 3. **Pre-battle / expedition:** Snapshot or lock carried consumables into combat pools so mid-fight inventory changes do not desync.
 4. **UI:** Show HP (red), and **per-theme or merged** secondary bars for stamina + “carried fuel” remaining for the fight.
 5. **AI:** Filter candidate actions by theme-specific affordability (mirror [`EnemyController`](Assets/Scripts/CombatScene/Controllers/EnemyController.cs) AP checks).
-6. **Morale (if adopted):** Data on **mission/map type** (passive decay rules, other hazards); hook **morale deltas** into damage pipeline, death events, mental effects, loot/kill rewards; **affliction** table + roll when crossing **50% max morale**; UI for mission select and in-combat morale.
+6. **Sanity (if adopted):** Data on **mission/map type** (passive decay rules, other hazards); hook **sanity deltas** into damage pipeline, death events, mental effects, loot/kill rewards; **affliction** table + roll when crossing **50% max sanity**; UI for mission select and in-combat sanity.
 7. **Meta loop:** Roster capacity, **base room** state (build levels, queues), **weekly** resolution (missions + assignments), **stash** vs **excursion inventory**; UI per **wireframe** (mission cards, squad slots, base assignments, preparation modal).
 8. **Shared UI module:** Refactor [`CombatPanelUI`](Assets/Scripts/UIPanels/CombatPanelUI.cs) inventory/stats into a **reusable loadout presenter** used by **weekly prep**, **pre-combat gate**, and **combat inventory tab** (stash column only where needed).
 9. **Skill-teach items:** One data/code path for teach consumables; three **cosmetic** item families (scroll / manual / blueprint) → same learn pipeline + `CharacterSheet` ability unlock.
-10. **Scenes & flow:** `Title` → `Pregame` → `Combat` ↔ **`HomeBase`** (`HomeBase.unity`); **mission result modal panels** (casualties, objectives, loot/XP) with **Continue to base**—not banners; **`PlayerParty`** roster + **join-next-combat** flag; **manual retreat** + morale retreat; post-battle state merge survivors + town roster.
+10. **Scenes & flow:** `Title` → `Pregame` → `Combat` ↔ **`HomeBase`** (`HomeBase.unity`); **mission result modal panels** (casualties, objectives, loot/XP) with **Continue to base**—not banners; **`PlayerParty`** roster + **join-next-combat** flag; **manual retreat** + sanity retreat; post-battle state merge survivors + town roster.
 
 ---
 

@@ -58,6 +58,9 @@ public partial class CharacterSheet
     /// <summary>Individual display name. If omitted at construction, defaults to a plain-English name derived from <see cref="characterClass"/>.</summary>
     public string firstName;
 
+    /// <summary>Species label for recruits and future meta (e.g. human). Defaults to human.</summary>
+    public string species = "human";
+
     /// <summary>Individual portrait (runtime reference). If null, <see cref="ResolvePortrait"/> tries <see cref="portraitResourcePath"/> then a class default Resources path.</summary>
     public Sprite portrait;
 
@@ -121,6 +124,23 @@ public partial class CharacterSheet
         return string.IsNullOrWhiteSpace(firstName)
             ? GetDefaultDisplayNameForClass(characterClass)
             : firstName.Trim();
+    }
+
+    /// <summary>Short list label for recruit offers, e.g. "Level 1 human firemage".</summary>
+    public static string RecruitListLabel(CharacterSheet sheet)
+    {
+        if (sheet == null) return "";
+        string sp = string.IsNullOrWhiteSpace(sheet.species) ? "human" : sheet.species.Trim().ToLowerInvariant();
+        string clsSlug = ClassToRecruitSlug(sheet.characterClass);
+        return $"Level {sheet.level} {sp} {clsSlug}";
+    }
+
+    static string ClassToRecruitSlug(CharacterClass cls)
+    {
+        var raw = cls.ToString();
+        if (raw.StartsWith("CLASS_", StringComparison.Ordinal))
+            raw = raw.Substring("CLASS_".Length);
+        return raw.Replace("_", "").ToLowerInvariant();
     }
 
     /// <summary>Plain-English default name when no individual name is set (matches class identity).</summary>
