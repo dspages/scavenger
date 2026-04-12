@@ -1,6 +1,7 @@
 public class WeaponData : ItemData
 {
-    public EquippableHandheld.WeaponType weaponType = EquippableHandheld.WeaponType.OneHanded;
+    public EquippableHandheld.Handedness handedness = EquippableHandheld.Handedness.OneHanded;
+    public EquippableHandheld.HandheldTag tag = EquippableHandheld.HandheldTag.None;
     public EquippableHandheld.RangeType rangeType = EquippableHandheld.RangeType.Melee;
     public DamageType damageType = DamageType.Slashing;
     public int damage = 1;
@@ -25,11 +26,12 @@ public class WeaponData : ItemData
     public override InventoryItem CreateInstance()
     {
         var w = new EquippableHandheld(
-            displayName, weaponType, damage, minRange, maxRange, actionPointCost, damageType)
+            displayName, handedness, damage, minRange, maxRange, actionPointCost, damageType)
         {
             description = description,
             weight = weight,
             rarity = rarity,
+            tag = tag,
             rangeType = rangeType,
             splashRadius = splashRadius,
             attackLungeDistance = attackLungeDistance,

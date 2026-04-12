@@ -18,11 +18,12 @@ public class CharacterSheetDerivedStatsTests
     }
 
     [Test]
-    public void GetBackstabDamageBonus_EqualsAgility()
+    public void BackstabBonus_UsesLevelAndAgility()
     {
         var s = MakeSheet();
+        s.level = 3;
         s.agility = 7;
-        Assert.AreEqual(7, s.GetBackstabDamageBonus());
+        Assert.AreEqual(3 + 7 * 2, s.BackstabBonus());
     }
 
     [Test]

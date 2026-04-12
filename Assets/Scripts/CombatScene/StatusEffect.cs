@@ -31,6 +31,7 @@ public class StatusEffect
     CharacterSheet target;
     int powerLevel;
     public int PowerLevel => powerLevel;
+    public int RoundsRemaining => roundsRemaining;
     public bool expired = false;
 
     static public bool HasEffectType(ref List<StatusEffect> check, EffectType effectType)
@@ -51,11 +52,6 @@ public class StatusEffect
                 statusEffects.RemoveAt(i);
             }
         }
-    }
-
-    public string GetIconName()
-    {
-        return null;
     }
 
     // Some status effects have varying power levels, others default to -1
@@ -82,7 +78,7 @@ public class StatusEffect
     {
         var data = ContentRegistry.GetEffectData(type);
         if (data != null)
-            movementPoints = ApplyEffectData(data, movementPoints);
+            movementPoints = ApplyEffectData(data, movementPoints, target);
 
         roundsRemaining--;
         if (roundsRemaining == 0)
@@ -127,8 +123,4 @@ public class StatusEffect
         return ap;
     }
 
-    private int ApplyEffectData(StatusEffectData data, int ap)
-    {
-        return ApplyEffectData(data, ap, target);
-    }
 }

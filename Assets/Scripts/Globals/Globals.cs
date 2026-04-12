@@ -1,8 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using System.Linq;
-
 // Global constants that may be used by multiple classes.
 public static class Globals
 {

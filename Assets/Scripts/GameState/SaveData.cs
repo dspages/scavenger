@@ -45,7 +45,7 @@ public class GameSaveData
 public class CharacterSaveData
 {
     public string firstName;
-    public string species = "human";
+    public string species = SpeciesRules.Human;
     /// <summary>Resources path for portrait; optional. Class default used when empty.</summary>
     public string portraitResourcePath;
     public CharacterSheet.CharacterClass characterClass;
@@ -118,7 +118,7 @@ public class CharacterSaveData
     {
         var sheet = new CharacterSheet(firstName, characterClass, assignDefaults: false);
         sheet.portraitResourcePath = portraitResourcePath ?? "";
-        sheet.species = string.IsNullOrEmpty(species) ? "human" : species;
+        sheet.species = SpeciesRules.NormalizeSpecies(species);
 
         sheet.level = level;
         sheet.xp = xp;
@@ -257,7 +257,7 @@ public class ItemSaveData
         if (isWeapon)
         {
             var wep = new EquippableHandheld(itemName,
-                EquippableHandheld.WeaponType.OneHanded, damage, minRange, maxRange,
+                EquippableHandheld.Handedness.OneHanded, damage, minRange, maxRange,
                 actionPointCost, DamageType.Slashing)
             {
                 description = description,

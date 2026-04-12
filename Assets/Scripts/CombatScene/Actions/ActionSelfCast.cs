@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class ActionSelfCast : Action
@@ -12,6 +11,31 @@ public class ActionSelfCast : Action
     {
         abilityData = data;
         BASE_ACTION_COST = data.actionPointCost;
+    }
+
+    /// <summary>Backing ability for inventory costs and affordance (mirrors <see cref="ActionAttack.GetAbilityDataForCosts"/>).</summary>
+    public AbilityData GetAbilityDataForCosts() => abilityData;
+
+    public override void BeginAction(Tile targetTile)
+    {
+        if (combatController == null) return;
+        if (IsCoolingDown())
+        {
+            characterSheet?.DisplayPopup("Cooling down");
+            return;
+        }
+        if (characterSheet != null && characterSheet.currentActionPoints < BASE_ACTION_COST)
+        {
+            characterSheet.DisplayPopup("Not enough AP");
+            return;
+        }
+        Tile current = combatController.GetCurrentTile();
+        if (targetTile == null || current == null || targetTile != current)
+        {
+            characterSheet?.DisplayPopup("Select your character's tile to cast.");
+            return;
+        }
+        base.BeginAction(targetTile);
     }
 
     public override string DisplayName()
@@ -27,11 +51,7 @@ public class ActionSelfCast : Action
         return desc;
     }
 
-    public override bool IsCoolingDown()
-    {
-        return abilityData != null && characterSheet != null &&
-               characterSheet.GetAbilityCooldownRemaining(abilityData.id) > 0;
-    }
+    public override bool IsCoolingDown() => abilityData != null && IsAbilityOnCooldown(abilityData.id);
 
     virtual protected void ApplySelfStatusEffect()
     {
@@ -45,24 +65,45 @@ public class ActionSelfCast : Action
     void Update()
     {
         if (!inProgress) return;
+        if (currentPhase == Phase.CASTING) return;
         if (currentPhase == Phase.NONE)
         {
             currentPhase = Phase.CASTING;
-
-            if (abilityData != null)
-            {
-                if (!CombatItemSpend.TrySpendAbilityHardCosts(abilityData, characterSheet))
-                {
-                    EndAction();
-                    return;
-                }
-                CombatItemSpend.ApplySanityCost(abilityData, characterSheet);
-                if (abilityData.cooldown > 0 && !string.IsNullOrEmpty(abilityData.id))
-                    characterSheet.PutAbilityOnCooldown(abilityData.id, abilityData.cooldown);
-            }
-
-            ApplySelfStatusEffect();
-            StartCoroutine(EndActionAfterDelay(1.0f));
+            StartCoroutine(SelfCastSequence());
         }
+    }
+
+    private IEnumerator SelfCastSequence()
+    {
+        // Spend resources and apply cooldown once at cast start.
+        if (abilityData != null)
+        {
+            if (!CombatItemSpend.TrySpendAbilityHardCosts(abilityData, characterSheet))
+            {
+                EndAction();
+                yield break;
+            }
+            CombatItemSpend.ApplySanityCost(abilityData, characterSheet);
+            if (abilityData.cooldown > 0 && !string.IsNullOrEmpty(abilityData.id))
+                characterSheet.PutAbilityOnCooldown(abilityData.id, abilityData.cooldown);
+        }
+
+        // Cosmetic self-cast lunge: small bob along facing direction.
+        Vector3 originalPos = transform.position;
+        Vector3 dir = transform.up.sqrMagnitude > 0.0001f ? transform.up.normalized : Vector3.up;
+        float lungeDist = 0.2f;
+        Vector3 lungePos = originalPos + dir * lungeDist;
+
+        float forwardTime = 0.25f;
+        float backTime = 0.2f;
+
+        yield return VfxHelpers.MoveWithEase(transform, originalPos, lungePos, forwardTime, VfxHelpers.EaseInQuad, true, dir);
+
+        ApplySelfStatusEffect();
+        actionPointCost = BASE_ACTION_COST;
+
+        yield return VfxHelpers.MoveWithEase(transform, lungePos, originalPos, backTime, VfxHelpers.EaseOutQuad, true, dir);
+
+        yield return EndActionAfterDelay(0.1f);
     }
 }

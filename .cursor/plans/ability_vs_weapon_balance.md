@@ -333,13 +333,13 @@ This project has the *core cost + validation plumbing* in place for the “sanit
 
 ### Mapping to “Implementation todos (when executing)” (status + anchors)
 
-1. `Partial` — costs exist on `AbilityData` but there is no explicit `Magic | Gadget | Physical` theme enum yet; cost fields are present as `sanityCost`, `manaCrystalCost`, `techComponentsCost`.
-   - `Assets/Scripts/RPG/Content/AbilityData.cs`
+1. `Completed` — explicit `Magic | Gadget | Physical` theme enum now exists on `AbilityData`, and catalog abilities are tagged (e.g., `Fireball` = `Magic`). Cost fields remain `sanityCost`, `manaCrystalCost`, `techComponentsCost`.
+   - `Assets/Scripts/RPG/Content/AbilityData.cs`, `Assets/Scripts/RPG/Content/AbilityCatalog.cs`
 2. `Completed` — unified cost commit path during action execution; sanity cost applied as part of action start.
    - `Assets/Scripts/RPG/CombatItemSpend.cs`, `Assets/Scripts/CombatScene/Actions/ActionAttack.cs`
 3. `Not implemented yet` — no explicit “combat-start snapshot/lock” layer for carried consumables found; cost spend reads from the character’s live inventory when the action begins.
    - `Assets/Scripts/RPG/CombatItemSpend.cs`
-4. `Partial` — tooltips show sanity/mana/tech costs; no dedicated stamina/second-bar HUD yet.
+4. `Partial` — tooltips show theme + sanity/mana/tech costs; no dedicated stamina/second-bar HUD yet.
    - `Assets/Scripts/UIPanels/CombatPanelUI.cs`
 5. `Partial` — enemy action selection checks affordability for execution, but sanity remains a warning-only/soft resource.
    - `Assets/Scripts/RPG/CombatActionAffordance.cs`, `Assets/Scripts/CombatScene/Controllers/EnemyController.cs`

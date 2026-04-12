@@ -1,7 +1,5 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 public class PlayerController : CombatController
 {
@@ -16,11 +14,6 @@ public class PlayerController : CombatController
     }
 
     override public bool IsPC()
-    {
-        return true;
-    }
-
-    override protected bool DoesGUI()
     {
         return true;
     }
@@ -172,50 +165,6 @@ public class PlayerController : CombatController
         }
     }
 
-    private void ShowGroundTargetPreview(Tile targetTile, ActionGroundAttack groundAttack)
-    {
-        int radius = groundAttack != null ? groundAttack.radius : 0;
-        AttackPreviewHelper.DrawCompositeAttackPreview(pathRenderer, targetTile, GetCurrentTile(), radius);
-    }
-
-    // Draw movement path to the launch tile (closest tile from which the action can hit the target),
-    // then draw a projectile/spell line from the launch tile to the target. If ground attack, also show AoE.
-    private void ShowCompositeAttackPreview(Tile targetTile, int aoeRadius)
-    {
-        AttackPreviewHelper.DrawCompositeAttackPreview(pathRenderer, targetTile, GetCurrentTile(), aoeRadius);
-    }
-
-    private void HighlightAoETiles(Tile center, int radius)
-    {
-        // Use the same radius calculation as ActionGroundAttack
-        Queue<Tile> queue = new Queue<Tile>();
-        HashSet<Tile> visited = new HashSet<Tile>();
-        Dictionary<Tile, int> depth = new Dictionary<Tile, int>();
-        
-        queue.Enqueue(center);
-        visited.Add(center);
-        depth[center] = 0;
-
-        while (queue.Count > 0)
-        {
-            Tile t = queue.Dequeue();
-            int d = depth[t];
-            
-            // Mark this tile as affected (visual indication)
-            t.isHovered = true; // Reuse existing hover visual for now
-            
-            if (d >= radius) continue;
-            
-            foreach (Tile n in t.Neighbors())
-            {
-                if (n == null || visited.Contains(n)) continue;
-                visited.Add(n);
-                depth[n] = d + 1;
-                queue.Enqueue(n);
-            }
-        }
-    }
-
     private void CheckMouse()
     {
         Tile mouseTile = GetMouseTile();
@@ -244,6 +193,12 @@ public class PlayerController : CombatController
                 ClearMouseHover();
                 if (clickedTile.occupant != null)
                 {
+                    if (selectedAction != null && selectedAction.TARGET_TYPE == Action.TargetType.SELF_ONLY
+                        && clickedTile.occupant == this)
+                    {
+                        selectedAction.BeginAction(clickedTile);
+                        return;
+                    }
                     // If an enemy is clicked, run selected action (melee/ranged/etc.)
                     selectedAction.BeginAction(clickedTile);
                     return;
@@ -297,6 +252,15 @@ public class PlayerController : CombatController
         if (!hoverTile.searchHardCostsAffordable)
         {
             driver.ApplyDisabled();
+            return;
+        }
+
+        if (act.TARGET_TYPE == Action.TargetType.SELF_ONLY)
+        {
+            if (hoverTile == GetCurrentTile())
+                driver.ApplyGround();
+            else
+                driver.ApplyDisabled();
             return;
         }
 

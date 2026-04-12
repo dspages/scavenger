@@ -8,12 +8,6 @@ public partial class CharacterSheet
         return strength / 2;
     }
 
-    /// <summary>Backstab bonus damage; currently equals agility (rebalance in one place).</summary>
-    public int GetBackstabDamageBonus()
-    {
-        return agility;
-    }
-
     public int GetTotalGearDodgeBonus()
     {
         int total = 0;

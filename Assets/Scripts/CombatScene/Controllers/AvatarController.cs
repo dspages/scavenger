@@ -134,8 +134,8 @@ public class AvatarController : MonoBehaviour
                 ground.ConfigureFromAbility(ability);
                 break;
             case AbilityData.Archetype.SelfCast:
-                var self = go.AddComponent<ActionSelfCast>();
-                self.ConfigureFromAbility(ability);
+                if (go.GetComponent<ActionSelfCast>() == null)
+                    go.AddComponent<ActionSelfCast>();
                 break;
             case AbilityData.Archetype.AllyBuff:
                 var buff = go.AddComponent<ActionAllyBuff>();

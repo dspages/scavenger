@@ -4,19 +4,19 @@ public class EquipmentTests
 {
     private EquippableHandheld MakeSword(string name = "Sword")
     {
-        return new EquippableHandheld(name, EquippableHandheld.WeaponType.OneHanded, 5, 10,
+        return new EquippableHandheld(name, EquippableHandheld.Handedness.OneHanded, 5, 10,
             DamageType.Slashing);
     }
 
     private EquippableHandheld MakeShield(string name = "Shield")
     {
-        return new EquippableHandheld(name, EquippableHandheld.WeaponType.Shield, 1, 8,
+        return new EquippableHandheld(name, EquippableHandheld.Handedness.Shield, 1, 8,
             DamageType.Bludgeoning);
     }
 
     private EquippableHandheld MakeTwoHander(string name = "Pike")
     {
-        return new EquippableHandheld(name, EquippableHandheld.WeaponType.TwoHanded, 10, 15,
+        return new EquippableHandheld(name, EquippableHandheld.Handedness.TwoHanded, 10, 15,
             DamageType.Piercing);
     }
 
@@ -164,6 +164,28 @@ public class EquipmentTests
         var armor = new EquippableItem("Plate", EquippableItem.EquipmentSlot.Armor);
 
         Assert.IsTrue(equipment.IsSlotCompatible(EquippableItem.EquipmentSlot.Armor, armor));
+    }
+
+    [Test]
+    public void IsSlotCompatible_ExtraHandRequiresLightTag()
+    {
+        var equipment = new Equipment();
+        var sword = MakeSword();
+        Assert.IsFalse(equipment.IsSlotCompatible(EquippableItem.EquipmentSlot.ExtraHand1, sword));
+
+        var dagger = MakeSword("Light Dagger");
+        dagger.tag = EquippableHandheld.HandheldTag.Light;
+        Assert.IsTrue(equipment.IsSlotCompatible(EquippableItem.EquipmentSlot.ExtraHand1, dagger));
+    }
+
+    [Test]
+    public void TryEquipToSlot_SecondShieldInOtherHand_Fails()
+    {
+        var equipment = new Equipment();
+        var s1 = MakeShield("Shield A");
+        var s2 = MakeShield("Shield B");
+        Assert.IsTrue(equipment.TryEquipToSlot(s1, EquippableItem.EquipmentSlot.RightHand, out _));
+        Assert.IsFalse(equipment.TryEquipToSlot(s2, EquippableItem.EquipmentSlot.LeftHand, out _));
     }
 
     [Test]

@@ -14,7 +14,7 @@ public class EquipmentProxy : Equipment
         // Capture currently equipped in that slot
         previous = character.GetEquippedItem(slot);
         // Equip
-        return character.TryEquipItem(item);
+        return character.TryEquipItemToSlot(item, slot);
     }
 
     public override EquippableItem Unequip(EquippableItem.EquipmentSlot slot)
@@ -27,6 +27,12 @@ public class EquipmentProxy : Equipment
     {
         if (character == null) return null;
         return character.GetEquippedItem(slot);
+    }
+
+    public override bool IsSlotCompatible(EquippableItem.EquipmentSlot slot, InventoryItem item)
+    {
+        if (character == null) return false;
+        return character.IsSlotCompatible(slot, item);
     }
 }
 

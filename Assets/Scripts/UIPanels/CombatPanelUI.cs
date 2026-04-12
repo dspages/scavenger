@@ -575,7 +575,7 @@ public class CombatPanelUI : MonoBehaviour
             if (!drag.Context.isDragging || drag.Context.payload == null) return;
             if (!(drag.Context.payload is EquippableItem eq)) { drag.EndDrag(); return; }
 
-            if (eq.slot == equipmentSlot || (eq is EquippableHandheld && (equipmentSlot == EquippableItem.EquipmentSlot.LeftHand || equipmentSlot == EquippableItem.EquipmentSlot.RightHand)))
+            if (currentCharacter != null && currentCharacter.IsSlotCompatible(equipmentSlot, eq))
             {
                 // From inventory -> equipment
                 if (drag.Context.sourceSlot.slotType == SlotType.Inventory)
@@ -1011,6 +1011,14 @@ public class CombatPanelUI : MonoBehaviour
             actions.Add(($"{ln}:LeftHand", ln, left.itemName));
         }
 
+        foreach (var handSlot in currentCharacter.GetExtraHandSlots())
+        {
+            var extra = currentCharacter.GetEquippedItem(handSlot) as EquippableHandheld;
+            if (extra == null) continue;
+            string en = string.IsNullOrEmpty(extra.associatedActionClass) ? nameof(ActionMeleeAttack) : extra.associatedActionClass;
+            actions.Add(($"{en}:{handSlot}", en, extra.itemName));
+        }
+
         // Legacy special actions (type-based)
         foreach (var t in currentCharacter.GetKnownSpecialActionTypes())
         {
@@ -1152,12 +1160,9 @@ public class CombatPanelUI : MonoBehaviour
         }
 
         // If this corresponds to a hand-held item action, combine item description with action cost
-        bool isRight = key != null && key.EndsWith(":RightHand");
-        bool isLeft = key != null && key.EndsWith(":LeftHand");
-        if ((isRight || isLeft) && currentCharacter != null)
+        if (CombatItemSpend.TryGetHandSlotFromActionKey(key, out var handSlot) && currentCharacter != null)
         {
-            var slot = isRight ? EquippableItem.EquipmentSlot.RightHand : EquippableItem.EquipmentSlot.LeftHand;
-            var item = currentCharacter.GetEquippedItem(slot) as EquippableHandheld;
+            var item = currentCharacter.GetEquippedItem(handSlot) as EquippableHandheld;
             if (item != null)
             {
                 string tooltip = "";
@@ -1188,6 +1193,7 @@ public class CombatPanelUI : MonoBehaviour
             var sb = new System.Text.StringBuilder(128);
             if (action != null && action.BASE_ACTION_COST > 0)
                 sb.Append($"Action Cost: {action.BASE_ACTION_COST} AP\n");
+            sb.Append($"Theme: {abilityForCosts.theme}\n");
 
             if (abilityForCosts.sanityCost > 0)
                 sb.Append($"Sanity: {currentCharacter.currentSanity} (spend {abilityForCosts.sanityCost})\n");
@@ -1208,7 +1214,9 @@ public class CombatPanelUI : MonoBehaviour
                 {
                     if (c.amount <= 0 || string.IsNullOrEmpty(c.registryId)) continue;
                     int have = CombatItemSpend.CountStackInInventory(currentCharacter, c.registryId);
-                    sb.Append($"{c.registryId}: {have} (spend {c.amount})\n");
+                    var item = ContentRegistry.GetItemData(c.registryId);
+                    string itemLabel = item != null ? item.displayName : c.registryId;
+                    sb.Append($"{itemLabel}: {have} (spend {c.amount})\n");
                 }
             }
             if (abilityForCosts.cooldown > 0)

@@ -36,7 +36,7 @@ public static class AttackResolver
 
         string weaponName = context.weapon?.itemName;
         string logMessage = FormatHitMessage(attacker.firstName, defender.firstName, weaponName,
-            damage, dmgType, hitResult.critical, killed);
+            damage, dmgType, hitResult.critical, killed, context.backstabCount);
 
         return new AttackResult
         {
@@ -51,6 +51,7 @@ public static class AttackResolver
             defenderName = defender.firstName,
             weaponName = weaponName,
             logMessage = logMessage,
+            backstabCount = context.backstabCount,
         };
     }
 
@@ -93,6 +94,9 @@ public static class AttackResolver
         if (attacker.HasStatusEffect(StatusEffect.EffectType.RAGE))
             damage *= 1.5f;
 
+        // Backstab bonus: attacker's BackstabBonus() per qualifying condition (hidden / behind)
+        damage += context.backstabCount * attacker.BackstabBonus();
+
         // Random variance: base ± 1
         damage += Random.Range(-1, 2);
 
@@ -108,9 +112,16 @@ public static class AttackResolver
     }
 
     private static string FormatHitMessage(string attackerName, string defenderName,
-        string weaponName, int damage, DamageType dmgType, bool crit, bool killed)
+        string weaponName, int damage, DamageType dmgType, bool crit, bool killed, int backstabCount = 0)
     {
-        string verb = crit ? "critically strikes" : "strikes";
+        string verb;
+        if (backstabCount > 0)
+            verb = "backstabs";
+        else if (crit)
+            verb = "critically strikes";
+        else
+            verb = "strikes";
+
         string dmgTypeName = dmgType.ToString();
         string msg;
 

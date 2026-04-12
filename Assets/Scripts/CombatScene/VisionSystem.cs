@@ -101,7 +101,6 @@ public class VisionSystem : MonoBehaviour
             // Set initial tile state directly instead of creating overlays
             tile.SetFogged(true);
             tile.SetIlluminated(false);
-            Debug.Log($"VisionSystem: Added tile ({tile.x}, {tile.y}) to system");
         }
     }
 
@@ -172,14 +171,6 @@ public class VisionSystem : MonoBehaviour
         
         // Rebuild shared enemy knowledge
         RebuildKnownPCsToEnemies();
-        
-        // Debug: Count how many tiles are visible
-        int visibleTileCount = 0;
-        foreach (var kvp in tileVisibility)
-        {
-            if (kvp.Value) visibleTileCount++;
-        }
-        
         }
         finally
         {

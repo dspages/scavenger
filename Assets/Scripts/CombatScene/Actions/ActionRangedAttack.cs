@@ -30,11 +30,7 @@ public class ActionRangedAttack : ActionAttack
 
     public override AbilityData GetAbilityDataForCosts() => abilityData;
 
-    public override bool IsCoolingDown()
-    {
-        return abilityData != null && characterSheet != null &&
-               characterSheet.GetAbilityCooldownRemaining(abilityData.id) > 0;
-    }
+    public override bool IsCoolingDown() => abilityData != null && IsAbilityOnCooldown(abilityData.id);
 
     public override TargetType TARGET_TYPE { get { return TargetType.RANGED; } }
     public override bool RequiresLineOfSight { get { return true; } }
@@ -56,11 +52,7 @@ public class ActionRangedAttack : ActionAttack
             yield break;
         }
 
-        if (!ConsumeAttackResources())
-        {
-            EndAction();
-            yield break;
-        }
+        ConsumeAttackResources();
 
         Vector3 originalPos = transform.position;
         Vector3 targetPos = targetTile.transform.position;
@@ -138,10 +130,7 @@ public class ActionRangedAttack : ActionAttack
 
         if (popupTarget != null)
         {
-            if (result.hit)
-                PopupTextController.CreateDamagePopup(result.damageDealt, result.critical, result.damageType, popupTarget);
-            else
-                PopupTextController.CreateMissPopup(popupTarget);
+            ShowAttackPopup(result, popupTarget);
         }
     }
 

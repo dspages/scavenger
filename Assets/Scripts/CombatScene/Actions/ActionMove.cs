@@ -6,14 +6,7 @@ public class ActionMove : Action
 {
     private float moveSpeed = 4;
     protected Stack<Tile> path = new Stack<Tile>();
-    protected int reserveTiles = 0;
 
-    override protected void Start()
-    {
-        base.Start();
-    }
-
-    // Update is called once per frame
     virtual protected void Update()
     {
         if (!inProgress)

@@ -35,7 +35,7 @@ public class ContentRegistryTests
 
         var weapon = (EquippableHandheld)item;
         Assert.AreEqual(5, weapon.damage);
-        Assert.AreEqual(EquippableHandheld.WeaponType.OneHanded, weapon.weaponType);
+        Assert.AreEqual(EquippableHandheld.Handedness.OneHanded, weapon.handedness);
         Assert.AreEqual(DamageType.Slashing, weapon.damageType);
     }
 

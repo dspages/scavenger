@@ -85,11 +85,7 @@ public abstract class ActionAttack : ActionMove
             yield break;
         }
 
-        if (!ConsumeAttackResources())
-        {
-            EndAction();
-            yield break;
-        }
+        ConsumeAttackResources();
 
         Vector3 originalPos = transform.position;
         Vector3 targetPos = targetTile.transform.position;
@@ -141,28 +137,9 @@ public abstract class ActionAttack : ActionMove
         yield break;
     }
 
-    // Snap the character's rotation to the nearest cardinal direction (N, S, E, W)
     protected void SnapToCardinalDirection()
     {
-        Vector3 currentUp = transform.up;
-        Vector3 snapDirection;
-        
-        // Determine which cardinal direction is closest
-        float absX = Mathf.Abs(currentUp.x);
-        float absY = Mathf.Abs(currentUp.y);
-        
-        if (absX > absY)
-        {
-            // More horizontal than vertical - snap to East or West
-            snapDirection = currentUp.x > 0 ? Vector3.right : Vector3.left;
-        }
-        else
-        {
-            // More vertical than horizontal - snap to North or South
-            snapDirection = currentUp.y > 0 ? Vector3.up : Vector3.down;
-        }
-        
-        transform.up = snapDirection;
+        transform.up = GetNearestCardinal(transform.up);
     }
 
     // Whether this attack spawns a visible projectile (ranged/ground spells will override)
@@ -178,10 +155,6 @@ public abstract class ActionAttack : ActionMove
         yield return VfxHelpers.ProjectileStreak(from, to, 12f);
         yield break;
     }
-
-    // Simple easing helpers
-    protected float EaseInQuad(float x) { return x * x; }
-    protected float EaseOutQuad(float x) { return 1f - (1f - x) * (1f - x); }
 
     // Called after attack resolution to let targets face this attacker
     protected virtual void OnTargetsAttacked(Tile targetTile)
@@ -223,10 +196,8 @@ public abstract class ActionAttack : ActionMove
         string key = combatController.GetSelectedActionKey();
         // Only treat as weapon-driven if the selection explicitly references a hand
         if (string.IsNullOrEmpty(key)) return null;
-        EquippableItem.EquipmentSlot slot;
-        if (key.EndsWith(":LeftHand")) slot = EquippableItem.EquipmentSlot.LeftHand;
-        else if (key.EndsWith(":RightHand")) slot = EquippableItem.EquipmentSlot.RightHand;
-        else return null; // Spells or non-hand actions should not inherit weapon visuals
+        if (!CombatItemSpend.TryGetHandSlotFromActionKey(key, out var slot))
+            return null; // Spells or non-hand actions should not inherit weapon visuals
         return characterSheet.GetEquippedItem(slot) as EquippableHandheld;
     }
 
@@ -240,7 +211,12 @@ public abstract class ActionAttack : ActionMove
     public virtual AbilityData GetAbilityDataForCosts() => null;
 
     /// <summary>Spend ammo / consumable weapon stacks before damage resolution.</summary>
-    protected virtual bool ConsumeAttackResources()
+    /// <remarks>
+    /// Validation for affordability is performed earlier (BFS / affordance and IsValid). Reaching this
+    /// method without sufficient resources indicates a logic error, so it fails loudly instead of
+    /// returning a bool.
+    /// </remarks>
+    protected virtual void ConsumeAttackResources()
     {
         var ability = GetAbilityDataForCosts();
         var sheet = combatController.characterSheet;
@@ -254,7 +230,7 @@ public abstract class ActionAttack : ActionMove
             if (affordExpected)
                 CombatItemSpend.LogEditorInvariantFailed("TrySpendAbilityHardCosts failed after CanAffordFullAttackAction returned true.");
 #endif
-            return false;
+            throw new System.InvalidOperationException("ConsumeAttackResources reached without ability hard costs available.");
         }
         if (!CombatItemSpend.TryCommitWeaponAttackCosts(combatController, GetEquippedWeaponForThisAttack(), ability))
         {
@@ -262,16 +238,23 @@ public abstract class ActionAttack : ActionMove
             if (affordExpected)
                 CombatItemSpend.LogEditorInvariantFailed("TryCommitWeaponAttackCosts failed after CanAffordFullAttackAction returned true.");
 #endif
-            return false;
+            throw new System.InvalidOperationException("ConsumeAttackResources reached without weapon attack resources available.");
         }
         CombatItemSpend.ApplySanityCost(ability, sheet);
         if (ability != null && ability.cooldown > 0 && !string.IsNullOrEmpty(ability.id))
             sheet.PutAbilityOnCooldown(ability.id, ability.cooldown);
-        return true;
     }
 
     // Abstract method for subclasses to implement their specific attack logic
     protected abstract void PerformAttack(Tile targetTile);
+
+    protected void ShowAttackPopup(AttackResult result, Transform target)
+    {
+        if (result.hit)
+            PopupTextController.CreateDamagePopup(result.damageDealt, result.critical, result.damageType, target);
+        else
+            PopupTextController.CreateMissPopup(target);
+    }
 
     // Virtual method for attack duration (can be overridden)
     protected virtual float GetAttackDuration()

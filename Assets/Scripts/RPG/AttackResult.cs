@@ -11,4 +11,6 @@ public struct AttackResult
     public string defenderName;
     public string weaponName;
     public string logMessage;
+    /// <summary>How many backstab conditions applied (0–2).</summary>
+    public int backstabCount;
 }

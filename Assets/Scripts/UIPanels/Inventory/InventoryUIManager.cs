@@ -10,6 +10,7 @@ public class InventoryUIManager
 {
     private readonly VisualElement inventoryPanel;
     private readonly VisualElement itemGrid;
+    private readonly VisualElement equipmentGrid;
     private readonly Dictionary<EquippableItem.EquipmentSlot, VisualElement> slotToElement = new Dictionary<EquippableItem.EquipmentSlot, VisualElement>();
     private readonly List<VisualElement> inventorySlots = new List<VisualElement>();
 
@@ -35,6 +36,7 @@ public class InventoryUIManager
     {
         inventoryPanel = panel;
         itemGrid = grid;
+        equipmentGrid = equipmentParent?.Q<VisualElement>(className: "equipment-grid");
         this.inventorySlotNamePrefix = string.IsNullOrEmpty(inventorySlotNamePrefix) ? "InventorySlot" : inventorySlotNamePrefix;
         if (equipmentParent != null)
         {
@@ -48,10 +50,7 @@ public class InventoryUIManager
 
         foreach (var kvp in slotToElement)
         {
-            var eqSlot = kvp.Key;
-            var el = kvp.Value;
-            UiToolkitScavengerCursors.RegisterDraggableItemSlotPointerHover(el,
-                () => currentCharacter != null && currentCharacter.GetEquippedItem(eqSlot) != null);
+            RegisterEquipmentSlotCursor(kvp.Key, kvp.Value);
         }
     }
 
@@ -59,6 +58,7 @@ public class InventoryUIManager
     {
         currentCharacter = character;
         boundInventory = null;
+        ConfigureSpeciesSlotLayout();
     }
 
     /// <summary>Bind grid to a raw inventory (e.g. party stash). Clears character binding for backpack display.</summary>
@@ -125,7 +125,10 @@ public class InventoryUIManager
     {
         if (currentCharacter == null) return;
         foreach (var kvp in slotToElement)
+        {
+            if (kvp.Value.style.display == DisplayStyle.None) continue;
             RefreshEquipmentSlot(kvp.Value, kvp.Key, attachTooltipHandlers);
+        }
     }
 
     private void RefreshEquipmentSlot(VisualElement slot, EquippableItem.EquipmentSlot equipmentSlot, 
@@ -138,7 +141,9 @@ public class InventoryUIManager
         var equippedItem = currentCharacter.GetEquippedItem(equipmentSlot);
         
         CreateItemVisual(slot, equippedItem, includeStackCount: false);
-        
+        if (equippedItem == null)
+            slot.tooltip = $"{EquippableItem.GetEquipmentSlotDisplayName(equipmentSlot)} (empty)";
+
         // Block world clicks using the slot only; children use PickingMode.Ignore so the slot owns cursor + tooltips.
         UIClickBlocker.MakeElementBlockClicks(slot);
     }
@@ -173,10 +178,10 @@ public class InventoryUIManager
         // Add weapon type indicator for weapons
         if (item is EquippableHandheld weapon)
         {
-            var typeLabel = new Label(GetWeaponTypeLabel(weapon.weaponType, weapon.rangeType));
+            var typeLabel = new Label(GetWeaponTypeLabel(weapon.handedness, weapon.rangeType));
             typeLabel.AddToClassList("weapon-type-label");
             typeLabel.style.fontSize = 8;
-            typeLabel.style.color = GetWeaponTypeColor(weapon.weaponType);
+            typeLabel.style.color = GetWeaponTypeColor(weapon.handedness);
             typeLabel.tooltip = item.GetDisplayName();
             slot.Add(typeLabel);
         }
@@ -262,7 +267,10 @@ public class InventoryUIManager
     public void ForEachEquipSlot(System.Action<VisualElement, EquippableItem.EquipmentSlot> action)
     {
         foreach (var kvp in slotToElement)
+        {
+            if (kvp.Value.style.display == DisplayStyle.None) continue;
             action(kvp.Value, kvp.Key);
+        }
     }
 
     public List<VisualElement> GetInventorySlots()
@@ -289,13 +297,84 @@ public class InventoryUIManager
         return false;
     }
 
-    private string GetWeaponTypeLabel(EquippableHandheld.WeaponType weaponType, EquippableHandheld.RangeType rangeType)
+    private void RegisterEquipmentSlotCursor(EquippableItem.EquipmentSlot eqSlot, VisualElement el)
     {
-        string typeLabel = weaponType switch
+        if (el == null) return;
+        UiToolkitScavengerCursors.RegisterDraggableItemSlotPointerHover(el,
+            () => currentCharacter != null && currentCharacter.GetEquippedItem(eqSlot) != null);
+    }
+
+    private void ConfigureSpeciesSlotLayout()
+    {
+        foreach (var (slot, _) in SlotNames)
         {
-            EquippableHandheld.WeaponType.OneHanded => "1H",
-            EquippableHandheld.WeaponType.TwoHanded => "2H",
-            EquippableHandheld.WeaponType.Shield => "S",
+            if (!slotToElement.TryGetValue(slot, out var el) || el == null) continue;
+            bool allowed = currentCharacter == null || currentCharacter.CanUseEquipmentSlot(slot);
+            el.style.display = allowed ? DisplayStyle.Flex : DisplayStyle.None;
+        }
+
+        // Clean up any prior dynamic extra-hand slots.
+        RemoveDynamicSlot(EquippableItem.EquipmentSlot.ExtraHand1);
+        RemoveDynamicSlot(EquippableItem.EquipmentSlot.ExtraHand2);
+
+        if (currentCharacter == null || equipmentGrid == null) return;
+        var extraSlots = currentCharacter.GetExtraHandSlots();
+        for (int i = 0; i < extraSlots.Count; i++)
+        {
+            EnsureDynamicExtraHandSlot(extraSlots[i], i, extraSlots.Count);
+        }
+    }
+
+    private void RemoveDynamicSlot(EquippableItem.EquipmentSlot slot)
+    {
+        if (!slotToElement.TryGetValue(slot, out var old) || old == null) return;
+        old.RemoveFromHierarchy();
+        slotToElement.Remove(slot);
+    }
+
+    private void EnsureDynamicExtraHandSlot(EquippableItem.EquipmentSlot slot, int index, int total)
+    {
+        if (slotToElement.ContainsKey(slot)) return;
+        var template = slotToElement.TryGetValue(EquippableItem.EquipmentSlot.RightHand, out var right)
+            ? right
+            : null;
+        float tw = template != null ? template.resolvedStyle.width : 48f;
+        float th = template != null ? template.resolvedStyle.height : 48f;
+        // resolvedStyle is often NaN until after layout; NaN width/height makes the slot invisible.
+        const float fallbackHandSlot = 48f;
+        if (float.IsNaN(tw) || tw <= 0f) tw = fallbackHandSlot;
+        if (float.IsNaN(th) || th <= 0f) th = fallbackHandSlot;
+        var el = new VisualElement();
+        el.name = slot == EquippableItem.EquipmentSlot.ExtraHand1 ? "PrehensileTailSlot" : "ExtraHand2Slot";
+        el.AddToClassList("equipment-slot");
+        el.AddToClassList("ui-blocker");
+        el.style.position = Position.Absolute;
+        el.style.width = tw;
+        el.style.height = th;
+
+        // Place extras below the regular hand row.
+        float top = 252f;
+        if (total <= 1)
+        {
+            el.style.left = 66f;
+        }
+        else
+        {
+            el.style.left = index == 0 ? 36f : 96f;
+        }
+        el.style.top = top;
+        equipmentGrid.Add(el);
+        slotToElement[slot] = el;
+        RegisterEquipmentSlotCursor(slot, el);
+    }
+
+    private string GetWeaponTypeLabel(EquippableHandheld.Handedness handedness, EquippableHandheld.RangeType rangeType)
+    {
+        string typeLabel = handedness switch
+        {
+            EquippableHandheld.Handedness.OneHanded => "1H",
+            EquippableHandheld.Handedness.TwoHanded => "2H",
+            EquippableHandheld.Handedness.Shield => "S",
             _ => ""
         };
         
@@ -309,13 +388,13 @@ public class InventoryUIManager
         return $"{typeLabel}/{rangeLabel}";
     }
 
-    private Color GetWeaponTypeColor(EquippableHandheld.WeaponType weaponType)
+    private Color GetWeaponTypeColor(EquippableHandheld.Handedness handedness)
     {
-        return weaponType switch
+        return handedness switch
         {
-            EquippableHandheld.WeaponType.OneHanded => Color.cyan,
-            EquippableHandheld.WeaponType.TwoHanded => Color.red,
-            EquippableHandheld.WeaponType.Shield => Color.green,
+            EquippableHandheld.Handedness.OneHanded => Color.cyan,
+            EquippableHandheld.Handedness.TwoHanded => Color.red,
+            EquippableHandheld.Handedness.Shield => Color.green,
             _ => Color.white
         };
     }

@@ -1,14 +1,21 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
 public class EquippableHandheld : EquippableItem
 {
-    public enum WeaponType
+    public enum Handedness
     {
         OneHanded,    // Can be wielded in either hand, allows dual-wielding
         TwoHanded,    // Requires both hands, blocks other hand slots
         Shield        // Defensive item for off-hand
+    }
+
+    /// <summary>Primary category for data-driven rules (extra hand, skills). One value per item for now.</summary>
+    public enum HandheldTag
+    {
+        None,
+        Light,
+        Metallic,
+        Firearm,
+        Bow,
+        Polearm,
     }
 
     public enum RangeType
@@ -17,7 +24,8 @@ public class EquippableHandheld : EquippableItem
         Ranged        // Distance attacks
     }
 
-    public WeaponType weaponType = WeaponType.OneHanded;
+    public Handedness handedness = Handedness.OneHanded;
+    public HandheldTag tag = HandheldTag.None;
     public RangeType rangeType = RangeType.Melee;
     public int damage = 1;
     public int minRange = 1;
@@ -31,13 +39,12 @@ public class EquippableHandheld : EquippableItem
     
     // ActionDefinition removed; keep legacy fields only
     // Name of the Action component this item maps to when used (defaults to melee attack)
-    // Examples: "ActionMeleeAttack", "ActionGroundAttack", "ActionStealth" (for scrolls)
+    // Examples: "ActionMeleeAttack", "ActionGroundAttack", "ActionSelfCast" (for scrolls)
     public string associatedActionClass = "ActionMeleeAttack";
     
     // Illumination support for items that provide light (e.g., torches)
     public bool providesIllumination = false;
     public int illuminationRange = 0;
-    
     
     // Ammo/consumable properties
     public bool isConsumable = false;        // Reduces stack when used
@@ -45,19 +52,19 @@ public class EquippableHandheld : EquippableItem
     /// <summary>Registry id of required ammo item; must match <see cref="ItemData.id"/> (e.g. musket_ball).</summary>
     public string ammoType = "";
 
-    public EquippableHandheld(string name, WeaponType type, int dmg, int actionPointCost, DamageType dmgType)
+    public EquippableHandheld(string name, Handedness handedness, int dmg, int actionPointCost, DamageType dmgType)
         : base(name, EquippableItem.EquipmentSlot.RightHand) // Default slot, will be overridden when equipped
     {
-        weaponType = type;
+        this.handedness = handedness;
         damage = dmg;
         this.actionPointCost = actionPointCost;
         damageType = dmgType;
     }
 
-    public EquippableHandheld(string name, WeaponType type, int dmg, int minRange, int maxRange, int actionPointCost, DamageType dmgType)
+    public EquippableHandheld(string name, Handedness handedness, int dmg, int minRange, int maxRange, int actionPointCost, DamageType dmgType)
         : base(name, EquippableItem.EquipmentSlot.RightHand) // Default slot, will be overridden when equipped
     {
-        weaponType = type;
+        this.handedness = handedness;
         damage = dmg;
         this.minRange = minRange;
         this.maxRange = maxRange;
@@ -80,17 +87,17 @@ public class EquippableHandheld : EquippableItem
         if (other == null) return true;
         
         // Two-handed weapons block everything
-        if (weaponType == WeaponType.TwoHanded || other.weaponType == WeaponType.TwoHanded)
+        if (handedness == Handedness.TwoHanded || other.handedness == Handedness.TwoHanded)
             return false;
             
         // Shields can be paired with one-handed weapons (any range type)
-        if (weaponType == WeaponType.Shield && other.weaponType == WeaponType.OneHanded)
+        if (handedness == Handedness.Shield && other.handedness == Handedness.OneHanded)
             return true;
-        if (weaponType == WeaponType.OneHanded && other.weaponType == WeaponType.Shield)
+        if (handedness == Handedness.OneHanded && other.handedness == Handedness.Shield)
             return true;
             
         // One-handed weapons can be dual-wielded (any range type)
-        if (weaponType == WeaponType.OneHanded && other.weaponType == WeaponType.OneHanded)
+        if (handedness == Handedness.OneHanded && other.handedness == Handedness.OneHanded)
             return true;
             
         return false;
@@ -99,11 +106,11 @@ public class EquippableHandheld : EquippableItem
     /// Get a display name that includes weapon type, range type, and range requirements
     public override string GetDisplayName()
     {
-        string typeLabel = weaponType switch
+        string typeLabel = handedness switch
         {
-            WeaponType.OneHanded => "1H",
-            WeaponType.TwoHanded => "2H", 
-            WeaponType.Shield => "Shield",
+            Handedness.OneHanded => "1H",
+            Handedness.TwoHanded => "2H",
+            Handedness.Shield => "Shield",
             _ => ""
         };
         

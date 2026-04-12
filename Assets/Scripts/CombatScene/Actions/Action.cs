@@ -8,8 +8,6 @@ public class Action : MonoBehaviour
     {
         NONE,
         MOVING,
-        INTERRUPTING,
-        BEING_INTERRUPTED,
         ATTACKING,
         RESOLVING_ATTACK,
         CASTING,
@@ -46,7 +44,6 @@ public class Action : MonoBehaviour
 
     protected IEnumerator EndActionAfterDelay(float fDuration)
     {
-        currentPhase = Phase.NONE;
         yield return new WaitForSeconds(fDuration);
         EndAction();
         yield break;
@@ -59,6 +56,12 @@ public class Action : MonoBehaviour
 
     virtual public bool IsCoolingDown() {
         return false;
+    }
+
+    protected bool IsAbilityOnCooldown(string abilityId)
+    {
+        return !string.IsNullOrEmpty(abilityId) && characterSheet != null
+            && characterSheet.GetAbilityCooldownRemaining(abilityId) > 0;
     }
 
     // Start is called before the first frame update

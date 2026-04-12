@@ -10,12 +10,6 @@ public static class RecruitPool
 {
     public const int OffersPerWeek = 2;
 
-    private static readonly string[] RecruitFirstNames =
-    {
-        "Asha", "Bren", "Cole", "Dara", "Eli", "Fen", "Greta", "Hal", "Iris", "Jace",
-        "Kira", "Lorne", "Mira", "Nox", "Orin", "Pike", "Quinn", "Rhea", "Soren", "Tess",
-    };
-
     public static int LastRefreshedWeek { get; private set; }
 
     public static List<CharacterSheet> OfferedRecruits { get; } = new List<CharacterSheet>();
@@ -94,10 +88,26 @@ public static class RecruitPool
     static CharacterSheet GenerateRecruit()
     {
         var cls = PickRandomClass();
-        var name = RecruitFirstNames[Globals.rng.Next(RecruitFirstNames.Length)];
+        var name = RecruitNamePool.PickRandomFirstName();
         var sheet = new CharacterSheet(name, cls);
-        sheet.species = "human";
+        sheet.species = PickRecruitSpecies();
+        SpeciesRules.ApplyRecruitStatModifiers(sheet);
+        CharacterSetup.ApplyStartingPlayerStatVariance(sheet);
         return sheet;
+    }
+
+    static string PickRecruitSpecies()
+    {
+        // V0 distribution: 75% human, 25% random non-human.
+        if (Globals.rng.NextDouble() < 0.75d)
+            return SpeciesRules.Human;
+        return PickRandomNonHumanSpecies();
+    }
+
+    static string PickRandomNonHumanSpecies()
+    {
+        // V0 list (expand later).
+        return SpeciesRules.Langurii;
     }
 
     static CharacterSheet.CharacterClass PickRandomClass()

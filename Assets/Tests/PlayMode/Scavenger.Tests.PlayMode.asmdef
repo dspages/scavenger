@@ -1,0 +1,18 @@
+{
+    "name": "Scavenger.Tests.PlayMode",
+    "rootNamespace": "",
+    "references": [
+        "Scavenger.Game"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "includePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

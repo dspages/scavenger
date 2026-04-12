@@ -9,7 +9,7 @@ public class AttackResolverTests
 
     private EquippableHandheld MakeSword(int damage = 5)
     {
-        return new EquippableHandheld("Cutlass", EquippableHandheld.WeaponType.OneHanded,
+        return new EquippableHandheld("Cutlass", EquippableHandheld.Handedness.OneHanded,
             damage, 1, 1, 10, DamageType.Slashing);
     }
 
@@ -179,7 +179,7 @@ public class AttackResolverTests
     {
         var attacker = MakeSheet();
         var defender = MakeSheet();
-        var weapon = new EquippableHandheld("Mace", EquippableHandheld.WeaponType.OneHanded,
+        var weapon = new EquippableHandheld("Mace", EquippableHandheld.Handedness.OneHanded,
             5, 1, 1, 10, DamageType.Bludgeoning);
         var context = AttackContext.Melee(weapon);
 
@@ -328,7 +328,7 @@ public class AttackResolverTests
         var attacker = MakeSheet("Archer");
         var defender = MakeSheet("Target");
         var musket = new EquippableHandheld("Long Musket",
-            EquippableHandheld.WeaponType.TwoHanded, 12, 2, 10, 30,
+            EquippableHandheld.Handedness.TwoHanded, 12, 2, 10, 30,
             DamageType.Bludgeoning);
         var context = AttackContext.Ranged(musket, distance: 2);
 
@@ -355,7 +355,7 @@ public class AttackResolverTests
         var attacker = MakeSheet("Archer");
         var defender = MakeSheet("Target");
         var musket = new EquippableHandheld("Musket",
-            EquippableHandheld.WeaponType.TwoHanded, 8, 2, 10, 30,
+            EquippableHandheld.Handedness.TwoHanded, 8, 2, 10, 30,
             DamageType.Piercing);
         var context = AttackContext.Ranged(musket, distance: 3);
 

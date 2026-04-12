@@ -34,7 +34,8 @@ public class TileTooltipProvider : TooltipProvider
         
         if (tile.occupant != null)
         {
-            text += $"\nOccupant: {tile.occupant.characterSheet.firstName}";
+            var sheet = tile.occupant.characterSheet;
+            text += $"\nOccupant: {sheet.firstName}";
             if (tile.occupant.IsPC())
             {
                 text += " (Player)";
@@ -43,6 +44,18 @@ public class TileTooltipProvider : TooltipProvider
             {
                 text += " (Enemy)";
                 text += GetHitChanceText(tile.occupant);
+            }
+
+            // Append visible status effects for the occupant so players can see active buffs/debuffs.
+            if (sheet != null && sheet.statusEffects != null && sheet.statusEffects.Count > 0)
+            {
+                text += "\nStatus Effects:";
+                foreach (var effect in sheet.statusEffects)
+                {
+                    var data = ContentRegistry.GetEffectData(effect.type);
+                    string name = data != null ? data.displayName : effect.type.ToString();
+                    text += $"\n - {name}";
+                }
             }
         }
         

@@ -5,8 +5,10 @@ public struct AttackContext
     public AbilityData abilityData;
     public bool isAoE;
     public bool isMelee;
+    /// <summary>0 = normal hit, 1 = one backstab condition, 2 = both (hidden + behind). Each count adds bonus damage.</summary>
+    public int backstabCount;
 
-    public static AttackContext Melee(EquippableHandheld weapon, AbilityData ability = null)
+    public static AttackContext Melee(EquippableHandheld weapon, AbilityData ability = null, int backstabCount = 0)
     {
         return new AttackContext
         {
@@ -15,6 +17,7 @@ public struct AttackContext
             abilityData = ability,
             isAoE = false,
             isMelee = true,
+            backstabCount = backstabCount,
         };
     }
 

@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.Linq;
@@ -29,12 +28,6 @@ public class EnemyController : CombatController
     override public bool IsEnemy()
     {
         return true;
-    }
-
-    override protected bool ContainsAlly(Tile tile)
-    {
-        if (tile == null || tile.occupant == null) return false;
-        return tile.occupant.IsEnemy();
     }
 
     void Update()
@@ -104,6 +97,14 @@ public class EnemyController : CombatController
             Add($"{cls}:LeftHand", cls, WEIGHT_HAND);
         }
 
+        foreach (var handSlot in SpeciesRules.GetExtraHandSlots(characterSheet.species))
+        {
+            var extra = characterSheet.GetEquippedItem(handSlot) as EquippableHandheld;
+            if (extra == null) continue;
+            string cls = string.IsNullOrEmpty(extra.associatedActionClass) ? nameof(ActionMeleeAttack) : extra.associatedActionClass;
+            Add($"{cls}:{handSlot}", cls, WEIGHT_HAND);
+        }
+
         // Legacy special actions (type-based)
         foreach (var t in characterSheet.GetKnownSpecialActionTypes())
         {
@@ -139,6 +140,9 @@ public class EnemyController : CombatController
     private Tile GetTarget(Action action, Tile fromTile, bool stopAtFirst)
     {
         if (fromTile == null) return null;
+
+        if (action is ActionSelfCast)
+            return fromTile;
 
         if (action is ActionAttack atk)
         {
@@ -231,6 +235,13 @@ public class EnemyController : CombatController
     private bool TryExecuteAction(CandidateAction cand)
     {
         SelectActionSilent(cand.key, cand.className);
+
+        if (cand.action is ActionSelfCast)
+        {
+            if (!IsValid(cand.action, false)) return false;
+            cand.action.BeginAction(GetCurrentTile());
+            return true;
+        }
 
         if (cand.action is ActionAttack atk &&
             !CombatActionAffordance.CanAffordFullAttackAction(this, GetEquippedWeaponForSelectedAction(), atk.GetAbilityDataForCosts()))

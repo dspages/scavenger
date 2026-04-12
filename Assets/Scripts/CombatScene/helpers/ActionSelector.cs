@@ -103,15 +103,20 @@ public class ActionSelector
 
         bool dependsOnRight = !string.IsNullOrEmpty(selectedActionKey) && selectedActionKey.EndsWith(":RightHand");
         bool dependsOnLeft = !string.IsNullOrEmpty(selectedActionKey) && selectedActionKey.EndsWith(":LeftHand");
+        bool dependsOnExtra1 = !string.IsNullOrEmpty(selectedActionKey) && selectedActionKey.EndsWith(":ExtraHand1");
+        bool dependsOnExtra2 = !string.IsNullOrEmpty(selectedActionKey) && selectedActionKey.EndsWith(":ExtraHand2");
         bool isPunchSelected = string.IsNullOrEmpty(selectedActionKey) || selectedActionKey == nameof(ActionMeleeAttack);
 
         var right = sheet.GetEquippedItem(EquippableItem.EquipmentSlot.RightHand) as EquippableHandheld;
         var left = sheet.GetEquippedItem(EquippableItem.EquipmentSlot.LeftHand) as EquippableHandheld;
+        var extra1 = sheet.GetEquippedItem(EquippableItem.EquipmentSlot.ExtraHand1) as EquippableHandheld;
+        var extra2 = sheet.GetEquippedItem(EquippableItem.EquipmentSlot.ExtraHand2) as EquippableHandheld;
 
         bool needsReselection = false;
-        if ((dependsOnRight && right == null) || (dependsOnLeft && left == null))
+        if ((dependsOnRight && right == null) || (dependsOnLeft && left == null)
+            || (dependsOnExtra1 && extra1 == null) || (dependsOnExtra2 && extra2 == null))
             needsReselection = true;
-        else if (isPunchSelected && (right != null || left != null))
+        else if (isPunchSelected && (right != null || left != null || extra1 != null || extra2 != null))
             needsReselection = true;
         else if (string.IsNullOrEmpty(selectedActionKey))
             needsReselection = true;
@@ -127,6 +132,16 @@ public class ActionSelector
             {
                 string cls = string.IsNullOrEmpty(left.associatedActionClass) ? nameof(ActionMeleeAttack) : left.associatedActionClass;
                 Select($"{cls}:LeftHand", cls);
+            }
+            else if (extra1 != null)
+            {
+                string cls = string.IsNullOrEmpty(extra1.associatedActionClass) ? nameof(ActionMeleeAttack) : extra1.associatedActionClass;
+                Select($"{cls}:ExtraHand1", cls);
+            }
+            else if (extra2 != null)
+            {
+                string cls = string.IsNullOrEmpty(extra2.associatedActionClass) ? nameof(ActionMeleeAttack) : extra2.associatedActionClass;
+                Select($"{cls}:ExtraHand2", cls);
             }
             else
             {
@@ -197,10 +212,8 @@ public class ActionSelector
     {
         if (string.IsNullOrEmpty(selectedActionKey)) return null;
 
-        if (selectedActionKey.EndsWith(":RightHand"))
-            return sheet.GetEquippedItem(EquippableItem.EquipmentSlot.RightHand) as EquippableHandheld;
-        if (selectedActionKey.EndsWith(":LeftHand"))
-            return sheet.GetEquippedItem(EquippableItem.EquipmentSlot.LeftHand) as EquippableHandheld;
+        if (CombatItemSpend.TryGetHandSlotFromActionKey(selectedActionKey, out var slot))
+            return sheet.GetEquippedItem(slot) as EquippableHandheld;
 
         return sheet.GetEquippedItem(EquippableItem.EquipmentSlot.RightHand) as EquippableHandheld;
     }

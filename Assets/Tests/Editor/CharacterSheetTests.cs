@@ -440,7 +440,7 @@ public class CharacterSheetTests
     public void TryEquipItem_Weapon_EquipsToRightHand()
     {
         var sheet = MakeSheet();
-        var sword = new EquippableHandheld("Sword", EquippableHandheld.WeaponType.OneHanded, 5, 10,
+        var sword = new EquippableHandheld("Sword", EquippableHandheld.Handedness.OneHanded, 5, 10,
             DamageType.Slashing);
 
         Assert.IsTrue(sheet.TryEquipItem(sword));
@@ -467,7 +467,7 @@ public class CharacterSheetTests
     public void TryEquipItemToSlot_LeftHand_Works()
     {
         var sheet = MakeSheet();
-        var dagger = new EquippableHandheld("Dagger", EquippableHandheld.WeaponType.OneHanded, 2, 4,
+        var dagger = new EquippableHandheld("Dagger", EquippableHandheld.Handedness.OneHanded, 2, 4,
             DamageType.Piercing);
 
         Assert.IsTrue(sheet.TryEquipItemToSlot(dagger, EquippableItem.EquipmentSlot.LeftHand));
@@ -481,7 +481,7 @@ public class CharacterSheetTests
     public void UnequipItem_ReturnsItem()
     {
         var sheet = MakeSheet();
-        var sword = new EquippableHandheld("Sword", EquippableHandheld.WeaponType.OneHanded, 5, 10,
+        var sword = new EquippableHandheld("Sword", EquippableHandheld.Handedness.OneHanded, 5, 10,
             DamageType.Slashing);
         sheet.TryEquipItem(sword);
 
@@ -498,12 +498,39 @@ public class CharacterSheetTests
         var sheet = MakeSheet();
         bool fired = false;
         sheet.OnEquipmentChanged += () => fired = true;
-        var sword = new EquippableHandheld("Sword", EquippableHandheld.WeaponType.OneHanded, 5, 10,
+        var sword = new EquippableHandheld("Sword", EquippableHandheld.Handedness.OneHanded, 5, 10,
             DamageType.Slashing);
 
         sheet.TryEquipItem(sword);
 
         Assert.IsTrue(fired);
+    }
+
+    [Test]
+    public void Langurii_CannotUseBootsSlot()
+    {
+        var sheet = MakeSheet();
+        sheet.species = SpeciesRules.Langurii;
+        var boots = new EquippableItem("Boots", EquippableItem.EquipmentSlot.Boots);
+
+        Assert.IsFalse(sheet.IsSlotCompatible(EquippableItem.EquipmentSlot.Boots, boots));
+        Assert.IsFalse(sheet.TryEquipItem(boots));
+    }
+
+    [Test]
+    public void Langurii_ExtraHand_RequiresLightTaggedHandheld()
+    {
+        var sheet = MakeSheet();
+        sheet.species = SpeciesRules.Langurii;
+        var torch = new EquippableHandheld("Torch", EquippableHandheld.Handedness.OneHanded, 1, 10, DamageType.Fire)
+        {
+            tag = EquippableHandheld.HandheldTag.Light
+        };
+        var cutlass = new EquippableHandheld("Cutlass", EquippableHandheld.Handedness.OneHanded, 5, 10, DamageType.Slashing);
+
+        Assert.IsTrue(sheet.IsSlotCompatible(EquippableItem.EquipmentSlot.ExtraHand1, torch));
+        Assert.IsTrue(sheet.TryEquipItemToSlot(torch, EquippableItem.EquipmentSlot.ExtraHand1));
+        Assert.IsFalse(sheet.IsSlotCompatible(EquippableItem.EquipmentSlot.ExtraHand1, cutlass));
     }
 
     // --- Special Actions ---
@@ -513,22 +540,22 @@ public class CharacterSheetTests
     {
         var sheet = MakeSheet();
 
-        sheet.LearnSpecialAction<ActionBulwark>();
+        sheet.LearnSpecialAction<ActionSelfCast>();
 
         var known = new System.Collections.Generic.List<System.Type>(sheet.GetKnownSpecialActionTypes());
-        Assert.IsTrue(known.Contains(typeof(ActionBulwark)));
+        Assert.IsTrue(known.Contains(typeof(ActionSelfCast)));
     }
 
     [Test]
     public void LearnSpecialAction_NoDuplicates()
     {
         var sheet = MakeSheet();
-        sheet.LearnSpecialAction<ActionBulwark>();
-        sheet.LearnSpecialAction<ActionBulwark>();
+        sheet.LearnSpecialAction<ActionSelfCast>();
+        sheet.LearnSpecialAction<ActionSelfCast>();
 
         var known = new System.Collections.Generic.List<System.Type>(sheet.GetKnownSpecialActionTypes());
         int count = 0;
-        foreach (var t in known) { if (t == typeof(ActionBulwark)) count++; }
+        foreach (var t in known) { if (t == typeof(ActionSelfCast)) count++; }
         Assert.AreEqual(1, count);
     }
 

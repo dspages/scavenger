@@ -217,6 +217,7 @@ public sealed class HomeBaseLoadoutPresenter
         }
 
         RefreshCharacterPanels();
+        RegisterEquipmentDragBeginHandlers();
     }
 
     private void OnCharacterInvChanged()
@@ -228,6 +229,7 @@ public sealed class HomeBaseLoadoutPresenter
     private void OnCharacterEquipChanged()
     {
         charInventoryUI?.RefreshEquipmentUI(AttachTooltipHandlers);
+        RegisterEquipmentDragBeginHandlers();
         RefreshStatsBlock();
     }
 

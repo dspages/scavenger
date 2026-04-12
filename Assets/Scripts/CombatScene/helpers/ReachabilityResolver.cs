@@ -14,18 +14,31 @@ public static class ReachabilityResolver
     {
         var selectableTiles = new List<Tile>();
 
+        if (selectedAction != null && selectedAction.TARGET_TYPE == Action.TargetType.SELF_ONLY)
+        {
+            manager.ResetTileSearch();
+            origin.searchDistance = 0;
+            origin.searchWasVisited = true;
+            bool canAffordAp = selectedAction.BASE_ACTION_COST <= actionPoints;
+            origin.searchCanBeChosen = canAffordAp;
+            origin.searchHardCostsAffordable = true;
+            selectableTiles.Add(origin);
+            return selectableTiles;
+        }
+
         origin.searchDistance = 0;
         origin.searchWasVisited = true;
         selectableTiles.Add(origin);
 
         var losCache = new Dictionary<(Tile, Tile), bool>();
+        TurnManager turnManager = UnityEngine.Object.FindFirstObjectByType<TurnManager>(FindObjectsInactive.Exclude);
 
         var reachable = PathfindingSystem.FindReachableTiles(
             origin, actionPoints, manager,
             (from, to) => to.occupant == null,
             (tile) => FindAttackTargetsFromTile(
                 tile, selectedAction, actionPoints, manager, isPC,
-                isVisibleByActor, selectableTiles, losCache));
+                isVisibleByActor, selectableTiles, losCache, turnManager));
 
         bool canChooseMove = selectedAction == null ||
             selectedAction.TARGET_TYPE != Action.TargetType.GROUND_TILE;
@@ -50,7 +63,8 @@ public static class ReachabilityResolver
         bool isPC,
         Func<Tile, bool> isVisibleByActor,
         List<Tile> selectableTiles,
-        Dictionary<(Tile, Tile), bool> losCache)
+        Dictionary<(Tile, Tile), bool> losCache,
+        TurnManager tm)
     {
         if (selectedAction == null) return;
 
@@ -60,7 +74,6 @@ public static class ReachabilityResolver
 
         if (selectedAction is ActionAttack atk)
         {
-            TurnManager tm = UnityEngine.Object.FindFirstObjectByType<TurnManager>(FindObjectsInactive.Exclude);
             List<CombatController> potentialTargets = new List<CombatController>();
             HashSet<Tile> tilesInRange = new HashSet<Tile>();
 

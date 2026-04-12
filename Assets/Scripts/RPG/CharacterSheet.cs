@@ -9,7 +9,7 @@ public partial class CharacterSheet
     public enum CharacterClass
     {
         // Martial characters
-        CLASS_SOLDIER, // Combat specialist that learns bonus maneuvers. Skill trees can focus on dual-wielding, polearms, bows, etc.
+        CLASS_SOLDIER, // Combat specialist that learns bonus maneuvers. Skill trees can focus on dual-wielding, polearms, bows, or shields.
         CLASS_GUNSLINGER, // Firearm specialist
         CLASS_PALADIN, // Divinely powered tank abilities that synergize with heavy armor and heavy weapons
         CLASS_EARTHMAGE, // Focus on buff spells that multiply your melee combat ability, or spells that manipulate the terrain in your favor
@@ -58,8 +58,8 @@ public partial class CharacterSheet
     /// <summary>Individual display name. If omitted at construction, defaults to a plain-English name derived from <see cref="characterClass"/>.</summary>
     public string firstName;
 
-    /// <summary>Species label for recruits and future meta (e.g. human). Defaults to human.</summary>
-    public string species = "human";
+    /// <summary>Species label for recruits and future meta (e.g. human, langurii). Defaults to human.</summary>
+    public string species = SpeciesRules.Human;
 
     /// <summary>Individual portrait (runtime reference). If null, <see cref="ResolvePortrait"/> tries <see cref="portraitResourcePath"/> then a class default Resources path.</summary>
     public Sprite portrait;
@@ -118,6 +118,11 @@ public partial class CharacterSheet
         }
     }
 
+    public int BackstabBonus()
+    {
+        return level + (agility * 2);
+    }
+
     /// <summary>Individual or class-default name for UI lists.</summary>
     public string DisplayName()
     {
@@ -126,13 +131,17 @@ public partial class CharacterSheet
             : firstName.Trim();
     }
 
-    /// <summary>Short list label for recruit offers, e.g. "Level 1 human firemage".</summary>
+    /// <summary>Short list label for recruit offers, e.g. "Morgan — Level 1 human firemage".</summary>
     public static string RecruitListLabel(CharacterSheet sheet)
     {
         if (sheet == null) return "";
-        string sp = string.IsNullOrWhiteSpace(sheet.species) ? "human" : sheet.species.Trim().ToLowerInvariant();
+        string sp = SpeciesRules.NormalizeSpecies(sheet.species);
         string clsSlug = ClassToRecruitSlug(sheet.characterClass);
-        return $"Level {sheet.level} {sp} {clsSlug}";
+        string detail = $"Level {sheet.level} {sp} {clsSlug}";
+        string name = sheet.DisplayName();
+        if (string.IsNullOrWhiteSpace(name))
+            return detail;
+        return $"{name} — {detail}";
     }
 
     static string ClassToRecruitSlug(CharacterClass cls)
@@ -253,13 +262,22 @@ public partial class CharacterSheet
 
     public void DisplayPopupDuringCombat(string toDisplay)
     {
-
+        DisplayPopup(toDisplay);
     }
 
     public int GetVisionRange()
     {
         // Later, maybe equipment and status (blinded, eagle-eyed, etc.) can change this.
         return perception * 2;
+    }
+
+    /// <summary>Sets HP, mana, and sanity to current derived maximums (e.g. after base stat changes).</summary>
+    public void FillResourcePoolsToMax()
+    {
+        currentHealth = MaxHealth();
+        currentMana = MaxMana();
+        currentSanity = MaxSanity();
+        OnHealthChanged?.Invoke();
     }
 
     public void ReceiveHealing(int amount)
@@ -279,11 +297,20 @@ public partial class CharacterSheet
 
     public void RegisterStatusEffect(StatusEffect effect)
     {
-        // Add the status effect to the list
+        // Dedup: if the same type already exists, keep whichever has longer remaining duration.
+        for (int i = 0; i < statusEffects.Count; i++)
+        {
+            if (statusEffects[i].type == effect.type)
+            {
+                if (effect.RoundsRemaining > statusEffects[i].RoundsRemaining)
+                {
+                    statusEffects[i] = effect;
+                }
+                // Either way, the type is now represented; do not add a second copy.
+                return;
+            }
+        }
         statusEffects.Add(effect);
-        
-        // Note: Vision system will be notified through the CombatController
-        // when the status effect is applied
     }
     
     public void RemoveStatusEffect(StatusEffect.EffectType effectType, bool notify = true)
@@ -397,13 +424,38 @@ public partial class CharacterSheet
         }
     }
 
-    // Equipment pass-throughs (Equipment is the authority on rules)
+    // Equipment pass-throughs (Equipment is the authority on generic rules; species gates live here)
     public EquippableItem GetEquippedItem(EquippableItem.EquipmentSlot slot) => equipment.Get(slot);
     public IReadOnlyDictionary<EquippableItem.EquipmentSlot, EquippableItem> GetEquippedItems() => equipment.GetAll();
-    public bool IsSlotCompatible(EquippableItem.EquipmentSlot slot, InventoryItem item) => equipment.IsSlotCompatible(slot, item);
-    public bool TryEquipItem(EquippableItem item) => item != null && equipment.TryEquip(item);
-    public bool TryEquipItemToSlot(EquippableItem item, EquippableItem.EquipmentSlot slot) => item != null && equipment.TryEquipToSlot(item, slot, out _);
+    public bool IsSlotCompatible(EquippableItem.EquipmentSlot slot, InventoryItem item)
+    {
+        if (item is not EquippableItem eq) return false;
+        if (!SpeciesRules.CanEquipItemInSlot(species, slot, eq)) return false;
+        return equipment.IsSlotCompatible(slot, item);
+    }
+    public bool TryEquipItem(EquippableItem item)
+    {
+        if (item == null) return false;
+        if (!SpeciesRules.CanEquipItemInSlot(species, item.slot, item)) return false;
+        return equipment.TryEquip(item);
+    }
+    public bool TryEquipItemToSlot(EquippableItem item, EquippableItem.EquipmentSlot slot)
+    {
+        if (item == null) return false;
+        if (!SpeciesRules.CanEquipItemInSlot(species, slot, item)) return false;
+        return equipment.TryEquipToSlot(item, slot, out _);
+    }
     public EquippableItem UnequipItem(EquippableItem.EquipmentSlot slot) => equipment.Unequip(slot);
+
+    public bool CanUseEquipmentSlot(EquippableItem.EquipmentSlot slot)
+    {
+        return SpeciesRules.CanUseEquipmentSlot(species, slot);
+    }
+
+    public IReadOnlyList<EquippableItem.EquipmentSlot> GetExtraHandSlots()
+    {
+        return SpeciesRules.GetExtraHandSlots(species);
+    }
 
     // Special actions knowledge and attachment
     public void LearnSpecialAction<T>() where T : Action

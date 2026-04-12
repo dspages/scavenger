@@ -1003,7 +1003,8 @@ public class HomeBaseUI : MonoBehaviour
                 var label = new Label(sheet != null ? CharacterSheet.RecruitListLabel(sheet) : "—");
                 label.style.flexGrow = 1;
                 label.style.marginRight = 8;
-                label.style.minWidth = 160;
+                label.style.minWidth = 240;
+                label.style.whiteSpace = WhiteSpace.Normal;
                 label.style.color = new Color(0.95f, 0.96f, 0.98f);
                 row.Add(label);
 

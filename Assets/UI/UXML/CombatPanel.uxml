@@ -23,8 +23,10 @@
                         <ui:VisualElement name="SanityMissing" class="sanity-bar__missing" />
                         <ui:Label name="SanityLabel" text="SAN 0/0" class="sanity-bar__label" />
                     </ui:VisualElement>
-                    <ui:VisualElement name="ActionBar" class="action-bar ui-blocker" style="flex-direction: row; align-items: center;">
-                    </ui:VisualElement>
+                    <ui:ScrollView name="ActionBarScroll" class="action-bar-scroll ui-blocker" mode="Horizontal" style="flex-grow: 1; flex-shrink: 1; min-width: 0; max-height: 56px;" horizontal-scroller-visibility="Auto" vertical-scroller-visibility="Hidden">
+                        <ui:VisualElement name="ActionBar" class="action-bar ui-blocker" style="flex-direction: row; flex-wrap: nowrap; align-items: center;">
+                        </ui:VisualElement>
+                    </ui:ScrollView>
                 </ui:VisualElement>
                 <ui:VisualElement class="hud-right ui-blocker" style="flex-direction: row; align-items: center; margin-left: auto; height: 100%; padding-right: 16px;">
                     <ui:Button text="Inventory" display-tooltip-when-elided="true" name="ToggleInventoryButton" class="secondary" style="height: 40px; width: 110px; margin-right: 8px;" />
@@ -47,7 +49,7 @@
                         <ui:VisualElement class="inventory-content ui-blocker" style="flex-direction: row; flex-shrink: 0; width: 100%; min-height: 280px; margin-top: 4px;">
                             <ui:VisualElement name="EquipmentPanel" class="ui-blocker" style="width: 200px; margin-right: 12px; flex-shrink: 0;">
                                 <ui:Label text="Equipment" class="section-title" />
-                                <ui:VisualElement class="equipment-grid ui-blocker" style="position: relative; min-height: 200px;">
+                                <ui:VisualElement class="equipment-grid ui-blocker" style="position: relative; min-height: 300px;">
                                     <ui:VisualElement name="HelmetSlot" class="equipment-slot ui-blocker" style="position: absolute; left: 74px; top: 8px; width: 48px; height: 48px;" />
                                     <ui:VisualElement name="GogglesSlot" class="equipment-slot ui-blocker" style="position: absolute; left: 20px; top: 28px; width: 40px; height: 40px;" />
                                     <ui:VisualElement name="ArmorSlot" class="equipment-slot ui-blocker" style="position: absolute; left: 66px; top: 56px; width: 48px; height: 48px;" />

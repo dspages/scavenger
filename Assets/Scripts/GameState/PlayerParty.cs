@@ -26,10 +26,15 @@ public static class PlayerParty
 
     public static void Reset()
     {
-        partyMembers = new List<CharacterSheet> { };
-        partyMembers.Add(new CharacterSheet(null, CharacterSheet.CharacterClass.CLASS_ROGUE));
-        partyMembers.Add(new CharacterSheet(null, CharacterSheet.CharacterClass.CLASS_SOLDIER));
-        partyMembers.Add(new CharacterSheet(null, CharacterSheet.CharacterClass.CLASS_FIREMAGE));
+        string[] starterNames = RecruitNamePool.PickDistinctFirstNames(3);
+        partyMembers = new List<CharacterSheet>
+        {
+            new CharacterSheet(starterNames[0], CharacterSheet.CharacterClass.CLASS_ROGUE),
+            new CharacterSheet(starterNames[1], CharacterSheet.CharacterClass.CLASS_SOLDIER),
+            new CharacterSheet(starterNames[2], CharacterSheet.CharacterClass.CLASS_FIREMAGE),
+        };
+        foreach (var member in partyMembers)
+            CharacterSetup.ApplyStartingPlayerStatVariance(member);
         sharedStash = new Inventory();
         weeklyBaseJobByPartyIndex = new Dictionary<int, WeeklyBaseJobKind>();
         EnsureSlotsArray();

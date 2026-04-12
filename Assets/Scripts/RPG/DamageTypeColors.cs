@@ -10,7 +10,7 @@ public static class DamageTypeColors
             case DamageType.Piercing:
             case DamageType.Slashing:
             case DamageType.Bludgeoning:
-                return new Color(0.9f, 0.9f, 0.92f); // physical - steel grey
+                return new Color(0.72f, 0.1f, 0.14f); // physical - blood red
             case DamageType.Fire:
                 return new Color(0.98f, 0.45f, 0.09f); // fire - orange
             case DamageType.Cold:

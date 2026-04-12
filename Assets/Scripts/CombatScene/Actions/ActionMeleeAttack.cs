@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class ActionMeleeAttack : ActionAttack
@@ -35,11 +33,7 @@ public class ActionMeleeAttack : ActionAttack
 
     public override AbilityData GetAbilityDataForCosts() => abilityData;
 
-    public override bool IsCoolingDown()
-    {
-        return abilityData != null && characterSheet != null &&
-               characterSheet.GetAbilityCooldownRemaining(abilityData.id) > 0;
-    }
+    public override bool IsCoolingDown() => abilityData != null && IsAbilityOnCooldown(abilityData.id);
 
     protected override void PerformAttack(Tile targetTile)
     {
@@ -48,8 +42,14 @@ public class ActionMeleeAttack : ActionAttack
 
         if (enemy?.characterSheet != null)
         {
+            int backstabCount = CountBackstabConditions(enemy, targetTile);
             var weapon = GetEquippedWeaponForThisAttack();
-            var context = AttackContext.Melee(weapon, abilityData);
+            var context = AttackContext.Melee(weapon, abilityData, backstabCount);
+
+            // Hidden backstab consumes the status effect before resolution
+            if (backstabCount > 0 && characterSheet.HasStatusEffect(StatusEffect.EffectType.HIDDEN))
+                characterSheet.RemoveStatusEffect(StatusEffect.EffectType.HIDDEN);
+
             var result = AttackResolver.Resolve(characterSheet, enemy.characterSheet, context);
             CombatLog.Log(result.logMessage, result.hit ? result.damageType : (DamageType?)null);
 
@@ -60,12 +60,35 @@ public class ActionMeleeAttack : ActionAttack
         }
     }
 
-    private void ShowAttackPopup(AttackResult result, Transform target)
+    /// <summary>
+    /// Count how many backstab conditions apply (0–2).
+    /// Condition 1: attacker has HIDDEN status and attack is from distance 1.
+    /// Condition 2: attacker is in the one tile directly behind the defender (distance 1 only).
+    /// </summary>
+    private int CountBackstabConditions(CombatController defender, Tile defenderTile)
     {
-        if (result.hit)
-            PopupTextController.CreateDamagePopup(result.damageDealt, result.critical, result.damageType, target);
-        else
-            PopupTextController.CreateMissPopup(target);
+        Tile attackerTile = combatController.GetCurrentTile();
+        if (attackerTile == null || defenderTile == null) return 0;
+
+        int dist = Mathf.Abs(attackerTile.x - defenderTile.x) + Mathf.Abs(attackerTile.y - defenderTile.y);
+        if (dist != 1) return 0;
+
+        int count = 0;
+
+        // Condition 1: attacker is hidden
+        if (characterSheet.HasStatusEffect(StatusEffect.EffectType.HIDDEN))
+            count++;
+
+        // Condition 2: attacker is directly behind the defender (opposite of defender's facing direction)
+        Vector2 defenderFacing = defender.GetFacingDirection();
+        Vector2 attackerDir = new Vector2(attackerTile.x - defenderTile.x, attackerTile.y - defenderTile.y);
+        // "Behind" = attacker direction is opposite to defender facing
+        // With cardinal directions, dot product of -1 means directly behind
+        float dot = Vector2.Dot(defenderFacing.normalized, attackerDir.normalized);
+        if (dot <= -0.9f)
+            count++;
+
+        return count;
     }
 
     protected override float GetAttackDuration()

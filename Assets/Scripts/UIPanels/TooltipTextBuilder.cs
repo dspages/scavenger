@@ -6,7 +6,7 @@ public static class TooltipTextBuilder
     public static (string compact, string detailed) ForEquipped(InventoryItem item, EquippableItem.EquipmentSlot slot)
     {
         if (item == null)
-            return ($"{slot}: (empty)", null);
+            return ($"{EquippableItem.GetEquipmentSlotDisplayName(slot)}: (empty)", null);
         return ForItem(item);
     }
 
@@ -27,7 +27,7 @@ public static class TooltipTextBuilder
         if (item is EquippableHandheld w)
         {
             sb.AppendLine($"Damage: {w.damage} ({w.damageType})");
-            sb.AppendLine($"Weapon: {w.weaponType} / {w.rangeType}");
+            sb.AppendLine($"Weapon: {w.handedness} / {w.rangeType}");
             if (w.minRange == w.maxRange) sb.AppendLine($"Range: {w.minRange}");
             else sb.AppendLine($"Range: {w.minRange}-{w.maxRange}");
             if (w.splashRadius > 0) sb.AppendLine($"Splash: {w.splashRadius}");
@@ -39,7 +39,7 @@ public static class TooltipTextBuilder
         {
             if (eq.armorBonus != 0) sb.AppendLine($"Armor Bonus: +{eq.armorBonus}");
             if (eq.dodgeBonus != 0) sb.AppendLine($"Dodge Bonus: +{eq.dodgeBonus}");
-            sb.AppendLine($"Slot: {eq.slot}");
+            sb.AppendLine($"Slot: {EquippableItem.GetEquipmentSlotDisplayName(eq.slot)}");
         }
 
         if (!string.IsNullOrWhiteSpace(item.description))

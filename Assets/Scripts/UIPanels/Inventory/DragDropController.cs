@@ -106,7 +106,8 @@ public class DragDropController
             refreshInventoryUI?.Invoke();
             refreshStashInventoryUI?.Invoke();
         }
-        else if (target.slotType == SlotType.Equipment && Context.payload is EquippableItem eq && eq.slot == target.equipmentSlot)
+        else if (target.slotType == SlotType.Equipment && Context.payload is EquippableItem eq && eqp != null &&
+            eqp.IsSlotCompatible(target.equipmentSlot, eq))
         {
             inv.SetItemAt(Context.sourceSlot.inventoryIndex, null);
             if (eqp.TryEquipToSlot(eq, target.equipmentSlot, out var prev))
@@ -137,7 +138,8 @@ public class DragDropController
             refreshInventoryUI?.Invoke();
             refreshStashInventoryUI?.Invoke();
         }
-        else if (target.slotType == SlotType.Equipment && Context.payload is EquippableItem eq && eq.slot == target.equipmentSlot && inv != null)
+        else if (target.slotType == SlotType.Equipment && Context.payload is EquippableItem eq && eqp != null &&
+            eqp.IsSlotCompatible(target.equipmentSlot, eq) && inv != null)
         {
             stash.SetItemAt(srcIdx, null);
             if (eqp.TryEquipToSlot(eq, target.equipmentSlot, out var prev))
@@ -163,7 +165,7 @@ public class DragDropController
                 eqp.Unequip(fromSlot);
                 inv.SetItemAt(target.inventoryIndex, Context.payload);
             }
-            else if (existing is EquippableItem existingEq && existingEq.slot == fromSlot)
+            else if (existing is EquippableItem existingEq && eqp.IsSlotCompatible(fromSlot, existingEq))
             {
                 eqp.Unequip(fromSlot);
                 inv.SetItemAt(target.inventoryIndex, Context.payload);
@@ -181,7 +183,7 @@ public class DragDropController
                 eqp.Unequip(fromSlot);
                 stash.SetItemAt(target.inventoryIndex, Context.payload);
             }
-            else if (existing is EquippableItem existingEq && existingEq.slot == fromSlot)
+            else if (existing is EquippableItem existingEq && eqp.IsSlotCompatible(fromSlot, existingEq))
             {
                 eqp.Unequip(fromSlot);
                 stash.SetItemAt(target.inventoryIndex, Context.payload);
@@ -193,12 +195,12 @@ public class DragDropController
         else if (target.slotType == SlotType.Equipment)
         {
             var fromSlot = Context.sourceSlot.equipmentSlot;
-            if (Context.payload is EquippableItem eq && eq.slot == target.equipmentSlot)
+            if (Context.payload is EquippableItem eq && eqp.IsSlotCompatible(target.equipmentSlot, eq))
             {
                 eqp.Unequip(fromSlot);
                 var prev = eqp.Unequip(target.equipmentSlot);
                 eqp.TryEquipToSlot(eq, target.equipmentSlot, out _);
-                if (prev is EquippableItem prevEq && prevEq.slot == fromSlot)
+                if (prev is EquippableItem prevEq && eqp.IsSlotCompatible(fromSlot, prevEq))
                 {
                     eqp.TryEquipToSlot(prevEq, fromSlot, out _);
                 }

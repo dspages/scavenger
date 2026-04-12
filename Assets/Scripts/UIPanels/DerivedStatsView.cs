@@ -106,7 +106,7 @@ public static class DerivedStatsView
         derivedRow.style.marginBottom = 4;
         derivedRow.Add(MakeDerivedChip("Melee +" + sheet.GetMeleeDamageBonus()));
         derivedRow.Add(MakeDerivedChip("Crit " + sheet.GetCritChancePercent() + "%"));
-        derivedRow.Add(MakeDerivedChip("Backstab +" + sheet.GetBackstabDamageBonus()));
+        derivedRow.Add(MakeDerivedChip("Backstab +" + sheet.BackstabBonus()));
         derivedRow.Add(MakeDerivedChip("Dodge +" + sheet.GetTotalGearDodgeBonus()));
         derivedRow.Add(MakeDerivedChip("Vision " + sheet.GetVisionRange()));
         container.Add(derivedRow);

@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.UI;
 
 public class PopupTextController : MonoBehaviour
 {
@@ -8,7 +7,6 @@ public class PopupTextController : MonoBehaviour
     private static GameObject canvas;
     private static PopupTextController runner;
     private const float AboveTargetOffsetYPixels = 40f;
-    private const float RightOffsetXPixels = AboveTargetOffsetYPixels * 1.5f;
 
     public static void Initialize()
     {
@@ -98,9 +96,7 @@ public class PopupTextController : MonoBehaviour
 
         var instance = Instantiate(popupTextPrefab);
         instance.transform.SetParent(canvas.transform, false);
-        // Revert to transform.position assignment (known-good visibility).
-        // We still apply a screen-space Y offset so the popup appears above the target.
-        screenPosition.x += RightOffsetXPixels;
+        // Screen-space Y offset so the popup appears above the target; keep X aligned with world point (centered on character).
         screenPosition.y += AboveTargetOffsetYPixels;
         instance.transform.position = screenPosition;
 
@@ -109,7 +105,7 @@ public class PopupTextController : MonoBehaviour
             instance.SetColor(color.Value);
     }
 
-    /// <summary>Show damage popup with damage-type color. Use for hit feedback.</summary>
+    /// <summary>Show damage popup with same colors as <see cref="DamageTypeColors.Get"/>. Use for hit feedback.</summary>
     public static void CreateDamagePopup(int damage, bool critical, DamageType damageType, Transform targetTransform)
     {
         string text = critical ? $"CRIT {damage}" : damage.ToString();

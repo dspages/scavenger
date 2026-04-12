@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class ActionGroundAttack : ActionAttack
@@ -14,11 +13,7 @@ public class ActionGroundAttack : ActionAttack
 
 	public override AbilityData GetAbilityDataForCosts() => abilityData;
 
-	public override bool IsCoolingDown()
-	{
-		return abilityData != null && characterSheet != null &&
-		       characterSheet.GetAbilityCooldownRemaining(abilityData.id) > 0;
-	}
+	public override bool IsCoolingDown() => abilityData != null && IsAbilityOnCooldown(abilityData.id);
 
 	public void ConfigureFromAbility(AbilityData data)
 	{

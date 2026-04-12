@@ -92,9 +92,6 @@ public partial class CombatController : MonoBehaviour
     virtual public bool IsPC() => false;
     virtual public bool IsEnemy() => false;
     virtual public bool ContainsEnemy(Tile tile) => tile.occupant != null;
-    virtual protected bool ContainsAlly(Tile tile) => tile.occupant != null;
-    virtual protected bool HasEnemy(Tile t) => false;
-    virtual protected bool DoesGUI() => false;
     virtual protected bool IsTileVisibleByCurrentActor(Tile tile) => true;
 
     // --- Death ---
@@ -260,10 +257,8 @@ public partial class CombatController : MonoBehaviour
         if (characterSheet == null) return null;
         string key = GetSelectedActionKey();
         if (string.IsNullOrEmpty(key)) return null;
-        if (key.EndsWith(":LeftHand"))
-            return characterSheet.GetEquippedItem(EquippableItem.EquipmentSlot.LeftHand) as EquippableHandheld;
-        if (key.EndsWith(":RightHand"))
-            return characterSheet.GetEquippedItem(EquippableItem.EquipmentSlot.RightHand) as EquippableHandheld;
+        if (CombatItemSpend.TryGetHandSlotFromActionKey(key, out var slot))
+            return characterSheet.GetEquippedItem(slot) as EquippableHandheld;
         return characterSheet.GetEquippedItem(EquippableItem.EquipmentSlot.RightHand) as EquippableHandheld;
     }
 
@@ -276,6 +271,12 @@ public partial class CombatController : MonoBehaviour
             t.searchHardCostsAffordable = true;
             if (t.searchAttackParent != null && act is ActionAttack atk)
                 t.searchHardCostsAffordable = CombatActionAffordance.CanAffordAttackFromSearchTile(this, t, atk);
+            else if (act is ActionSelfCast selfCast && t == currentTile)
+            {
+                var ability = selfCast.GetAbilityDataForCosts();
+                t.searchHardCostsAffordable = ability == null ||
+                    CombatActionAffordance.CanAffordAbilityHardInventoryCosts(ability, characterSheet);
+            }
         }
     }
 
@@ -284,12 +285,4 @@ public partial class CombatController : MonoBehaviour
         return ReachabilityResolver.IsTileInRange(fromTile, minRange, maxRange, requiresLineOfSight, x, y, manager, interposedOccupantsBlockRanged);
     }
 
-    // Legacy wrappers kept for subclass compatibility
-    protected void FindSelectableBasicTiles() => FindSelectableTiles();
-    protected void FindSelectableChargeTiles() => FindSelectableTiles();
-    protected void FindSelectableMeleeAttackTiles() => FindSelectableTiles();
-    protected void FindSelectableAllyBuffTiles() => FindSelectableTiles();
-    protected void FindSelectableMeleeReachAttackTiles() => FindSelectableTiles();
-    protected void FindSelectableRangedAttackTiles() => FindSelectableTiles();
-    protected void FindSelectableGroundAttackTiles() => FindSelectableTiles();
 }

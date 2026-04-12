@@ -2,6 +2,29 @@ using System.Collections.Generic;
 
 public class Equipment
 {
+    static readonly EquippableItem.EquipmentSlot[] AllHandSlots =
+    {
+        EquippableItem.EquipmentSlot.LeftHand,
+        EquippableItem.EquipmentSlot.RightHand,
+        EquippableItem.EquipmentSlot.ExtraHand1,
+        EquippableItem.EquipmentSlot.ExtraHand2,
+    };
+
+    public static bool IsPrimaryHandSlot(EquippableItem.EquipmentSlot slot)
+    {
+        return slot == EquippableItem.EquipmentSlot.LeftHand || slot == EquippableItem.EquipmentSlot.RightHand;
+    }
+
+    public static bool IsExtraHandSlot(EquippableItem.EquipmentSlot slot)
+    {
+        return slot == EquippableItem.EquipmentSlot.ExtraHand1 || slot == EquippableItem.EquipmentSlot.ExtraHand2;
+    }
+
+    public static bool IsAnyHandSlot(EquippableItem.EquipmentSlot slot)
+    {
+        return IsPrimaryHandSlot(slot) || IsExtraHandSlot(slot);
+    }
+
     public delegate void EquipmentChangedDelegate();
     public event EquipmentChangedDelegate OnEquipmentChanged;
 
@@ -39,12 +62,12 @@ public class Equipment
         return item;
     }
 
-    public bool IsSlotCompatible(EquippableItem.EquipmentSlot slot, InventoryItem item)
+    public virtual bool IsSlotCompatible(EquippableItem.EquipmentSlot slot, InventoryItem item)
     {
         if (item is EquippableItem eq)
         {
             // Special handling for hand slots - allow hand-held items in either hand
-            if (slot == EquippableItem.EquipmentSlot.LeftHand || slot == EquippableItem.EquipmentSlot.RightHand)
+            if (IsAnyHandSlot(slot))
             {
                 // Check if this is a hand-held item (weapon, shield, etc.)
                 if (eq is EquippableHandheld)
@@ -65,23 +88,36 @@ public class Equipment
     private bool IsHandSlotCompatible(EquippableItem.EquipmentSlot slot, EquippableItem item)
     {
         if (item is not EquippableHandheld weapon) return true;
-        
-        // Get the other hand slot
-        var otherSlot = slot == EquippableItem.EquipmentSlot.LeftHand 
-            ? EquippableItem.EquipmentSlot.RightHand 
-            : EquippableItem.EquipmentSlot.LeftHand;
-        
-        var otherWeapon = Get(otherSlot) as EquippableHandheld;
-        
-        // Edge case: If we're moving the same item between hand slots, always allow it
-        // This prevents items from blocking themselves during repositioning
-        if (otherWeapon != null && ReferenceEquals(otherWeapon, item))
+
+        // At most one shield-class item across all hand slots (KISS; revisit if stacking rules change).
+        if (weapon.handedness == EquippableHandheld.Handedness.Shield)
         {
+            foreach (var hs in AllHandSlots)
+            {
+                if (hs == slot) continue;
+                var other = Get(hs) as EquippableHandheld;
+                if (other != null && other.handedness == EquippableHandheld.Handedness.Shield
+                    && !ReferenceEquals(other, item))
+                    return false;
+            }
+        }
+
+        if (IsExtraHandSlot(slot))
+        {
+            // Extra hand slots are reserved for light handhelds.
+            if (weapon.tag != EquippableHandheld.HandheldTag.Light) return false;
+            if (weapon.handedness == EquippableHandheld.Handedness.TwoHanded) return false;
             return true;
         }
-        
-        // Check if weapons can be equipped together
-        // This checks both directions: can the new weapon dual-wield with the existing one?
+
+        // Primary hand: check compatibility against the other primary hand only.
+        var otherSlot = slot == EquippableItem.EquipmentSlot.LeftHand
+            ? EquippableItem.EquipmentSlot.RightHand
+            : EquippableItem.EquipmentSlot.LeftHand;
+
+        var otherWeapon = Get(otherSlot) as EquippableHandheld;
+        if (otherWeapon != null && ReferenceEquals(otherWeapon, item))
+            return true;
         return weapon.CanDualWieldWith(otherWeapon);
     }
 
@@ -91,7 +127,7 @@ public class Equipment
         if (item == null) return false;
         
         // For hand slots, allow hand-held items regardless of their default slot
-        if (slot == EquippableItem.EquipmentSlot.LeftHand || slot == EquippableItem.EquipmentSlot.RightHand)
+        if (IsAnyHandSlot(slot))
         {
             if (item is EquippableHandheld)
             {

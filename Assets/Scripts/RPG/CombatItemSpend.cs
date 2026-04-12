@@ -7,17 +7,28 @@ public static class CombatItemSpend
 {
     public static bool TryGetHandSlotFromActionKey(string key, out EquippableItem.EquipmentSlot slot)
     {
-        if (!string.IsNullOrEmpty(key) && key.EndsWith(":LeftHand"))
+        slot = default;
+        if (string.IsNullOrEmpty(key)) return false;
+        if (key.EndsWith(":ExtraHand2"))
+        {
+            slot = EquippableItem.EquipmentSlot.ExtraHand2;
+            return true;
+        }
+        if (key.EndsWith(":ExtraHand1"))
+        {
+            slot = EquippableItem.EquipmentSlot.ExtraHand1;
+            return true;
+        }
+        if (key.EndsWith(":LeftHand"))
         {
             slot = EquippableItem.EquipmentSlot.LeftHand;
             return true;
         }
-        if (!string.IsNullOrEmpty(key) && key.EndsWith(":RightHand"))
+        if (key.EndsWith(":RightHand"))
         {
             slot = EquippableItem.EquipmentSlot.RightHand;
             return true;
         }
-        slot = default;
         return false;
     }
 

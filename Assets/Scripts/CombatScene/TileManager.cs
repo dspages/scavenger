@@ -16,7 +16,6 @@ public class TileManager : MonoBehaviour
         {
             for (int y = 0; y < Globals.COMBAT_HEIGHT; y++)
             {
-                int maxPick = tilePrefabs.Length;
                 int randPick = Globals.rng.Next(0, tilePrefabs.Length);
                 GameObject selectedPrefab = tilePrefabs[randPick];
                 GameObject newTile = Instantiate(selectedPrefab, new Vector3(x, y, 0), Quaternion.identity);
@@ -31,7 +30,6 @@ public class TileManager : MonoBehaviour
         PlayerParty.SpawnPartyMembers(manager);
         EnemyParty.SpawnPartyMembers(manager);
 
-        //manager.combatants.Sort(new SortCombatants());
         manager.InitiateCombat();
         // Vision: VisionSystem.InitializeVisionSystemWhenReady() runs on VisionSystem.Start and calls UpdateVision()
         // once tiles + dictionaries are ready. Do not call UpdateVision() here — it races before that init.

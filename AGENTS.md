@@ -11,6 +11,7 @@ Use the project skill under **`.cursor/skills/<name>/SKILL.md`** that matches th
 | `scavenger-data-persistence` | Saves, checkpoints, JsonUtility, items/abilities; extend when weekly assignments or meta become save-backed |
 | `scavenger-coding-principles` | Implementation principles, pitfalls, DRY habits; refactoring or choosing how to implement |
 | `scavenger-conventions` | Formatting, naming, tooling, directory layout / where new files go |
+| `scavenger-agent-routing` | Choose the right specialist subagent (rules, grid, flow/AI, UI, persistence, catalogs) and handoff cleanly; see [`reference.md`](.cursor/skills/scavenger-agent-routing/reference.md) for escalation and anti-drift |
 | `scavenger-change-companion` | With a change: regression tests, light doc/skill updates; [`reference.md`](.cursor/skills/scavenger-change-companion/reference.md) for big refactors and player guide |
 
 If you cannot finish or verify work, say so—do not imply success.

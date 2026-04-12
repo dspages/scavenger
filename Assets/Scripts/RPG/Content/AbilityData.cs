@@ -1,5 +1,12 @@
 public class AbilityData
 {
+    public enum Theme
+    {
+        Physical,
+        Magic,
+        Gadget,
+    }
+
     public enum Archetype
     {
         MeleeAttack,
@@ -13,6 +20,8 @@ public class AbilityData
     public string displayName;
     public string description;
 
+    /// <summary>Primary balance theme for this ability (used by UI and future per-theme systems).</summary>
+    public Theme theme = Theme.Physical;
     public Archetype archetype;
     public int actionPointCost = 10;
 
@@ -30,7 +39,7 @@ public class AbilityData
     public int minRange = 1;
     public int maxRange = 1;
     public int radius;
-    public float lungeDistance = 0.3f;
+    public float lungeDistance = 0.3f; // Cosmetic jolt of the character when they attack
 
     /// <summary>Optional override for ammo registry id when this ability supplies a different ammo type than the weapon default.</summary>
     public string ammoTypeOverride;

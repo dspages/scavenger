@@ -1,0 +1,20 @@
+{
+    "name": "Scavenger.Tests.Editor",
+    "rootNamespace": "",
+    "references": [
+        "Scavenger.Game"
+    ],
+    "optionalUnityReferences": [
+        "TestAssemblies"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

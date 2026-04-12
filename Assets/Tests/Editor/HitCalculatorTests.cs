@@ -215,4 +215,12 @@ public class HitCalculatorTests
 
         Assert.AreEqual(0.20f, chance, 0.001f);
     }
+
+    [Test]
+    public void PublicClampConstants_AlignWithRpgCombatBalancePercents()
+    {
+        Assert.AreEqual(RpgCombatBalance.MinHitChancePercent / 100f, HitCalculator.MIN_HIT_CHANCE, 0.0001f);
+        Assert.AreEqual(RpgCombatBalance.MaxHitChancePercent / 100f, HitCalculator.MAX_HIT_CHANCE, 0.0001f);
+        Assert.AreEqual(RpgCombatBalance.MaxCritChancePercent / 100f, HitCalculator.MAX_CRIT_CHANCE, 0.0001f);
+    }
 }
